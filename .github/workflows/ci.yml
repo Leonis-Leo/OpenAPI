@@ -35,8 +35,8 @@ jobs:
     env:
       # 在 GitHub 仓库 Settings -> Secrets and variables -> Actions 中配置以下三个 secret：
       # APIFOX_ACCESS_TOKEN：Apifox 项目设置 -> 高级设置 -> API 访问令牌
-      # APIFOX_TEST_SUITE_ID：Apifox 自动化测试 -> 场景用例/测试套件 -> CI/CD 命令里的 -t 值
-      # APIFOX_ENV_ID：Apifox CI/CD 命令里的 -e 值（运行环境）
+      # APIFOX_TEST_SUITE_ID：Apifox 场景用例 ID（OpenAPI 项目 8662244 当前为 8584503）
+      # APIFOX_ENV_ID：Apifox 环境 ID（开发环境为 47907739）
       APIFOX_ACCESS_TOKEN: ${{ secrets.APIFOX_ACCESS_TOKEN }}
       APIFOX_TEST_SUITE_ID: ${{ secrets.APIFOX_TEST_SUITE_ID }}
       APIFOX_ENV_ID: ${{ secrets.APIFOX_ENV_ID }}
