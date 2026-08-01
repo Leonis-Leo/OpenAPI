@@ -13,21 +13,37 @@ const SECRET_KEY = 'demo-secret-key';
 const timestamp = String(Date.now());
 const nonce = CryptoJS.lib.WordArray.random(8).toString();
 
-// 1. 收集 query 参数
 const params = {};
-(pm.request.url.query || []).forEach((q) => {
-    if (q && q.key) {
-        params[q.key] = q.value === undefined ? '' : String(q.value);
-    }
-});
 
-// 2. 收集表单参数（POST urlencoded）
-if (pm.request.body && pm.request.body.mode === 'urlencoded' && pm.request.body.urlencoded) {
-    pm.request.body.urlencoded.forEach((item) => {
-        if (item && item.key) {
-            params[item.key] = item.value === undefined ? '' : String(item.value);
+// 1. 收集 query 参数（兼容数组与对象两种形态）
+const query = pm.request.url.query;
+if (Array.isArray(query)) {
+    query.forEach((q) => {
+        if (q && q.key) {
+            params[q.key] = q.value === undefined ? '' : String(q.value);
         }
     });
+} else if (query && typeof query === 'object') {
+    Object.keys(query).forEach((k) => {
+        params[k] = query[k] === undefined ? '' : String(query[k]);
+    });
+}
+
+// 2. 收集表单参数（兼容数组与对象两种形态）
+const body = pm.request.body;
+if (body && body.mode === 'urlencoded') {
+    const form = body.urlencoded;
+    if (Array.isArray(form)) {
+        form.forEach((item) => {
+            if (item && item.key) {
+                params[item.key] = item.value === undefined ? '' : String(item.value);
+            }
+        });
+    } else if (form && typeof form === 'object') {
+        Object.keys(form).forEach((k) => {
+            params[k] = form[k] === undefined ? '' : String(form[k]);
+        });
+    }
 }
 
 // 3. 加入 timestamp / nonce
@@ -45,10 +61,17 @@ const content = pm.request.method.toUpperCase() + '\n' + path + '\n' + sorted;
 const signature = CryptoJS.HmacSHA256(content, SECRET_KEY).toString(CryptoJS.enc.Hex);
 
 // 6. 注入签名请求头
-pm.request.headers.upsert({ key: 'X-Access-Key', value: ACCESS_KEY });
-pm.request.headers.upsert({ key: 'X-Timestamp', value: timestamp });
-pm.request.headers.upsert({ key: 'X-Nonce', value: nonce });
-pm.request.headers.upsert({ key: 'X-Signature', value: signature });
+function setHeader(key, value) {
+    if (typeof pm.request.headers.upsert === 'function') {
+        pm.request.headers.upsert({ key: key, value: value });
+    } else {
+        pm.request.headers.add({ key: key, value: value });
+    }
+}
+setHeader('X-Access-Key', ACCESS_KEY);
+setHeader('X-Timestamp', timestamp);
+setHeader('X-Nonce', nonce);
+setHeader('X-Signature', signature);
 
 console.log('signContent:', content);
 console.log('signature:', signature);
