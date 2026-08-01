@@ -5,6 +5,9 @@ import com.openapi.backend.service.UserService;
 import com.openapi.common.exception.BusinessException;
 import com.openapi.common.model.ApiResponse;
 import com.openapi.common.model.enums.ErrorCode;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,14 +18,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/v1/user")
 @RequiredArgsConstructor
+@Tag(name = "用户管理")
 public class UserController {
 
     private final UserService userService;
 
     @PostMapping("/register")
-    public ApiResponse<User> register(@RequestParam String userAccount,
-                                      @RequestParam String userPassword,
-                                      @RequestParam(required = false) String userName) {
+    @Operation(summary = "用户注册")
+    public ApiResponse<User> register(
+            @Parameter(description = "账号", example = "admin") @RequestParam String userAccount,
+            @Parameter(description = "密码", example = "123456") @RequestParam String userPassword,
+            @Parameter(description = "昵称", example = "管理员") @RequestParam(required = false) String userName) {
         if (!StringUtils.hasText(userAccount) || !StringUtils.hasText(userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号或密码不能为空");
         }
@@ -30,7 +36,10 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ApiResponse<User> login(@RequestParam String userAccount, @RequestParam String userPassword) {
+    @Operation(summary = "用户登录")
+    public ApiResponse<User> login(
+            @Parameter(description = "账号", example = "admin") @RequestParam String userAccount,
+            @Parameter(description = "密码", example = "123456") @RequestParam String userPassword) {
         return ApiResponse.ok(userService.login(userAccount, userPassword));
     }
 }

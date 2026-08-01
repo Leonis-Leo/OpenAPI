@@ -1,6 +1,9 @@
 package com.openapi.backend.controller;
 
 import com.openapi.common.model.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,18 +18,23 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 @RestController
 @RequestMapping("/api/demo")
+@Tag(name = "演示接口")
 public class DemoController {
 
     private static final String[] NAMES = {"Alice", "Bob", "Charlie", "David", "Emma"};
 
     @GetMapping("/name")
-    public ApiResponse<String> randomName(@RequestParam(required = false) String prefix) {
+    @Operation(summary = "随机名称")
+    public ApiResponse<String> randomName(
+            @Parameter(description = "名称前缀", example = "Hi-") @RequestParam(required = false) String prefix) {
         String base = NAMES[ThreadLocalRandom.current().nextInt(NAMES.length)];
         return ApiResponse.ok(prefix == null ? base : prefix + base);
     }
 
     @PostMapping("/echo")
-    public ApiResponse<Map<String, String>> echo(@RequestParam Map<String, String> params) {
+    @Operation(summary = "参数回显")
+    public ApiResponse<Map<String, String>> echo(
+            @Parameter(description = "任意表单参数", example = "hello=world") @RequestParam Map<String, String> params) {
         return ApiResponse.ok(params);
     }
 }
