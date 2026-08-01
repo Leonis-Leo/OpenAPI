@@ -10,9 +10,13 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     env:
-      # 在 GitHub 仓库 Settings -> Secrets and variables -> Actions 中配置：
-      # APIFOX_CI_URL：Apifox 自动化测试 -> 持续集成 里生成的带 token 的运行命令 URL
-      APIFOX_CI_URL: ${{ secrets.APIFOX_CI_URL }}
+      # 在 GitHub 仓库 Settings -> Secrets and variables -> Actions 中配置以下三个 secret：
+      # APIFOX_ACCESS_TOKEN：Apifox 项目设置 -> 高级设置 -> API 访问令牌
+      # APIFOX_TEST_SUITE_ID：Apifox 自动化测试 -> 场景用例/测试套件 -> CI/CD 命令里的 -t 值
+      # APIFOX_ENV_ID：Apifox CI/CD 命令里的 -e 值（运行环境）
+      APIFOX_ACCESS_TOKEN: ${{ secrets.APIFOX_ACCESS_TOKEN }}
+      APIFOX_TEST_SUITE_ID: ${{ secrets.APIFOX_TEST_SUITE_ID }}
+      APIFOX_ENV_ID: ${{ secrets.APIFOX_ENV_ID }}
 
     steps:
       - uses: actions/checkout@v4
@@ -47,12 +51,15 @@ jobs:
           if-no-files-found: error
 
       - name: Run Apifox automated tests
-        if: env.APIFOX_CI_URL != ''
+        if: env.APIFOX_ACCESS_TOKEN != '' && env.APIFOX_TEST_SUITE_ID != ''
         env:
-          APIFOX_CI_URL: ${{ secrets.APIFOX_CI_URL }}
+          APIFOX_ACCESS_TOKEN: ${{ secrets.APIFOX_ACCESS_TOKEN }}
+          APIFOX_TEST_SUITE_ID: ${{ secrets.APIFOX_TEST_SUITE_ID }}
+          APIFOX_ENV_ID: ${{ secrets.APIFOX_ENV_ID }}
         run: |
-          npm install -g apifox-cli
-          apifox run "$APIFOX_CI_URL" -r cli,json
+          npm install -g apifox-cli@latest
+          apifox run --access-token "$APIFOX_ACCESS_TOKEN" -t "$APIFOX_TEST_SUITE_ID" \
+            -e "$APIFOX_ENV_ID" -n 1 -r cli,json
 
       - name: Upload Apifox test reports
         if: ${{ !cancelled() }}
