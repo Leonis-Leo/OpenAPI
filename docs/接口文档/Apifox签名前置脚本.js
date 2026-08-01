@@ -15,17 +15,24 @@ const nonce = CryptoJS.lib.WordArray.random(8).toString();
 
 const params = {};
 
+function addParam(key, value) {
+    const v = value === undefined ? '' : String(value);
+    if (v !== '') {
+        params[key] = v;
+    }
+}
+
 // 1. 收集 query 参数（兼容数组与对象两种形态）
 const query = pm.request.url.query;
 if (Array.isArray(query)) {
     query.forEach((q) => {
         if (q && q.key) {
-            params[q.key] = q.value === undefined ? '' : String(q.value);
+            addParam(q.key, q.value);
         }
     });
 } else if (query && typeof query === 'object') {
     Object.keys(query).forEach((k) => {
-        params[k] = query[k] === undefined ? '' : String(query[k]);
+        addParam(k, query[k]);
     });
 }
 
@@ -36,12 +43,12 @@ if (body && body.mode === 'urlencoded') {
     if (Array.isArray(form)) {
         form.forEach((item) => {
             if (item && item.key) {
-                params[item.key] = item.value === undefined ? '' : String(item.value);
+                addParam(item.key, item.value);
             }
         });
     } else if (form && typeof form === 'object') {
         Object.keys(form).forEach((k) => {
-            params[k] = form[k] === undefined ? '' : String(form[k]);
+            addParam(k, form[k]);
         });
     }
 }
