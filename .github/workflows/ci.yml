@@ -9,6 +9,29 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: '123456'
+          MYSQL_DATABASE: openapi
+          TZ: Asia/Shanghai
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -p123456"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     env:
       # 在 GitHub 仓库 Settings -> Secrets and variables -> Actions 中配置以下三个 secret：
       # APIFOX_ACCESS_TOKEN：Apifox 项目设置 -> 高级设置 -> API 访问令牌
@@ -30,6 +53,18 @@ jobs:
 
       - name: Build with Maven
         run: mvn -B -ntp package -DskipTests
+
+      - name: Initialize database
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends default-mysql-client
+          for i in $(seq 1 30); do
+            if mysql -h 127.0.0.1 -uroot -p123456 -e 'SELECT 1' 2>/dev/null; then
+              echo "MySQL ready"
+              break
+            fi
+            sleep 2
+          done
+          mysql -h 127.0.0.1 -uroot -p123456 < db/init.sql
 
       - name: Start backend and export OpenAPI spec
         run: |
