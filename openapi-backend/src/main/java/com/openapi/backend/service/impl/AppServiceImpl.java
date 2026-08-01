@@ -20,6 +20,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         app.setAccessKey("AK" + KeyGeneratorUtils.generateKey(16));
         app.setSecretKey("SK" + KeyGeneratorUtils.generateKey(32));
         app.setStatus(1);
+        app.setIsDelete(0);
         save(app);
         return app;
     }

@@ -24,6 +24,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUserPassword(PasswordUtils.sha256(userPassword));
         user.setUserName(StringUtils.hasText(userName) ? userName : userAccount);
         user.setUserRole("user");
+        user.setIsDelete(0);
         save(user);
         return user;
     }
