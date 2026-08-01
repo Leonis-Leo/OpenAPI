@@ -18,10 +18,10 @@ flowchart LR
 
 ## Apifox 侧配置
 
-1. 导入接口文档：接口管理 → 导入数据 → OpenAPI/Swagger → 从 URL 导入 `http://localhost:8101/v3/api-docs`（或文件 `docs/接口文档/openapi.json`）
+1. 导入接口文档：接口管理 → 导入数据 → OpenAPI/Swagger → 从 URL 导入 `http://localhost:8101/v3/api-docs`（或文件 `docs/05-接口文档/openapi.json`）
 2. 导入时勾选「自动生成成功用例」；从「接口」生成的用例**参数值为空**，需手动填写或改从「接口用例」导入
 3. 运行环境（`47907739` 开发环境）Base URL = `http://localhost:8101`
-4. 受签名保护的 `/api/**` 接口：在测试场景「前置操作」粘贴签名脚本（见 `docs/接口文档/Apifox签名前置脚本.js`）
+4. 受签名保护的 `/api/**` 接口：在测试场景「前置操作」粘贴签名脚本（见 `docs/05-接口文档/Apifox签名前置脚本.js`）
 
 ## Apifox CLI 使用
 
