@@ -22,17 +22,28 @@ function addParam(key, value) {
     }
 }
 
+function normalizeValue(raw) {
+    // Apifox 的 query/form 值可能是 PostmanQueryParam 对象，需要取 .value
+    if (raw && typeof raw === 'object' && 'value' in raw) {
+        return raw.value;
+    }
+    return raw;
+}
+
 // 1. 收集 query 参数（兼容数组与对象两种形态）
 const query = pm.request.url.query;
 if (Array.isArray(query)) {
     query.forEach((q) => {
         if (q && q.key) {
-            addParam(q.key, q.value);
+            addParam(q.key, normalizeValue(q.value));
         }
     });
 } else if (query && typeof query === 'object') {
     Object.keys(query).forEach((k) => {
-        addParam(k, query[k]);
+        if (k.indexOf('_postman') === 0) {
+            return; // 跳过 Apifox 内部字段
+        }
+        addParam(k, normalizeValue(query[k]));
     });
 }
 
@@ -43,12 +54,15 @@ if (body && body.mode === 'urlencoded') {
     if (Array.isArray(form)) {
         form.forEach((item) => {
             if (item && item.key) {
-                addParam(item.key, item.value);
+                addParam(item.key, normalizeValue(item.value));
             }
         });
     } else if (form && typeof form === 'object') {
         Object.keys(form).forEach((k) => {
-            addParam(k, form[k]);
+            if (k.indexOf('_postman') === 0) {
+                return;
+            }
+            addParam(k, normalizeValue(form[k]));
         });
     }
 }
