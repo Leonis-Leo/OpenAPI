@@ -1,0 +1,21 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: openapi-gateway
+  main:
+    web-application-type: reactive
+  cloud:
+    gateway:
+      routes:
+        - id: openapi-api-route
+          # 骨架阶段使用静态地址，后续可接入 Nacos 后改为 lb://openapi-backend
+          uri: http://localhost:8101
+          predicates:
+            - Path=/api/**
+
+openapi:
+  sign:
+    # 允许的最大请求时间偏差（毫秒）
+    max-clock-skew-millis: 300000
