@@ -15,13 +15,6 @@ const nonce = CryptoJS.lib.WordArray.random(8).toString();
 
 const params = {};
 
-function addParam(key, value) {
-    const v = value === undefined ? '' : String(value);
-    if (v !== '') {
-        params[key] = v;
-    }
-}
-
 function normalizeValue(raw) {
     // Apifox 的 query/form 值可能是 PostmanQueryParam 对象，需要取 .value
     if (raw && typeof raw === 'object' && 'value' in raw) {
@@ -30,41 +23,44 @@ function normalizeValue(raw) {
     return raw;
 }
 
-// 1. 收集 query 参数（兼容数组与对象两种形态）
-const query = pm.request.url.query;
-if (Array.isArray(query)) {
-    query.forEach((q) => {
-        if (q && q.key) {
-            addParam(q.key, normalizeValue(q.value));
-        }
-    });
-} else if (query && typeof query === 'object') {
-    Object.keys(query).forEach((k) => {
-        if (k.indexOf('_postman') === 0) {
-            return; // 跳过 Apifox 内部字段
-        }
-        addParam(k, normalizeValue(query[k]));
-    });
-}
+// Apifox 的 query/form 是 PropertyList 结构，真实参数在 .members 数组中
+const SKIP_KEYS = ['Type', 'members', 'reference'];
 
-// 2. 收集表单参数（兼容数组与对象两种形态）
-const body = pm.request.body;
-if (body && body.mode === 'urlencoded') {
-    const form = body.urlencoded;
-    if (Array.isArray(form)) {
-        form.forEach((item) => {
+function collect(list) {
+    if (!list) {
+        return;
+    }
+    if (Array.isArray(list)) {
+        list.forEach((item) => {
             if (item && item.key) {
-                addParam(item.key, normalizeValue(item.value));
+                const v = normalizeValue(item.value);
+                if (v !== undefined && v !== '') {
+                    params[item.key] = String(v);
+                }
             }
         });
-    } else if (form && typeof form === 'object') {
-        Object.keys(form).forEach((k) => {
-            if (k.indexOf('_postman') === 0) {
+    } else if (Array.isArray(list.members)) {
+        collect(list.members);
+    } else if (typeof list === 'object') {
+        Object.keys(list).forEach((k) => {
+            if (SKIP_KEYS.indexOf(k) >= 0 || k.indexOf('_postman') === 0) {
                 return;
             }
-            addParam(k, normalizeValue(form[k]));
+            const v = normalizeValue(list[k]);
+            if (v !== undefined && v !== '') {
+                params[k] = String(v);
+            }
         });
     }
+}
+
+// 1. 收集 query 参数
+collect(pm.request.url.query);
+
+// 2. 收集表单参数（POST x-www-form-urlencoded）
+const body = pm.request.body;
+if (body && body.mode === 'urlencoded') {
+    collect(body.urlencoded);
 }
 
 // 3. 加入 timestamp / nonce
