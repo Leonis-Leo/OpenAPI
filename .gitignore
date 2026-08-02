@@ -36,3 +36,6 @@ erl_crash.dump
 *.pid
 
 .edge-test/
+
+# Codex 插件运行环境（planning-with-files 自动安装）
+.codex/
