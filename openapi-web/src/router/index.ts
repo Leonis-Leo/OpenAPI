@@ -38,6 +38,12 @@ const router = createRouter({
           name: 'subscribes',
           component: () => import('@/views/SubscribeManage.vue'),
           meta: { title: '订阅审批' }
+        },
+        {
+          path: 'stats',
+          name: 'stats',
+          component: () => import('@/views/StatsView.vue'),
+          meta: { title: '调用统计' }
         }
       ]
     }

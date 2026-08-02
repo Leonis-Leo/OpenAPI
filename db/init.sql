@@ -71,6 +71,21 @@ CREATE TABLE IF NOT EXISTS `interface_subscribe`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='接口订阅表';
 
+-- 接口调用日志表（MQ 消费者异步写入，用于调用统计）
+CREATE TABLE IF NOT EXISTS `invoke_log`
+(
+    `id`           BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `interface_id` BIGINT   NOT NULL COMMENT '接口 ID',
+    `app_id`       BIGINT   NOT NULL COMMENT '应用 ID',
+    `user_id`      BIGINT   NOT NULL COMMENT '用户 ID',
+    `success`      TINYINT  DEFAULT 0 COMMENT '是否成功：0失败 1成功',
+    `cost_ms`      BIGINT   DEFAULT 0 COMMENT '调用耗时（毫秒）',
+    `create_time`  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_interface_time` (`interface_id`, `create_time`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='接口调用日志表';
+
 -- 演示数据
 INSERT INTO `user` (`user_account`, `user_password`, `user_name`, `user_role`)
 VALUES ('admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', '管理员', 'admin');

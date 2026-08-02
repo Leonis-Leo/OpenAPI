@@ -82,3 +82,22 @@ export const approve = (id: number, approved: boolean) =>
 
 export const unsubscribe = (id: number) =>
   request.post<unknown, void>('/interface/unsubscribe', null, { params: { id } })
+
+export interface StatsOverview {
+  total: number
+  success: number
+  fail: number
+  successRate: number
+}
+
+export interface DailyStat {
+  day: string
+  total: number
+  ok: number
+}
+
+export const statsOverview = () =>
+  request.get<unknown, StatsOverview>('/stats/overview')
+
+export const statsDaily = (days: number) =>
+  request.get<unknown, DailyStat[]>('/stats/daily', { params: { days } })

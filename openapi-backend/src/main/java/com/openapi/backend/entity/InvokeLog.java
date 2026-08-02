@@ -1,0 +1,41 @@
+package com.openapi.backend.entity;
+
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+
+/**
+ * 接口调用日志（由 MQ 消费者异步写入）。
+ */
+@Data
+@TableName("invoke_log")
+public class InvokeLog implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
+
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    private Long interfaceId;
+
+    private Long appId;
+
+    private Long userId;
+
+    /** 是否成功：0 失败 1 成功 */
+    private Integer success;
+
+    /** 调用耗时（毫秒） */
+    private Long costMs;
+
+    @TableField(fill = FieldFill.INSERT)
+    private LocalDateTime createTime;
+}

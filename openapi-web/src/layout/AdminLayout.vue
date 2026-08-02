@@ -15,6 +15,9 @@
         <el-menu-item index="/subscribes">
           <span>订阅审批</span>
         </el-menu-item>
+        <el-menu-item index="/stats">
+          <span>调用统计</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

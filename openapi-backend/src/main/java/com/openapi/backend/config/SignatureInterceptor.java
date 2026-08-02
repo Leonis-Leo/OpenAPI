@@ -6,6 +6,7 @@ import com.openapi.backend.entity.App;
 import com.openapi.backend.entity.InterfaceInfo;
 import com.openapi.backend.mapper.AppMapper;
 import com.openapi.backend.mapper.InterfaceInfoMapper;
+import com.openapi.backend.mq.InvokeLogMessage;
 import com.openapi.backend.service.InterfaceSubscribeService;
 import com.openapi.common.constant.SignConstant;
 import com.openapi.common.model.ApiResponse;
@@ -15,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -39,6 +41,7 @@ public class SignatureInterceptor implements HandlerInterceptor {
     private final InterfaceSubscribeService subscribeService;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
+    private final RabbitTemplate rabbitTemplate;
 
     @Value("${openapi.sign.max-clock-skew-millis:300000}")
     private long maxClockSkewMillis;
@@ -97,7 +100,33 @@ public class SignatureInterceptor implements HandlerInterceptor {
         }
 
         request.setAttribute("openapi.app", app);
+        request.setAttribute("openapi.startTime", System.currentTimeMillis());
+        request.setAttribute("openapi.interfaceId", interfaceInfo == null ? null : interfaceInfo.getId());
         return true;
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler,
+                                Exception ex) {
+        try {
+            Long startTime = (Long) request.getAttribute("openapi.startTime");
+            App app = (App) request.getAttribute("openapi.app");
+            if (startTime == null || app == null) {
+                return;
+            }
+            InvokeLogMessage message = new InvokeLogMessage();
+            message.setInterfaceId((Long) request.getAttribute("openapi.interfaceId"));
+            message.setAppId(app.getId());
+            message.setUserId(app.getUserId());
+            message.setSuccess(response.getStatus() < 400);
+            message.setCostMs(System.currentTimeMillis() - startTime);
+            rabbitTemplate.convertAndSend(
+                    RabbitConstant.EXCHANGE_INVOKE,
+                    RabbitConstant.ROUTING_INVOKE_LOG,
+                    message);
+        } catch (Exception e) {
+            log.warn("发布调用日志消息失败", e);
+        }
     }
 
     private boolean reject(HttpServletResponse response, ErrorCode errorCode) throws IOException {

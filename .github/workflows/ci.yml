@@ -32,6 +32,15 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     env:
       # 在 GitHub 仓库 Settings -> Secrets and variables -> Actions 中配置以下三个 secret：
       # APIFOX_ACCESS_TOKEN：Apifox 项目设置 -> 高级设置 -> API 访问令牌

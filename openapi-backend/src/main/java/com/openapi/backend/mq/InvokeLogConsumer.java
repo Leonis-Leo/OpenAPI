@@ -1,0 +1,31 @@
+package com.openapi.backend.mq;
+
+import com.openapi.backend.config.RabbitConstant;
+import com.openapi.backend.entity.InvokeLog;
+import com.openapi.backend.mapper.InvokeLogMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+
+/**
+ * 调用日志消费者：异步写入 invoke_log，解耦统计逻辑。
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class InvokeLogConsumer {
+
+    private final InvokeLogMapper invokeLogMapper;
+
+    @RabbitListener(queues = RabbitConstant.QUEUE_INVOKE_LOG)
+    public void handle(InvokeLogMessage message) {
+        InvokeLog log = new InvokeLog();
+        log.setInterfaceId(message.getInterfaceId());
+        log.setAppId(message.getAppId());
+        log.setUserId(message.getUserId());
+        log.setSuccess(message.isSuccess() ? 1 : 0);
+        log.setCostMs(message.getCostMs());
+        invokeLogMapper.insert(log);
+    }
+}
