@@ -55,7 +55,7 @@ public class SignatureGuardFilter implements GlobalFilter, Ordered {
         }
 
         // Redis + Lua 令牌桶限流（按接口配置，未配置时按 AccessKey）
-        return rateLimiter.tryAcquire(accessKey, request.getMethod().name(), request.getURI().getPath())
+        return rateLimiter.tryAcquire(accessKey, request.getURI().getPath())
                 .flatMap(allowed -> {
                     if (!allowed) {
                         return writeJson(exchange, ErrorCode.RATE_LIMITED, HttpStatus.TOO_MANY_REQUESTS);

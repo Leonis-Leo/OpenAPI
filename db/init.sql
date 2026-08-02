@@ -103,6 +103,22 @@ CREATE TABLE IF NOT EXISTS `rate_limit_config`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='接口限流配置表';
 
+-- 应用限流配置表（按应用维度限流）
+CREATE TABLE IF NOT EXISTS `app_rate_limit_config`
+(
+    `id`           BIGINT  NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `app_id`       BIGINT  NOT NULL COMMENT '应用 ID',
+    `capacity`     INT     DEFAULT 20 COMMENT '令牌桶容量',
+    `refill_rate`  INT     DEFAULT 5 COMMENT '每秒补充令牌数',
+    `enabled`      TINYINT DEFAULT 1 COMMENT '是否启用：0否 1是',
+    `create_time`  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_delete`    TINYINT DEFAULT 0 COMMENT '是否删除：0否 1是',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_app` (`app_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='应用限流配置表';
+
 -- 演示数据
 INSERT INTO `user` (`user_account`, `user_password`, `user_name`, `user_role`)
 VALUES ('admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', '管理员', 'admin');

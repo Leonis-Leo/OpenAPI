@@ -21,8 +21,5 @@ openapi:
     max-clock-skew-millis: 300000
   rate-limit:
     enabled: true
-    # 令牌桶容量（桶内最多令牌数）
-    capacity: 20
-    # 每秒补充令牌数
-    refill-rate: 5
     key-prefix: "openapi:ratelimit:"
+    config-prefix: "openapi:ratelimit:config:"

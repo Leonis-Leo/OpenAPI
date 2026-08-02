@@ -15,10 +15,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
- * 网关限流器：Redis + Lua 令牌桶。
+ * 网关限流器：Redis + Lua 令牌桶，两个维度——按应用（AccessKey）与按接口（method:path）。
  *
- * <p>优先读取管理平台配置的「按接口限流」配置（Redis 缓存，key 为 method:path），
- * 未配置或未启用时回退到全局按 AccessKey 限流。</p>
+ * <p>每个维度独立读取管理平台配置（Redis 缓存），启用才限流，未配置则该维度不限流。</p>
  */
 @Slf4j
 @Component
@@ -35,12 +34,6 @@ public class RateLimiter {
     @Value("${openapi.rate-limit.enabled:true}")
     private boolean enabled;
 
-    @Value("${openapi.rate-limit.capacity:20}")
-    private long capacity;
-
-    @Value("${openapi.rate-limit.refill-rate:5}")
-    private long refillRate;
-
     @Value("${openapi.rate-limit.key-prefix:openapi:ratelimit:}")
     private String keyPrefix;
 
@@ -48,40 +41,42 @@ public class RateLimiter {
     private String configPrefix;
 
     /**
-     * 按 AccessKey + 接口路径限流：优先使用接口级配置，否则使用全局配置。
+     * 双维度限流：按应用 + 按接口，任一维度拒绝即拒绝。
      *
      * @return true 放行；false 触发限流
      */
-    public Mono<Boolean> tryAcquire(String accessKey, String method, String path) {
+    public Mono<Boolean> tryAcquire(String accessKey, String path) {
         if (!enabled) {
             return Mono.just(true);
         }
-        String configKey = configPrefix + method + ":" + path;
+        // 维度一：按应用（AccessKey）
+        return tryAcquireWithConfig(
+                        configPrefix + "app:" + accessKey,
+                        keyPrefix + accessKey)
+                .flatMap(appAllowed -> {
+                    if (!appAllowed) {
+                        return Mono.just(false);
+                    }
+                    // 维度二：按接口（path）
+                    return tryAcquireWithConfig(
+                            configPrefix + path,
+                            keyPrefix + "i:" + path);
+                });
+    }
+
+    /**
+     * 读取某维度的限流配置并扣减令牌；未配置或未启用则放行。
+     */
+    private Mono<Boolean> tryAcquireWithConfig(String configKey, String bucketKey) {
         return redisTemplate.opsForValue().get(configKey)
                 .flatMap(json -> {
                     RateLimitConfigValue config = parseConfig(json);
                     if (config != null && config.enabled()) {
-                        return tryAcquire(keyPrefix + "i:" + method + ":" + path,
-                                config.capacity(), config.refillRate());
+                        return tryAcquire(bucketKey, config.capacity(), config.refillRate());
                     }
-                    return tryAcquireGlobal(accessKey);
+                    return Mono.just(true);
                 })
-                .switchIfEmpty(Mono.defer(() -> tryAcquireGlobal(accessKey)));
-    }
-
-    /**
-     * 全局限流（按 AccessKey）：优先读取管理平台配置的全局参数，否则用 yml 默认值。
-     */
-    private Mono<Boolean> tryAcquireGlobal(String accessKey) {
-        return redisTemplate.opsForValue().get(configPrefix + "global")
-                .flatMap(json -> {
-                    RateLimitConfigValue global = parseConfig(json);
-                    if (global != null) {
-                        return tryAcquire(keyPrefix + accessKey, global.capacity(), global.refillRate());
-                    }
-                    return tryAcquire(keyPrefix + accessKey, capacity, refillRate);
-                })
-                .switchIfEmpty(Mono.defer(() -> tryAcquire(keyPrefix + accessKey, capacity, refillRate)));
+                .switchIfEmpty(Mono.just(true));
     }
 
     private Mono<Boolean> tryAcquire(String key, long bucketCapacity, long bucketRefillRate) {

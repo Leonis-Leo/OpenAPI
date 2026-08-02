@@ -192,8 +192,25 @@ export const saveRateLimitConfig = (data: {
 export const deleteRateLimitConfig = (interfaceId: number) =>
   request.post<unknown, void>('/ratelimit/delete', null, { params: { interfaceId } })
 
-export const getGlobalRateLimit = () =>
-  request.get<unknown, { capacity: number; refillRate: number }>('/ratelimit/global')
+export interface AppRateLimitConfig {
+  appId: number
+  appName: string
+  accessKey: string
+  capacity: number
+  refillRate: number
+  enabled: boolean
+  configured?: boolean
+}
 
-export const saveGlobalRateLimit = (capacity: number, refillRate: number) =>
-  request.post<unknown, void>('/ratelimit/global/save', null, { params: { capacity, refillRate } })
+export const listAppRateLimitConfigs = () =>
+  request.get<unknown, AppRateLimitConfig[]>('/ratelimit/apps')
+
+export const saveAppRateLimitConfig = (data: {
+  appId: number
+  capacity: number
+  refillRate: number
+  enabled: boolean
+}) => request.post<unknown, void>('/ratelimit/app/save', null, { params: data })
+
+export const deleteAppRateLimitConfig = (appId: number) =>
+  request.post<unknown, void>('/ratelimit/app/delete', null, { params: { appId } })

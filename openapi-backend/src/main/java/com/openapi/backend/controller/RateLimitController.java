@@ -57,20 +57,30 @@ public class RateLimitController {
         return ApiResponse.ok();
     }
 
-    @GetMapping("/global")
-    @Operation(summary = "全局限流配置（管理员）")
-    public ApiResponse<Map<String, Object>> global(HttpServletRequest request) {
+    @GetMapping("/apps")
+    @Operation(summary = "应用限流配置列表（管理员）")
+    public ApiResponse<List<Map<String, Object>>> apps(HttpServletRequest request) {
         requireAdmin(request);
-        return ApiResponse.ok(rateLimitConfigService.getGlobalConfig());
+        return ApiResponse.ok(rateLimitConfigService.listAppsWithConfig());
     }
 
-    @PostMapping("/global/save")
-    @Operation(summary = "保存全局限流配置（管理员）")
-    public ApiResponse<Void> saveGlobal(@RequestParam int capacity,
-                                        @RequestParam int refillRate,
-                                        HttpServletRequest request) {
+    @PostMapping("/app/save")
+    @Operation(summary = "保存应用限流配置（管理员）")
+    public ApiResponse<Void> saveApp(@RequestParam Long appId,
+                                     @RequestParam int capacity,
+                                     @RequestParam int refillRate,
+                                     @RequestParam Boolean enabled,
+                                     HttpServletRequest request) {
         requireAdmin(request);
-        rateLimitConfigService.saveGlobalConfig(capacity, refillRate);
+        rateLimitConfigService.saveAppConfig(appId, capacity, refillRate, enabled);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/app/delete")
+    @Operation(summary = "删除应用限流配置（管理员）")
+    public ApiResponse<Void> deleteApp(@RequestParam Long appId, HttpServletRequest request) {
+        requireAdmin(request);
+        rateLimitConfigService.deleteAppConfig(appId);
         return ApiResponse.ok();
     }
 
