@@ -116,20 +116,38 @@
           <pre class="json-block">{{ prettyJson(debugInterface?.responseExample) }}</pre>
         </el-tab-pane>
         <el-tab-pane label="在线调试" name="debug">
-          <el-form label-width="90px">
+          <div class="debug-header">
+            <el-tag :type="debugInterface?.method === 'GET' ? 'success' : 'warning'" size="small">
+              {{ debugInterface?.method }}
+            </el-tag>
+            <span class="debug-url">{{ debugInterface?.url }}</span>
+          </div>
+          <el-form label-width="90px" class="debug-form">
             <el-form-item label="调试应用">
               <el-select v-model="debugAppId" placeholder="选择应用（需已订阅）" style="width: 100%">
                 <el-option v-for="app in apps" :key="app.id" :label="app.appName" :value="app.id" />
               </el-select>
             </el-form-item>
             <el-form-item v-for="key in debugParamKeys" :key="key" :label="key">
-              <el-input v-model="debugParams[key]" :placeholder="paramDescription(key)" />
+              <el-input v-model="debugParams[key]" :placeholder="paramDescription(key)" clearable />
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" :loading="debugLoading" @click="handleDebug">发送请求</el-button>
+              <el-button type="primary" :loading="debugLoading" @click="handleDebug">
+                发送请求
+              </el-button>
+              <el-button v-if="debugBody || debugStatus !== null" @click="clearDebug">清空</el-button>
             </el-form-item>
           </el-form>
-          <pre v-if="debugResult" class="json-block">{{ debugResult }}</pre>
+          <div v-if="debugBody || debugStatus !== null" class="debug-result">
+            <div class="debug-result-head">
+              <el-tag v-if="debugStatus !== null" :type="debugStatus < 400 ? 'success' : 'danger'" size="small">
+                HTTP {{ debugStatus }}
+              </el-tag>
+              <el-tag v-else type="danger" size="small">请求失败</el-tag>
+              <span v-if="debugCostMs !== null" class="debug-cost">{{ debugCostMs }} ms</span>
+            </div>
+            <pre class="debug-body" v-html="debugBodyHtml"></pre>
+          </div>
         </el-tab-pane>
       </el-tabs>
     </el-dialog>
@@ -225,9 +243,18 @@ const detailTab = ref('info')
 const debugInterface = ref<InterfaceInfo | null>(null)
 const debugAppId = ref<number | null>(null)
 const debugParams = ref<Record<string, string>>({})
-const debugResult = ref('')
+const debugStatus = ref<number | null>(null)
+const debugCostMs = ref<number | null>(null)
+const debugBody = ref('')
 const debugLoading = ref(false)
 const debugParamKeys = computed(() => Object.keys(debugParams.value))
+
+const debugBodyHtml = computed(() => {
+  const body = debugBody.value
+  if (!body) return ''
+  const json = prettyJson(body)
+  return highlightJson(json)
+})
 
 const filteredInterfaces = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
@@ -353,7 +380,9 @@ async function openDetail(row: InterfaceInfo | null) {
   const keys = Object.keys(parseRequestParams(detail.requestParams))
   keys.forEach((k) => (debugParams.value[k] = ''))
   debugAppId.value = apps.value[0]?.id ?? null
-  debugResult.value = ''
+  debugStatus.value = null
+  debugCostMs.value = null
+  debugBody.value = ''
   detailTab.value = 'info'
   detailVisible.value = true
 }
@@ -365,6 +394,34 @@ function parseRequestParams(json?: string): Record<string, string> {
   } catch {
     return {}
   }
+}
+
+function clearDebug() {
+  debugStatus.value = null
+  debugCostMs.value = null
+  debugBody.value = ''
+}
+
+function highlightJson(text: string): string {
+  if (!text) return ''
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  return escaped.replace(
+    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
+    (match) => {
+      let cls = 'json-number'
+      if (/^"/.test(match)) {
+        cls = /:$/.test(match) ? 'json-key' : 'json-string'
+      } else if (/true|false/.test(match)) {
+        cls = 'json-boolean'
+      } else if (/null/.test(match)) {
+        cls = 'json-null'
+      }
+      return `<span class="${cls}">${match}</span>`
+    }
+  )
 }
 
 async function handleDebug() {
@@ -390,7 +447,11 @@ async function handleDebug() {
     'X-Nonce': nonce,
     'X-Signature': signature
   }
+  debugStatus.value = null
+  debugCostMs.value = null
+  debugBody.value = ''
   debugLoading.value = true
+  const start = performance.now()
   try {
     let resp: Response
     const qs = new URLSearchParams(params).toString()
@@ -403,9 +464,12 @@ async function handleDebug() {
         body: qs
       })
     }
-    debugResult.value = `HTTP ${resp.status}\n${await resp.text()}`
+    debugStatus.value = resp.status
+    debugCostMs.value = Math.round(performance.now() - start)
+    debugBody.value = await resp.text()
   } catch (e) {
-    debugResult.value = `请求失败: ${(e as Error).message}`
+    debugCostMs.value = Math.round(performance.now() - start)
+    debugBody.value = `请求失败: ${(e as Error).message}`
   } finally {
     debugLoading.value = false
   }
@@ -514,5 +578,68 @@ onMounted(load)
   overflow: auto;
   font-size: 12px;
   white-space: pre-wrap;
+}
+.debug-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 6px;
+}
+.debug-url {
+  font-family: Consolas, Monaco, monospace;
+  font-size: 13px;
+  color: var(--el-text-color-regular, #606266);
+  word-break: break-all;
+}
+.debug-result {
+  margin-top: 4px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.debug-result-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+.debug-cost {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+}
+.debug-body {
+  margin: 0;
+  padding: 12px;
+  max-height: 260px;
+  overflow: auto;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-regular, #303133);
+}
+.debug-body .json-key {
+  color: var(--el-color-primary, #409eff);
+}
+.debug-body .json-string {
+  color: var(--el-color-success, #67c23a);
+}
+.debug-body .json-number {
+  color: var(--el-color-warning, #e6a23c);
+}
+.debug-body .json-boolean {
+  color: var(--el-color-danger, #f56c6c);
+}
+.debug-body .json-null {
+  color: var(--el-text-color-placeholder, #c0c4cc);
 }
 </style>
