@@ -52,6 +52,7 @@ public class LogController {
             @Parameter(example = "1") @RequestParam(defaultValue = "1") int current,
             @Parameter(example = "10") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "搜索：路径 / IP") @RequestParam(required = false) String keyword,
+            @Parameter(description = "结果：1 成功 / 0 失败") @RequestParam(required = false) Integer success,
             @Parameter(description = "状态码") @RequestParam(required = false) Integer statusCode,
             @Parameter(description = "开始时间 yyyy-MM-dd HH:mm:ss") @RequestParam(required = false) String startTime,
             @Parameter(description = "结束时间 yyyy-MM-dd HH:mm:ss") @RequestParam(required = false) String endTime,
@@ -60,6 +61,9 @@ public class LogController {
         LambdaQueryWrapper<InvokeLog> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w.like(InvokeLog::getPath, keyword).or().like(InvokeLog::getIp, keyword));
+        }
+        if (success != null) {
+            wrapper.eq(InvokeLog::getSuccess, success);
         }
         if (statusCode != null) {
             wrapper.eq(InvokeLog::getStatusCode, statusCode);

@@ -70,6 +70,7 @@
             </span>
             <template #dropdown>
               <el-dropdown-menu>
+                <el-dropdown-item command="profile">个人中心</el-dropdown-item>
                 <el-dropdown-item command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -77,15 +78,43 @@
         </div>
       </el-header>
       <el-main>
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <keep-alive>
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
       </el-main>
     </el-container>
   </el-container>
+
+  <el-dialog v-model="profileVisible" title="个人中心" width="420px">
+    <el-form label-width="80px">
+      <el-form-item label="账号">
+        <el-input :model-value="userStore.user?.userAccount" disabled />
+      </el-form-item>
+      <el-form-item label="昵称">
+        <el-input v-model="profileForm.userName" placeholder="请输入昵称" />
+      </el-form-item>
+      <el-form-item label="新密码">
+        <el-input
+          v-model="profileForm.userPassword"
+          type="password"
+          show-password
+          placeholder="留空则不修改密码"
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="profileVisible = false">取消</el-button>
+      <el-button type="primary" :loading="savingProfile" @click="handleSaveProfile">保存</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import {
   Box,
   Connection,
@@ -99,12 +128,16 @@ import {
   User
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
+import { selfUpdate } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const isDark = ref(document.documentElement.classList.contains('dark'))
 const isCollapse = ref(localStorage.getItem('openapi-sidebar') === '1')
+const profileVisible = ref(false)
+const savingProfile = ref(false)
+const profileForm = reactive({ userName: '', userPassword: '' })
 
 function toggleTheme(value: boolean) {
   document.documentElement.classList.toggle('dark', value)
@@ -120,6 +153,28 @@ function handleCommand(command: string) {
   if (command === 'logout') {
     userStore.logout()
     router.push('/login')
+  } else if (command === 'profile') {
+    profileForm.userName = userStore.user?.userName ?? ''
+    profileForm.userPassword = ''
+    profileVisible.value = true
+  }
+}
+
+async function handleSaveProfile() {
+  savingProfile.value = true
+  try {
+    await selfUpdate({
+      userName: profileForm.userName.trim() || undefined,
+      userPassword: profileForm.userPassword || undefined
+    })
+    if (userStore.user && profileForm.userName.trim()) {
+      userStore.user.userName = profileForm.userName.trim()
+      localStorage.setItem('openapi_user', JSON.stringify(userStore.user))
+    }
+    ElMessage.success('已保存')
+    profileVisible.value = false
+  } finally {
+    savingProfile.value = false
   }
 }
 </script>

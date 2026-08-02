@@ -115,6 +115,17 @@ public class UserController {
         return ApiResponse.ok();
     }
 
+    @PostMapping("/self-update")
+    @Operation(summary = "修改自己的昵称/密码")
+    public ApiResponse<Void> selfUpdate(
+            @RequestParam(required = false) String userName,
+            @RequestParam(required = false) String userPassword,
+            HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("openapi.userId");
+        userService.updateUser(userId, userName, userPassword);
+        return ApiResponse.ok();
+    }
+
     @PostMapping("/delete")
     @Operation(summary = "删除用户（管理员）")
     public ApiResponse<Void> delete(@RequestParam Long id, HttpServletRequest request) {

@@ -1,6 +1,8 @@
 <template>
   <div>
-    <h2>调用统计</h2>
+    <div class="toolbar">
+      <h2>调用统计</h2>
+    </div>
     <el-row :gutter="16">
       <el-col :span="6">
         <el-card class="stat-card">
@@ -53,6 +55,44 @@
       <el-empty v-if="!daily.length" description="暂无调用数据，调用接口后即可查看趋势" />
       <div v-else ref="chartRef" class="chart"></div>
     </el-card>
+    <el-row :gutter="16" class="rank-row">
+      <el-col :span="12">
+        <el-card>
+          <template #header>接口调用排行</template>
+          <el-table :data="topInterfaces" border stripe size="small" v-loading="rankLoading">
+            <el-table-column type="index" label="#" width="50" />
+            <el-table-column prop="interfaceName" label="接口" min-width="140" />
+            <el-table-column prop="total" label="调用量" width="90" />
+            <el-table-column label="成功率" width="90">
+              <template #default="{ row }">
+                <el-tag :type="row.total ? 'success' : 'info'" size="small">
+                  {{ row.total ? Math.round((row.ok / row.total) * 100) : 0 }}%
+                </el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-empty v-if="!topInterfaces.length && !rankLoading" description="暂无数据" :image-size="60" />
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card>
+          <template #header>应用调用排行</template>
+          <el-table :data="topApps" border stripe size="small" v-loading="rankLoading">
+            <el-table-column type="index" label="#" width="50" />
+            <el-table-column prop="appName" label="应用" min-width="140" />
+            <el-table-column prop="total" label="调用量" width="90" />
+            <el-table-column label="成功率" width="90">
+              <template #default="{ row }">
+                <el-tag :type="row.total ? 'success' : 'info'" size="small">
+                  {{ row.total ? Math.round((row.ok / row.total) * 100) : 0 }}%
+                </el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-empty v-if="!topApps.length && !rankLoading" description="暂无数据" :image-size="60" />
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
@@ -63,13 +103,24 @@ import { init, use, type ECharts } from 'echarts/core'
 import { LineChart } from 'echarts/charts'
 import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import { statsOverview, statsDaily, type DailyStat, type StatsOverview } from '@/api'
+import {
+  statsOverview,
+  statsDaily,
+  statsTopInterfaces,
+  statsTopApps,
+  type DailyStat,
+  type StatsOverview,
+  type TopStat
+} from '@/api'
 
 use([LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
 
 const overview = ref<StatsOverview>({ total: 0, success: 0, fail: 0, successRate: 0 })
 const daily = ref<DailyStat[]>([])
 const days = ref(7)
+const topInterfaces = ref<TopStat[]>([])
+const topApps = ref<TopStat[]>([])
+const rankLoading = ref(false)
 const chartRef = ref<HTMLDivElement>()
 let chart: ECharts | null = null
 
@@ -113,6 +164,15 @@ async function loadChart() {
 onMounted(async () => {
   overview.value = await statsOverview()
   await loadChart()
+  rankLoading.value = true
+  try {
+    ;[topInterfaces.value, topApps.value] = await Promise.all([
+      statsTopInterfaces(10),
+      statsTopApps(10)
+    ])
+  } finally {
+    rankLoading.value = false
+  }
 })
 
 onBeforeUnmount(() => {
@@ -158,6 +218,12 @@ onBeforeUnmount(() => {
 .chart-card {
   margin-top: 16px;
 }
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
 .chart {
   height: 360px;
 }
@@ -165,5 +231,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.rank-row {
+  margin-top: 16px;
 }
 </style>

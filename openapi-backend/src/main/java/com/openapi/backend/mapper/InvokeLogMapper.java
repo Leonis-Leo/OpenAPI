@@ -21,4 +21,12 @@ public interface InvokeLogMapper extends BaseMapper<InvokeLog> {
             "FROM invoke_log WHERE create_time >= #{since} " +
             "GROUP BY DATE(create_time) ORDER BY day")
     List<Map<String, Object>> dailyStats(@Param("since") LocalDateTime since);
+
+    @Select("SELECT interface_id AS interfaceId, COUNT(*) AS total, SUM(success) AS ok " +
+            "FROM invoke_log GROUP BY interface_id ORDER BY total DESC LIMIT #{limit}")
+    List<Map<String, Object>> statsByInterface(@Param("limit") int limit);
+
+    @Select("SELECT app_id AS appId, COUNT(*) AS total, SUM(success) AS ok " +
+            "FROM invoke_log GROUP BY app_id ORDER BY total DESC LIMIT #{limit}")
+    List<Map<String, Object>> statsByApp(@Param("limit") int limit);
 }

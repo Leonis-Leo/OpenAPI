@@ -3,15 +3,11 @@
     <div class="toolbar">
       <h2>API 日志</h2>
       <div class="toolbar-right">
-        <el-select
-          v-model="statusFilter"
-          placeholder="状态码"
-          clearable
-          style="width: 120px"
-          @change="reload"
-        >
-          <el-option label="成功 (<400)" :value="1" />
-          <el-option label="失败 (>=400)" :value="2" />
+        <el-select v-model="statusType" placeholder="结果" clearable style="width: 110px" @change="reload">
+          <el-option label="成功" value="success" />
+          <el-option label="失败" value="fail" />
+        </el-select>
+        <el-select v-model="statusFilter" placeholder="状态码" clearable style="width: 110px" @change="reload">
           <el-option label="401" :value="401" />
           <el-option label="403" :value="403" />
           <el-option label="429" :value="429" />
@@ -35,6 +31,7 @@
           @clear="reload"
         />
         <el-button @click="reload">搜索</el-button>
+        <el-button plain @click="exportCsv">导出 CSV</el-button>
       </div>
     </div>
 
@@ -108,9 +105,15 @@
         <el-descriptions-item label="状态码">{{ detail?.statusCode }}</el-descriptions-item>
         <el-descriptions-item label="耗时">{{ detail?.costMs }} ms</el-descriptions-item>
       </el-descriptions>
-      <h4>请求参数</h4>
+      <div class="block-toolbar">
+        <span>请求参数</span>
+        <el-button size="small" plain @click="copyText(detail?.requestParams)">复制</el-button>
+      </div>
       <pre class="json-block">{{ prettyJson(detail?.requestParams) || '-' }}</pre>
-      <h4>响应体</h4>
+      <div class="block-toolbar">
+        <span>响应体</span>
+        <el-button size="small" plain @click="copyText(detail?.responseBody)">复制</el-button>
+      </div>
       <pre class="json-block">{{ prettyJson(detail?.responseBody) || '-' }}</pre>
     </el-dialog>
   </div>
@@ -135,6 +138,7 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const keyword = ref('')
 const statusFilter = ref<number | undefined>(undefined)
+const statusType = ref<'success' | 'fail' | undefined>(undefined)
 const timeRange = ref<[Date, Date] | null>(null)
 const loading = ref(false)
 const selected = ref<ApiLog[]>([])
@@ -151,6 +155,7 @@ async function load() {
     current: currentPage.value,
     size: pageSize.value,
     keyword: keyword.value.trim() || undefined,
+    success: statusType.value === 'success' ? 1 : statusType.value === 'fail' ? 0 : undefined,
     statusCode: statusFilter.value,
     startTime: formatTime(timeRange.value?.[0]),
     endTime: formatTime(timeRange.value?.[1])
@@ -244,6 +249,45 @@ function prettyJson(value?: string): string {
   }
 }
 
+async function copyText(value?: string) {
+  if (!value) return
+  try {
+    await navigator.clipboard.writeText(value)
+    ElMessage.success('已复制')
+  } catch {
+    ElMessage.error('复制失败')
+  }
+}
+
+function exportCsv() {
+  if (logs.value.length === 0) {
+    ElMessage.warning('当前页无日志可导出')
+    return
+  }
+  const headers = ['时间', '接口', '方式', '路径', '应用', '用户', 'IP', '状态码', '耗时(ms)']
+  const rows = logs.value.map((l) => [
+    l.createTime,
+    l.interfaceName,
+    l.method,
+    l.path,
+    l.appName,
+    l.userAccount,
+    l.ip,
+    l.statusCode,
+    l.costMs
+  ])
+  const csv = [headers, ...rows]
+    .map((r) => r.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\r\n')
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `api-logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 onMounted(load)
 </script>
 
@@ -285,5 +329,12 @@ onMounted(load)
   overflow: auto;
   font-size: 12px;
   white-space: pre-wrap;
+}
+.block-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0 4px;
+  font-weight: 600;
 }
 </style>

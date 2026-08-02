@@ -139,6 +139,21 @@ export const statsOverview = () =>
 export const statsDaily = (days: number) =>
   request.get<unknown, DailyStat[]>('/stats/daily', { params: { days } })
 
+export interface TopStat {
+  total: number
+  ok: number
+  interfaceId?: number
+  interfaceName?: string
+  appId?: number
+  appName?: string
+}
+
+export const statsTopInterfaces = (limit = 10) =>
+  request.get<unknown, TopStat[]>('/stats/top-interfaces', { params: { limit } })
+
+export const statsTopApps = (limit = 10) =>
+  request.get<unknown, TopStat[]>('/stats/top-apps', { params: { limit } })
+
 export interface UserInfo {
   id: number
   userAccount: string
@@ -166,6 +181,9 @@ export const createUser = (data: {
 
 export const updateUser = (id: number, data: { userName?: string; userPassword?: string }) =>
   request.post<unknown, void>('/user/update', null, { params: { id, ...data } })
+
+export const selfUpdate = (data: { userName?: string; userPassword?: string }) =>
+  request.post<unknown, void>('/user/self-update', null, { params: data })
 
 export const deleteUser = (id: number) =>
   request.post<unknown, void>('/user/delete', null, { params: { id } })
@@ -245,6 +263,7 @@ export const listApiLogs = (params: {
   current: number
   size: number
   keyword?: string
+  success?: number
   statusCode?: number
   startTime?: string
   endTime?: string

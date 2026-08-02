@@ -6,37 +6,37 @@
     </div>
     <el-row :gutter="16">
       <el-col :span="4">
-        <el-card class="stat-card">
+        <el-card class="stat-card clickable" shadow="hover" @click="router.push('/apps')">
           <p class="stat-label">我的应用</p>
           <p class="stat-value">{{ appCount }}</p>
         </el-card>
       </el-col>
       <el-col :span="4">
-        <el-card class="stat-card">
+        <el-card class="stat-card clickable" shadow="hover" @click="router.push('/subscribes')">
           <p class="stat-label">已订阅接口</p>
           <p class="stat-value">{{ subscribeCount }}</p>
         </el-card>
       </el-col>
       <el-col :span="4">
-        <el-card class="stat-card">
+        <el-card class="stat-card clickable" shadow="hover" @click="router.push('/interfaces')">
           <p class="stat-label">可调用接口</p>
           <p class="stat-value">{{ interfaceCount }}</p>
         </el-card>
       </el-col>
       <el-col :span="4">
-        <el-card class="stat-card">
+        <el-card class="stat-card clickable" shadow="hover" @click="router.push('/stats')">
           <p class="stat-label">累计调用</p>
           <p class="stat-value">{{ stats.total }}</p>
         </el-card>
       </el-col>
       <el-col :span="4">
-        <el-card class="stat-card">
+        <el-card class="stat-card clickable" shadow="hover" @click="router.push('/stats')">
           <p class="stat-label">成功率</p>
           <p class="stat-value success">{{ stats.successRate }}%</p>
         </el-card>
       </el-col>
       <el-col :span="4">
-        <el-card class="stat-card">
+        <el-card class="stat-card clickable" shadow="hover" @click="router.push('/subscribes')">
           <p class="stat-label">待审批订阅</p>
           <p class="stat-value warning">{{ pendingCount }}</p>
         </el-card>
@@ -116,6 +116,9 @@ onMounted(async () => {
 }
 .stat-value.warning {
   color: #e6a23c;
+}
+.clickable {
+  cursor: pointer;
 }
 .tips {
   margin-top: 16px;

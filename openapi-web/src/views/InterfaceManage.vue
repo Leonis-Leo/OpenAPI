@@ -18,13 +18,7 @@
       <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
         详情/调试
       </el-button>
-      <el-button
-        size="small"
-        type="primary"
-        plain
-        :disabled="!selectedRow || subscribeMap[selectedRow.id] === 0 || subscribeMap[selectedRow.id] === 1"
-        @click="openSubscribe(selectedRow)"
-      >
+      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openSubscribe(selectedRow)">
         订阅
       </el-button>
       <el-button
@@ -114,9 +108,9 @@
             <el-descriptions-item label="描述" :span="2">{{ debugInterface?.description }}</el-descriptions-item>
           </el-descriptions>
           <h4>请求参数说明</h4>
-          <pre class="json-block">{{ prettyJson(debugInterface?.requestParams) }}</pre>
+          <pre class="json-block" v-html="highlightJson(prettyJson(debugInterface?.requestParams))"></pre>
           <h4>响应示例</h4>
-          <pre class="json-block">{{ prettyJson(debugInterface?.responseExample) }}</pre>
+          <pre class="json-block" v-html="highlightJson(prettyJson(debugInterface?.responseExample))"></pre>
         </el-tab-pane>
         <el-tab-pane label="在线调试" name="debug">
           <div class="debug-header">
@@ -374,6 +368,18 @@ async function load() {
 
 function openSubscribe(row: InterfaceInfo | null) {
   if (!row) return
+  const status = subscribeMap.value[row.id]
+  if (status === 0) {
+    ElMessage.warning('该接口的订阅申请待审批中，请等待管理员审批')
+    return
+  }
+  if (status === 1) {
+    ElMessage.info('该接口已订阅，可直接调用')
+    return
+  }
+  if (status === 2) {
+    ElMessage.warning('上次订阅申请已被拒绝，可重新申请')
+  }
   currentInterface.value = row
   selectedAppId.value = apps.value[0]?.id ?? null
   subscribeVisible.value = true
@@ -725,19 +731,24 @@ onMounted(load)
   background: var(--el-bg-color, #fff);
   color: var(--el-text-color-regular, #303133);
 }
-.debug-body .json-key {
+.json-block :deep(.json-key),
+.debug-body :deep(.json-key) {
   color: var(--el-color-primary, #409eff);
 }
-.debug-body .json-string {
+.json-block :deep(.json-string),
+.debug-body :deep(.json-string) {
   color: var(--el-color-success, #67c23a);
 }
-.debug-body .json-number {
+.json-block :deep(.json-number),
+.debug-body :deep(.json-number) {
   color: var(--el-color-warning, #e6a23c);
 }
-.debug-body .json-boolean {
+.json-block :deep(.json-boolean),
+.debug-body :deep(.json-boolean) {
   color: var(--el-color-danger, #f56c6c);
 }
-.debug-body .json-null {
+.json-block :deep(.json-null),
+.debug-body :deep(.json-null) {
   color: var(--el-text-color-placeholder, #c0c4cc);
 }
 </style>

@@ -1,10 +1,19 @@
 <template>
   <div>
-    <h2>限流配置</h2>
+    <div class="toolbar">
+      <h2>限流配置</h2>
+    </div>
     <p class="tip">
       两个限流维度：按应用（AccessKey）与按接口。为维度配置令牌桶（容量 + 每秒补充速率），
       启用后网关独立限流，任一维度拒绝即返回 429；未配置的维度不限流。
     </p>
+    <el-alert
+      v-if="dirtyCount > 0"
+      type="warning"
+      :closable="false"
+      class="dirty-alert"
+      :title="`有 ${dirtyCount} 处配置修改未保存，请点击「保存配置」`"
+    />
     <el-tabs v-model="activeTab">
       <el-tab-pane label="按应用限流" name="app">
             <div class="action-bar">
@@ -41,12 +50,12 @@
           </el-table-column>
           <el-table-column label="容量" width="140">
             <template #default="{ row }">
-              <el-input-number v-model="row.capacity" :min="1" :max="10000" />
+              <el-input-number v-model="row.capacity" :min="1" :max="10000" @change="markDirtyApp(row)" />
             </template>
           </el-table-column>
           <el-table-column label="补充速率(个/秒)" width="160">
             <template #default="{ row }">
-              <el-input-number v-model="row.refillRate" :min="1" :max="1000" />
+              <el-input-number v-model="row.refillRate" :min="1" :max="1000" @change="markDirtyApp(row)" />
             </template>
           </el-table-column>
         </el-table>
@@ -101,12 +110,12 @@
           </el-table-column>
           <el-table-column label="容量" width="140">
             <template #default="{ row }">
-              <el-input-number v-model="row.capacity" :min="1" :max="10000" />
+              <el-input-number v-model="row.capacity" :min="1" :max="10000" @change="markDirtyInterface(row)" />
             </template>
           </el-table-column>
           <el-table-column label="补充速率(个/秒)" width="160">
             <template #default="{ row }">
-              <el-input-number v-model="row.refillRate" :min="1" :max="1000" />
+              <el-input-number v-model="row.refillRate" :min="1" :max="1000" @change="markDirtyInterface(row)" />
             </template>
           </el-table-column>
         </el-table>
@@ -151,6 +160,21 @@ const interfaceTableRef = ref<TableInstance>()
 const appPage = ref(1)
 const interfacePage = ref(1)
 const pageSize = ref(10)
+const dirtyKeys = ref<Set<string>>(new Set())
+
+const dirtyCount = computed(() => dirtyKeys.value.size)
+
+function markDirtyApp(row: AppRateLimitConfig) {
+  dirtyKeys.value = new Set(dirtyKeys.value).add(`app:${row.appId}`)
+}
+
+function markDirtyInterface(row: RateLimitConfig) {
+  dirtyKeys.value = new Set(dirtyKeys.value).add(`iface:${row.interfaceId}`)
+}
+
+function clearDirty() {
+  dirtyKeys.value = new Set()
+}
 
 const appRow = computed(() => (appSelected.value.length === 1 ? appSelected.value[0] : null))
 const interfaceRow = computed(() =>
@@ -198,6 +222,7 @@ async function load() {
   try {
     appList.value = await listAppRateLimitConfigs()
     interfaceList.value = await listRateLimitConfigs()
+    clearDirty()
   } finally {
     loading.value = false
   }
@@ -368,6 +393,15 @@ onMounted(load)
 .tip {
   color: #909399;
   font-size: 13px;
+}
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.dirty-alert {
+  margin-bottom: 12px;
 }
 .action-bar {
   display: flex;

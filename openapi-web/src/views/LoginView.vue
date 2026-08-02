@@ -69,7 +69,7 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #eef2f7;
+  background: var(--el-bg-color-page, #eef2f7);
   position: relative;
   overflow: hidden;
 }
@@ -95,6 +95,9 @@ async function handleLogin() {
 .brand {
   color: #fff;
   max-width: 320px;
+}
+.dark .brand {
+  color: #fff;
 }
 .brand-logo {
   width: 56px;
