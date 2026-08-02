@@ -18,7 +18,7 @@
       <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
         详情/调试
       </el-button>
-      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openSubscribe(selectedRow)">
+      <el-button size="small" type="primary" plain :disabled="selected.length === 0" @click="openSubscribe">
         订阅
       </el-button>
       <el-button
@@ -172,7 +172,7 @@
     <el-dialog v-model="subscribeVisible" title="订阅接口" width="420px">
       <el-form label-width="80px">
         <el-form-item label="接口">
-          <el-input :model-value="currentInterface?.name" disabled />
+          <el-input :model-value="subscribeTargets.map((t) => t.name).join('、')" disabled />
         </el-form-item>
         <el-form-item label="使用应用">
           <el-select v-model="selectedAppId" placeholder="请选择应用" style="width: 100%">
@@ -249,6 +249,7 @@ const subscribeMap = ref<Record<number, number>>({})
 const subscribeIdMap = ref<Record<number, number>>({})
 const subscribeVisible = ref(false)
 const currentInterface = ref<InterfaceInfo | null>(null)
+const subscribeTargets = ref<InterfaceInfo[]>([])
 const selectedAppId = ref<number | null>(null)
 const subscribing = ref(false)
 const selected = ref<InterfaceInfo[]>([])
@@ -392,33 +393,44 @@ async function load() {
   }
 }
 
-function openSubscribe(row: InterfaceInfo | null) {
-  if (!row) return
-  const status = subscribeMap.value[row.id]
-  if (status === 0) {
-    ElMessage.warning('该接口的订阅申请待审批中，请等待管理员审批')
+function openSubscribe() {
+  const rows = selected.value
+  if (rows.length === 0) return
+  const pending = rows.filter((r) => subscribeMap.value[r.id] === 0)
+  const subscribed = rows.filter((r) => subscribeMap.value[r.id] === 1)
+  const targets = rows.filter(
+    (r) => subscribeMap.value[r.id] === undefined || subscribeMap.value[r.id] === 2
+  )
+  if (pending.length > 0) {
+    ElMessage.warning(`${pending.length} 个接口的订阅申请待审批中，已跳过`)
+  }
+  if (subscribed.length > 0) {
+    ElMessage.info(`${subscribed.length} 个接口已订阅，已跳过`)
+  }
+  if (targets.length === 0) {
+    ElMessage.warning('选中的接口均已订阅或待审批，无可申请项')
     return
   }
-  if (status === 1) {
-    ElMessage.info('该接口已订阅，可直接调用')
-    return
-  }
-  if (status === 2) {
-    ElMessage.warning('上次订阅申请已被拒绝，可重新申请')
-  }
-  currentInterface.value = row
+  currentInterface.value = targets[0]
+  subscribeTargets.value = targets
   selectedAppId.value = apps.value[0]?.id ?? null
+  if (apps.value.length === 0) {
+    ElMessage.warning('请先在「应用管理」创建应用，再订阅接口')
+    return
+  }
   subscribeVisible.value = true
 }
 
 async function handleSubscribe() {
-  if (!currentInterface.value || !selectedAppId.value) {
+  if (subscribeTargets.value.length === 0 || !selectedAppId.value) {
     return
   }
   subscribing.value = true
   try {
-    await subscribe(currentInterface.value.id, selectedAppId.value)
-    ElMessage.success('订阅申请已提交，等待管理员审批')
+    const results = await Promise.allSettled(
+      subscribeTargets.value.map((t) => subscribe(t.id, selectedAppId.value as number))
+    )
+    summarizeResults(results, subscribeTargets.value.length, '订阅申请提交')
     subscribeVisible.value = false
     await load()
   } finally {
