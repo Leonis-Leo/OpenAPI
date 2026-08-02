@@ -14,22 +14,45 @@
       </div>
     </div>
 
-    <div v-if="isAdmin" class="batch-bar">
-      <el-button size="small" :disabled="selectedInterfaces.length === 0" @click="batchStatus(1)">
-        批量上线
+    <div class="action-bar">
+      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
+        详情/调试
       </el-button>
-      <el-button size="small" :disabled="selectedInterfaces.length === 0" @click="batchStatus(0)">
-        批量下线
+      <el-button
+        size="small"
+        :disabled="!selectedRow || subscribeMap[selectedRow.id] === 0 || subscribeMap[selectedRow.id] === 1"
+        @click="openSubscribe(selectedRow)"
+      >
+        订阅
       </el-button>
       <el-button
         size="small"
         type="danger"
-        :disabled="selectedInterfaces.length === 0"
-        @click="batchDelete"
+        plain
+        :disabled="!selectedRow || subscribeMap[selectedRow.id] !== 1"
+        @click="handleUnsubscribe(selectedRow)"
       >
-        批量删除
+        取消订阅
       </el-button>
-      <span v-if="selectedInterfaces.length" class="batch-tip">已选 {{ selectedInterfaces.length }} 项</span>
+      <template v-if="isAdmin">
+        <el-button size="small" :disabled="!selectedRow || selectedRow.status !== 0" @click="toggleStatus(selectedRow)">
+          上线
+        </el-button>
+        <el-button size="small" :disabled="!selectedRow || selectedRow.status !== 1" @click="toggleStatus(selectedRow)">
+          下线
+        </el-button>
+        <el-button size="small" :disabled="!selectedRow" @click="openEditForm(selectedRow)">编辑</el-button>
+        <el-button size="small" type="danger" plain :disabled="!selectedRow" @click="handleDeleteInterface(selectedRow)">
+          删除
+        </el-button>
+        <el-divider direction="vertical" />
+        <el-button size="small" :disabled="selected.length === 0" @click="batchStatus(1)">批量上线</el-button>
+        <el-button size="small" :disabled="selected.length === 0" @click="batchStatus(0)">批量下线</el-button>
+        <el-button size="small" type="danger" :disabled="selected.length === 0" @click="batchDelete">
+          批量删除
+        </el-button>
+      </template>
+      <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
     </div>
 
     <el-table
@@ -65,39 +88,6 @@
           <el-tag v-else type="info" size="small">未订阅</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="300">
-        <template #default="{ row }">
-          <el-button size="small" type="primary" plain @click="openDetail(row)">详情/调试</el-button>
-          <el-button
-            size="small"
-            :disabled="subscribeMap[row.id] === 0 || subscribeMap[row.id] === 1"
-            @click="openSubscribe(row)"
-          >
-            {{ subscribeMap[row.id] === 1 ? '已订阅' : subscribeMap[row.id] === 0 ? '已申请' : '订阅' }}
-          </el-button>
-          <el-button
-            v-if="subscribeMap[row.id] === 1"
-            size="small"
-            type="danger"
-            plain
-            @click="handleUnsubscribe(row)"
-          >
-            取消订阅
-          </el-button>
-          <el-button
-            v-if="isAdmin"
-            size="small"
-            :type="row.status === 1 ? 'danger' : 'success'"
-            @click="toggleStatus(row)"
-          >
-            {{ row.status === 1 ? '下线' : '上线' }}
-          </el-button>
-          <el-button v-if="isAdmin" size="small" @click="openEditForm(row)">编辑</el-button>
-          <el-button v-if="isAdmin" size="small" type="danger" plain @click="handleDeleteInterface(row)">
-            删除
-          </el-button>
-        </template>
-      </el-table-column>
     </el-table>
 
     <el-pagination
@@ -107,30 +97,6 @@
       :page-size="pageSize"
       v-model:current-page="currentPage"
     />
-
-    <el-dialog v-model="formVisible" :title="editingId ? '编辑接口' : '新增接口'" width="560px">
-      <el-form label-width="90px">
-        <el-form-item label="名称"><el-input v-model="interfaceForm.name" /></el-form-item>
-        <el-form-item label="描述"><el-input v-model="interfaceForm.description" /></el-form-item>
-        <el-form-item label="方式">
-          <el-select v-model="interfaceForm.method" style="width: 120px">
-            <el-option label="GET" value="GET" />
-            <el-option label="POST" value="POST" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="路径"><el-input v-model="interfaceForm.url" placeholder="/api/xxx" /></el-form-item>
-        <el-form-item label="请求参数">
-          <el-input v-model="interfaceForm.requestParams" type="textarea" :rows="3" placeholder='JSON，如 {"key":"说明"}' />
-        </el-form-item>
-        <el-form-item label="响应示例">
-          <el-input v-model="interfaceForm.responseExample" type="textarea" :rows="3" placeholder="JSON 响应示例" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="formVisible = false">取消</el-button>
-        <el-button type="primary" :loading="savingForm" @click="handleSaveForm">保存</el-button>
-      </template>
-    </el-dialog>
 
     <el-dialog v-model="detailVisible" :title="`接口详情 - ${debugInterface?.name ?? ''}`" width="720px">
       <el-tabs v-model="detailTab">
@@ -181,6 +147,30 @@
         <el-button type="primary" :loading="subscribing" @click="handleSubscribe">提交申请</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="formVisible" :title="editingId ? '编辑接口' : '新增接口'" width="560px">
+      <el-form label-width="90px">
+        <el-form-item label="名称"><el-input v-model="interfaceForm.name" /></el-form-item>
+        <el-form-item label="描述"><el-input v-model="interfaceForm.description" /></el-form-item>
+        <el-form-item label="方式">
+          <el-select v-model="interfaceForm.method" style="width: 120px">
+            <el-option label="GET" value="GET" />
+            <el-option label="POST" value="POST" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="路径"><el-input v-model="interfaceForm.url" placeholder="/api/xxx" /></el-form-item>
+        <el-form-item label="请求参数">
+          <el-input v-model="interfaceForm.requestParams" type="textarea" :rows="3" placeholder='JSON，如 {"key":"说明"}' />
+        </el-form-item>
+        <el-form-item label="响应示例">
+          <el-input v-model="interfaceForm.responseExample" type="textarea" :rows="3" placeholder="JSON 响应示例" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="formVisible = false">取消</el-button>
+        <el-button type="primary" :loading="savingForm" @click="handleSaveForm">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -220,6 +210,9 @@ const subscribeVisible = ref(false)
 const currentInterface = ref<InterfaceInfo | null>(null)
 const selectedAppId = ref<number | null>(null)
 const subscribing = ref(false)
+const selected = ref<InterfaceInfo[]>([])
+
+const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
 
 const detailVisible = ref(false)
 const detailTab = ref('info')
@@ -261,79 +254,6 @@ const interfaceForm = ref<InterfaceForm>({
   requestParams: '',
   responseExample: ''
 })
-const selectedInterfaces = ref<InterfaceInfo[]>([])
-
-function openCreateForm() {
-  editingId.value = null
-  interfaceForm.value = { name: '', description: '', method: 'GET', url: '', requestParams: '', responseExample: '' }
-  formVisible.value = true
-}
-
-function openEditForm(row: InterfaceInfo) {
-  editingId.value = row.id
-  interfaceForm.value = {
-    name: row.name,
-    description: row.description ?? '',
-    method: row.method,
-    url: row.url,
-    requestParams: row.requestParams ?? '',
-    responseExample: row.responseExample ?? ''
-  }
-  formVisible.value = true
-}
-
-async function handleSaveForm() {
-  if (!interfaceForm.value.name.trim() || !interfaceForm.value.url.trim()) {
-    ElMessage.warning('请填写名称和路径')
-    return
-  }
-  savingForm.value = true
-  try {
-    const data = { ...interfaceForm.value }
-    if (editingId.value) {
-      await updateInterface(editingId.value, data)
-      ElMessage.success('已保存')
-    } else {
-      await createInterface(data)
-      ElMessage.success('已创建（默认下线，可上线发布）')
-    }
-    formVisible.value = false
-    await load()
-  } finally {
-    savingForm.value = false
-  }
-}
-
-async function handleDeleteInterface(row: InterfaceInfo) {
-  await ElMessageBox.confirm(`确定删除接口「${row.name}」吗？`, '删除接口', {
-    type: 'warning'
-  })
-  await deleteInterface(row.id)
-  ElMessage.success('已删除')
-  await load()
-}
-
-function handleSelectionChange(rows: InterfaceInfo[]) {
-  selectedInterfaces.value = rows
-}
-
-async function batchStatus(status: number) {
-  const ops = selectedInterfaces.value.map((i) =>
-    status === 1 ? onlineInterface(i.id) : offlineInterface(i.id)
-  )
-  await Promise.all(ops)
-  ElMessage.success(status === 1 ? '已批量上线' : '已批量下线')
-  await load()
-}
-
-async function batchDelete() {
-  await ElMessageBox.confirm(`确定删除选中的 ${selectedInterfaces.value.length} 个接口吗？`, '批量删除', {
-    type: 'warning'
-  })
-  await Promise.all(selectedInterfaces.value.map((i) => deleteInterface(i.id)))
-  ElMessage.success('已批量删除')
-  await load()
-}
 
 async function load() {
   interfaces.value = isAdmin ? await listAllInterfaces() : await listInterfaces()
@@ -351,7 +271,8 @@ async function load() {
   }
 }
 
-function openSubscribe(row: InterfaceInfo) {
+function openSubscribe(row: InterfaceInfo | null) {
+  if (!row) return
   currentInterface.value = row
   selectedAppId.value = apps.value[0]?.id ?? null
   subscribeVisible.value = true
@@ -372,7 +293,8 @@ async function handleSubscribe() {
   }
 }
 
-async function toggleStatus(row: InterfaceInfo) {
+async function toggleStatus(row: InterfaceInfo | null) {
+  if (!row) return
   if (row.status === 1) {
     await offlineInterface(row.id)
     ElMessage.success('已下线')
@@ -383,7 +305,8 @@ async function toggleStatus(row: InterfaceInfo) {
   await load()
 }
 
-async function handleUnsubscribe(row: InterfaceInfo) {
+async function handleUnsubscribe(row: InterfaceInfo | null) {
+  if (!row) return
   const subscribeId = subscribeIdMap.value[row.id]
   if (!subscribeId) {
     return
@@ -416,7 +339,8 @@ function paramDescription(key: string): string {
   }
 }
 
-async function openDetail(row: InterfaceInfo) {
+async function openDetail(row: InterfaceInfo | null) {
+  if (!row) return
   const detail = await interfaceDetail(row.id)
   debugInterface.value = detail
   debugParams.value = {}
@@ -481,6 +405,80 @@ async function handleDebug() {
   }
 }
 
+function openCreateForm() {
+  editingId.value = null
+  interfaceForm.value = { name: '', description: '', method: 'GET', url: '', requestParams: '', responseExample: '' }
+  formVisible.value = true
+}
+
+function openEditForm(row: InterfaceInfo | null) {
+  if (!row) return
+  editingId.value = row.id
+  interfaceForm.value = {
+    name: row.name,
+    description: row.description ?? '',
+    method: row.method,
+    url: row.url,
+    requestParams: row.requestParams ?? '',
+    responseExample: row.responseExample ?? ''
+  }
+  formVisible.value = true
+}
+
+async function handleSaveForm() {
+  if (!interfaceForm.value.name.trim() || !interfaceForm.value.url.trim()) {
+    ElMessage.warning('请填写名称和路径')
+    return
+  }
+  savingForm.value = true
+  try {
+    const data = { ...interfaceForm.value }
+    if (editingId.value) {
+      await updateInterface(editingId.value, data)
+      ElMessage.success('已保存')
+    } else {
+      await createInterface(data)
+      ElMessage.success('已创建（默认下线，可上线发布）')
+    }
+    formVisible.value = false
+    await load()
+  } finally {
+    savingForm.value = false
+  }
+}
+
+async function handleDeleteInterface(row: InterfaceInfo | null) {
+  if (!row) return
+  await ElMessageBox.confirm(`确定删除接口「${row.name}」吗？`, '删除接口', {
+    type: 'warning'
+  })
+  await deleteInterface(row.id)
+  ElMessage.success('已删除')
+  await load()
+}
+
+function handleSelectionChange(rows: InterfaceInfo[]) {
+  selected.value = rows
+}
+
+async function batchStatus(status: number) {
+  const ops = selected.value.map((i) =>
+    status === 1 ? onlineInterface(i.id) : offlineInterface(i.id)
+  )
+  await Promise.all(ops)
+  ElMessage.success(status === 1 ? '已批量上线' : '已批量下线')
+  await load()
+}
+
+async function batchDelete() {
+  await ElMessageBox.confirm(`确定删除选中的 ${selected.value.length} 个接口吗？`, '批量删除', {
+    type: 'warning'
+  })
+  await Promise.all(selected.value.map((i) => deleteInterface(i.id)))
+  ElMessage.success('已批量删除')
+  await load()
+}
+
 onMounted(load)
 </script>
 
@@ -495,9 +493,10 @@ onMounted(load)
   display: flex;
   gap: 8px;
 }
-.batch-bar {
+.action-bar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }

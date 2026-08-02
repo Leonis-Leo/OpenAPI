@@ -7,7 +7,20 @@
     </p>
     <el-tabs v-model="activeTab">
       <el-tab-pane label="按应用限流" name="app">
-        <el-table :data="appList" border stripe>
+        <div class="action-bar">
+          <el-button size="small" type="primary" :disabled="!appRow" @click="handleSaveApp(appRow)">
+            保存配置
+          </el-button>
+          <el-button size="small" :disabled="!appRow" @click="handleDeleteApp(appRow)">删除配置</el-button>
+          <span v-if="appRow" class="batch-tip">已选 {{ appRow.appName }}</span>
+        </div>
+        <el-table
+          :data="appList"
+          border
+          stripe
+          @selection-change="(rows: AppRateLimitConfig[]) => (appSelected = rows)"
+        >
+          <el-table-column type="selection" width="50" />
           <el-table-column prop="appId" label="ID" width="70" />
           <el-table-column prop="appName" label="应用名称" />
           <el-table-column prop="accessKey" label="AccessKey" min-width="200" show-overflow-tooltip />
@@ -32,16 +45,25 @@
               <el-input-number v-model="row.refillRate" :min="1" :max="1000" />
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="180">
-            <template #default="{ row }">
-              <el-button size="small" type="primary" plain @click="handleSaveApp(row)">保存</el-button>
-              <el-button size="small" @click="handleDeleteApp(row)">删除配置</el-button>
-            </template>
-          </el-table-column>
         </el-table>
       </el-tab-pane>
       <el-tab-pane label="按接口限流" name="interface">
-        <el-table :data="interfaceList" border stripe>
+        <div class="action-bar">
+          <el-button size="small" type="primary" :disabled="!interfaceRow" @click="handleSaveInterface(interfaceRow)">
+            保存配置
+          </el-button>
+          <el-button size="small" :disabled="!interfaceRow" @click="handleDeleteInterface(interfaceRow)">
+            删除配置
+          </el-button>
+          <span v-if="interfaceRow" class="batch-tip">已选 {{ interfaceRow.interfaceName }}</span>
+        </div>
+        <el-table
+          :data="interfaceList"
+          border
+          stripe
+          @selection-change="(rows: RateLimitConfig[]) => (interfaceSelected = rows)"
+        >
+          <el-table-column type="selection" width="50" />
           <el-table-column prop="interfaceId" label="ID" width="70" />
           <el-table-column prop="interfaceName" label="接口名称" />
           <el-table-column prop="method" label="方式" width="80">
@@ -71,12 +93,6 @@
               <el-input-number v-model="row.refillRate" :min="1" :max="1000" />
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="180">
-            <template #default="{ row }">
-              <el-button size="small" type="primary" plain @click="handleSaveInterface(row)">保存</el-button>
-              <el-button size="small" @click="handleDeleteInterface(row)">删除配置</el-button>
-            </template>
-          </el-table-column>
         </el-table>
       </el-tab-pane>
     </el-tabs>
@@ -84,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   listRateLimitConfigs,
@@ -100,13 +116,21 @@ import {
 const activeTab = ref('app')
 const appList = ref<AppRateLimitConfig[]>([])
 const interfaceList = ref<RateLimitConfig[]>([])
+const appSelected = ref<AppRateLimitConfig[]>([])
+const interfaceSelected = ref<RateLimitConfig[]>([])
+
+const appRow = computed(() => (appSelected.value.length === 1 ? appSelected.value[0] : null))
+const interfaceRow = computed(() =>
+  interfaceSelected.value.length === 1 ? interfaceSelected.value[0] : null
+)
 
 async function load() {
   appList.value = await listAppRateLimitConfigs()
   interfaceList.value = await listRateLimitConfigs()
 }
 
-async function handleSaveApp(row: AppRateLimitConfig) {
+async function handleSaveApp(row: AppRateLimitConfig | null) {
+  if (!row) return
   await saveAppRateLimitConfig({
     appId: row.appId,
     capacity: row.capacity,
@@ -117,7 +141,8 @@ async function handleSaveApp(row: AppRateLimitConfig) {
   await load()
 }
 
-async function handleDeleteApp(row: AppRateLimitConfig) {
+async function handleDeleteApp(row: AppRateLimitConfig | null) {
+  if (!row) return
   await ElMessageBox.confirm(`确定删除「${row.appName}」的限流配置吗？`, '删除配置', {
     type: 'warning'
   })
@@ -126,7 +151,8 @@ async function handleDeleteApp(row: AppRateLimitConfig) {
   await load()
 }
 
-async function handleSaveInterface(row: RateLimitConfig) {
+async function handleSaveInterface(row: RateLimitConfig | null) {
+  if (!row) return
   await saveRateLimitConfig({
     interfaceId: row.interfaceId,
     capacity: row.capacity,
@@ -137,7 +163,8 @@ async function handleSaveInterface(row: RateLimitConfig) {
   await load()
 }
 
-async function handleDeleteInterface(row: RateLimitConfig) {
+async function handleDeleteInterface(row: RateLimitConfig | null) {
+  if (!row) return
   await ElMessageBox.confirm(`确定删除「${row.interfaceName}」的限流配置吗？`, '删除配置', {
     type: 'warning'
   })
@@ -151,6 +178,17 @@ onMounted(load)
 
 <style scoped>
 .tip {
+  color: #909399;
+  font-size: 13px;
+}
+.action-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.batch-tip {
   color: #909399;
   font-size: 13px;
 }

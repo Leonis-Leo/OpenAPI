@@ -11,21 +11,28 @@
     </div>
     <el-tabs v-model="activeTab">
       <el-tab-pane v-if="isAdmin" label="待审批" name="pending">
-        <div class="batch-bar">
+        <div class="action-bar">
           <el-button
             size="small"
             type="success"
-            :disabled="selectedPending.length === 0"
-            @click="batchApprove(true)"
+            :disabled="!pendingRow"
+            @click="handleApprove(pendingRow, true)"
           >
-            批量通过
+            通过
           </el-button>
           <el-button
             size="small"
             type="danger"
-            :disabled="selectedPending.length === 0"
-            @click="batchApprove(false)"
+            :disabled="!pendingRow"
+            @click="handleApprove(pendingRow, false)"
           >
+            拒绝
+          </el-button>
+          <el-divider direction="vertical" />
+          <el-button size="small" type="success" :disabled="selectedPending.length === 0" @click="batchApprove(true)">
+            批量通过
+          </el-button>
+          <el-button size="small" type="danger" :disabled="selectedPending.length === 0" @click="batchApprove(false)">
             批量拒绝
           </el-button>
           <span v-if="selectedPending.length" class="batch-tip">已选 {{ selectedPending.length }} 项</span>
@@ -42,12 +49,6 @@
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
           <el-table-column prop="appName" label="申请应用" />
           <el-table-column prop="createTime" label="申请时间" width="180" />
-          <el-table-column label="操作" width="160">
-            <template #default="{ row }">
-              <el-button type="success" size="small" @click="handleApprove(row, true)">通过</el-button>
-              <el-button type="danger" size="small" @click="handleApprove(row, false)">拒绝</el-button>
-            </template>
-          </el-table-column>
         </el-table>
         <el-pagination
           class="pagination"
@@ -58,7 +59,17 @@
         />
       </el-tab-pane>
       <el-tab-pane label="我的订阅" name="mine">
-        <div class="batch-bar">
+        <div class="action-bar">
+          <el-button
+            size="small"
+            type="danger"
+            plain
+            :disabled="!mineRow || mineRow.status !== 1"
+            @click="handleUnsubscribe(mineRow)"
+          >
+            取消订阅
+          </el-button>
+          <el-divider direction="vertical" />
           <el-button
             size="small"
             type="danger"
@@ -88,19 +99,6 @@
             </template>
           </el-table-column>
           <el-table-column prop="createTime" label="申请时间" width="180" />
-          <el-table-column label="操作" width="120">
-            <template #default="{ row }">
-              <el-button
-                v-if="row.status === 1"
-                type="danger"
-                size="small"
-                plain
-                @click="handleUnsubscribe(row)"
-              >
-                取消订阅
-              </el-button>
-            </template>
-          </el-table-column>
         </el-table>
         <el-pagination
           class="pagination"
@@ -131,6 +129,9 @@ const minePage = ref(1)
 const pageSize = 10
 const selectedPending = ref<SubscribeInfo[]>([])
 const selectedMine = ref<SubscribeInfo[]>([])
+
+const pendingRow = computed(() => (selectedPending.value.length === 1 ? selectedPending.value[0] : null))
+const mineRow = computed(() => (selectedMine.value.length === 1 ? selectedMine.value[0] : null))
 
 function matchKw(item: SubscribeInfo): boolean {
   const kw = keyword.value.trim().toLowerCase()
@@ -174,13 +175,15 @@ async function load() {
   myList.value = await mySubscribes()
 }
 
-async function handleApprove(row: SubscribeInfo, approved: boolean) {
+async function handleApprove(row: SubscribeInfo | null, approved: boolean) {
+  if (!row) return
   await approve(row.id, approved)
   ElMessage.success(approved ? '已通过' : '已拒绝')
   await load()
 }
 
-async function handleUnsubscribe(row: SubscribeInfo) {
+async function handleUnsubscribe(row: SubscribeInfo | null) {
+  if (!row) return
   await ElMessageBox.confirm(`确定取消订阅「${row.interfaceName}」吗？`, '取消订阅', {
     type: 'warning'
   })
@@ -227,18 +230,19 @@ onMounted(load)
   align-items: center;
   margin-bottom: 12px;
 }
-.pagination {
-  margin-top: 12px;
-  justify-content: flex-end;
-}
-.batch-bar {
+.action-bar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
 .batch-tip {
   color: #909399;
   font-size: 13px;
+}
+.pagination {
+  margin-top: 12px;
+  justify-content: flex-end;
 }
 </style>

@@ -14,17 +14,19 @@
       </div>
     </div>
 
-    <div class="batch-bar">
-      <el-button size="small" :disabled="selectedApps.length === 0" @click="batchToggle(true)">
-        批量启用
-      </el-button>
-      <el-button size="small" :disabled="selectedApps.length === 0" @click="batchToggle(false)">
-        批量禁用
-      </el-button>
-      <el-button size="small" type="danger" :disabled="selectedApps.length === 0" @click="batchDelete">
-        批量删除
-      </el-button>
-      <span v-if="selectedApps.length" class="batch-tip">已选 {{ selectedApps.length }} 项</span>
+    <div class="action-bar">
+      <el-button size="small" :disabled="!selectedRow" @click="copySelected('ak')">复制AK</el-button>
+      <el-button size="small" :disabled="!selectedRow" @click="copySelected('sk')">复制SK</el-button>
+      <el-button size="small" :disabled="!selectedRow" @click="openRename(selectedRow)">重命名</el-button>
+      <el-button size="small" :disabled="!selectedRow" @click="handleResetSecret(selectedRow)">重置密钥</el-button>
+      <el-button size="small" :disabled="!selectedRow || selectedRow.status === 1" @click="toggleOne(true)">启用</el-button>
+      <el-button size="small" :disabled="!selectedRow || selectedRow.status !== 1" @click="toggleOne(false)">禁用</el-button>
+      <el-button size="small" type="danger" :disabled="!selectedRow" @click="handleDelete(selectedRow)">删除</el-button>
+      <el-divider direction="vertical" />
+      <el-button size="small" :disabled="selected.length === 0" @click="batchToggle(true)">批量启用</el-button>
+      <el-button size="small" :disabled="selected.length === 0" @click="batchToggle(false)">批量禁用</el-button>
+      <el-button size="small" type="danger" :disabled="selected.length === 0" @click="batchDelete">批量删除</el-button>
+      <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
     </div>
 
     <el-table
@@ -50,27 +52,6 @@
         </template>
       </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="170" />
-      <el-table-column label="操作" width="260">
-        <template #default="{ row }">
-          <el-button size="small" @click="copy(row.accessKey, 'AccessKey')">复制AK</el-button>
-          <el-button size="small" @click="copy(row.secretKey, 'SecretKey')">复制SK</el-button>
-          <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd, row)">
-            <el-button size="small" type="primary" plain>
-              更多<el-icon><arrow-down /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="rename">重命名</el-dropdown-item>
-                <el-dropdown-item command="reset">重置密钥</el-dropdown-item>
-                <el-dropdown-item command="toggle">
-                  {{ row.status === 1 ? '禁用' : '启用' }}
-                </el-dropdown-item>
-                <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </template>
-      </el-table-column>
     </el-table>
 
     <el-pagination
@@ -98,7 +79,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowDown } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 import {
   listApps,
@@ -115,11 +95,13 @@ const apps = ref<AppInfo[]>([])
 const keyword = ref('')
 const currentPage = ref(1)
 const pageSize = 10
+const selected = ref<AppInfo[]>([])
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const appName = ref('')
 const saving = ref(false)
-const selectedApps = ref<AppInfo[]>([])
+
+const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
 
 const filteredApps = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
@@ -147,10 +129,13 @@ async function load() {
   }
 }
 
-async function copy(text: string, label: string) {
+async function copySelected(type: 'ak' | 'sk') {
+  const row = selectedRow.value
+  if (!row) return
+  const text = type === 'ak' ? row.accessKey : row.secretKey
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success(`${label} 已复制`)
+    ElMessage.success(`${type === 'ak' ? 'AccessKey' : 'SecretKey'} 已复制`)
   } catch {
     ElMessage.error('复制失败')
   }
@@ -162,7 +147,8 @@ function openCreate() {
   dialogVisible.value = true
 }
 
-function openRename(row: AppInfo) {
+function openRename(row: AppInfo | null) {
+  if (!row) return
   editingId.value = row.id
   appName.value = row.appName
   dialogVisible.value = true
@@ -191,45 +177,49 @@ async function handleSave() {
   }
 }
 
-async function handleCommand(cmd: string, row: AppInfo) {
-  if (cmd === 'rename') {
-    openRename(row)
-  } else if (cmd === 'reset') {
-    await ElMessageBox.confirm(`确定重置「${row.appName}」的 SecretKey 吗？旧密钥将失效`, '重置密钥', {
-      type: 'warning'
-    })
-    const app = await resetAppSecret(row.id)
-    ElMessage.success('已重置，新 SecretKey：' + app.secretKey)
-    await load()
-  } else if (cmd === 'toggle') {
-    await updateAppStatus(row.id, row.status !== 1)
-    ElMessage.success(row.status === 1 ? '已禁用' : '已启用')
-    await load()
-  } else if (cmd === 'delete') {
-    await ElMessageBox.confirm(`确定删除应用「${row.appName}」吗？`, '删除应用', {
-      type: 'warning'
-    })
-    await deleteApp(row.id)
-    ElMessage.success('已删除')
-    await load()
-  }
+async function handleResetSecret(row: AppInfo | null) {
+  if (!row) return
+  await ElMessageBox.confirm(`确定重置「${row.appName}」的 SecretKey 吗？旧密钥将失效`, '重置密钥', {
+    type: 'warning'
+  })
+  const app = await resetAppSecret(row.id)
+  ElMessage.success('已重置，新 SecretKey：' + app.secretKey)
+  await load()
+}
+
+async function toggleOne(enabled: boolean) {
+  const row = selectedRow.value
+  if (!row) return
+  await updateAppStatus(row.id, enabled)
+  ElMessage.success(enabled ? '已启用' : '已禁用')
+  await load()
+}
+
+async function handleDelete(row: AppInfo | null) {
+  if (!row) return
+  await ElMessageBox.confirm(`确定删除应用「${row.appName}」吗？`, '删除应用', {
+    type: 'warning'
+  })
+  await deleteApp(row.id)
+  ElMessage.success('已删除')
+  await load()
 }
 
 function handleSelectionChange(rows: AppInfo[]) {
-  selectedApps.value = rows
+  selected.value = rows
 }
 
 async function batchToggle(enabled: boolean) {
-  await Promise.all(selectedApps.value.map((a) => updateAppStatus(a.id, enabled)))
+  await Promise.all(selected.value.map((a) => updateAppStatus(a.id, enabled)))
   ElMessage.success(enabled ? '已批量启用' : '已批量禁用')
   await load()
 }
 
 async function batchDelete() {
-  await ElMessageBox.confirm(`确定删除选中的 ${selectedApps.value.length} 个应用吗？`, '批量删除', {
+  await ElMessageBox.confirm(`确定删除选中的 ${selected.value.length} 个应用吗？`, '批量删除', {
     type: 'warning'
   })
-  await Promise.all(selectedApps.value.map((a) => deleteApp(a.id)))
+  await Promise.all(selected.value.map((a) => deleteApp(a.id)))
   ElMessage.success('已批量删除')
   await load()
 }
@@ -248,9 +238,10 @@ onMounted(load)
   display: flex;
   gap: 8px;
 }
-.batch-bar {
+.action-bar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }

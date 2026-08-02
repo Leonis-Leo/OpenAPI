@@ -13,15 +13,51 @@
         <el-button type="primary" @click="openCreate">新增用户</el-button>
       </div>
     </div>
-    <div class="batch-bar">
-      <el-button size="small" :disabled="selectedUsers.length === 0" @click="batchToggle(true)">
-        批量启用
+
+    <div class="action-bar">
+      <el-button size="small" :disabled="!selectedRow" @click="openEdit(selectedRow)">编辑</el-button>
+      <el-button
+        size="small"
+        :disabled="!selectedRow || selectedRow.userRole === 'admin'"
+        @click="toggleRole('admin')"
+      >
+        设为管理员
       </el-button>
-      <el-button size="small" :disabled="selectedUsers.length === 0" @click="batchToggle(false)">
-        批量禁用
+      <el-button
+        size="small"
+        :disabled="!selectedRow || selectedRow.userRole !== 'admin'"
+        @click="toggleRole('user')"
+      >
+        设为普通用户
       </el-button>
-      <span v-if="selectedUsers.length" class="batch-tip">已选 {{ selectedUsers.length }} 项</span>
+      <el-button
+        size="small"
+        :disabled="!selectedRow || selectedRow.status === 1 || selectedRow.id === userStore.user?.id"
+        @click="toggleStatus(true)"
+      >
+        启用
+      </el-button>
+      <el-button
+        size="small"
+        :disabled="!selectedRow || selectedRow.status !== 1 || selectedRow.id === userStore.user?.id"
+        @click="toggleStatus(false)"
+      >
+        禁用
+      </el-button>
+      <el-button
+        size="small"
+        type="danger"
+        :disabled="!selectedRow || selectedRow.id === userStore.user?.id"
+        @click="handleDelete(selectedRow)"
+      >
+        删除
+      </el-button>
+      <el-divider direction="vertical" />
+      <el-button size="small" :disabled="selected.length === 0" @click="batchToggle(true)">批量启用</el-button>
+      <el-button size="small" :disabled="selected.length === 0" @click="batchToggle(false)">批量禁用</el-button>
+      <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
     </div>
+
     <el-table
       :data="pagedUsers"
       border
@@ -47,32 +83,8 @@
         </template>
       </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="170" />
-      <el-table-column label="操作" width="300">
-        <template #default="{ row }">
-          <el-button size="small" @click="toggleRole(row)">
-            {{ row.userRole === 'admin' ? '设为普通用户' : '设为管理员' }}
-          </el-button>
-          <el-button
-            size="small"
-            :type="row.status === 1 ? 'danger' : 'success'"
-            :disabled="row.id === userStore.user?.id"
-            @click="toggleStatus(row)"
-          >
-            {{ row.status === 1 ? '禁用' : '启用' }}
-          </el-button>
-          <el-button size="small" @click="openEdit(row)">编辑</el-button>
-          <el-button
-            size="small"
-            type="danger"
-            plain
-            :disabled="row.id === userStore.user?.id"
-            @click="handleDelete(row)"
-          >
-            删除
-          </el-button>
-        </template>
-      </el-table-column>
     </el-table>
+
     <el-pagination
       class="pagination"
       layout="total, prev, pager, next"
@@ -126,7 +138,7 @@ const users = ref<UserInfo[]>([])
 const keyword = ref('')
 const currentPage = ref(1)
 const pageSize = 10
-const selectedUsers = ref<UserInfo[]>([])
+const selected = ref<UserInfo[]>([])
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const saving = ref(false)
@@ -136,6 +148,8 @@ const userForm = ref({
   userName: '',
   role: 'user'
 })
+
+const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
 
 const filteredUsers = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
@@ -169,7 +183,8 @@ function openCreate() {
   dialogVisible.value = true
 }
 
-function openEdit(row: UserInfo) {
+function openEdit(row: UserInfo | null) {
+  if (!row) return
   editingId.value = row.id
   userForm.value = { userAccount: row.userAccount, userPassword: '', userName: row.userName ?? '', role: row.userRole }
   dialogVisible.value = true
@@ -209,7 +224,8 @@ async function handleSave() {
   }
 }
 
-async function handleDelete(row: UserInfo) {
+async function handleDelete(row: UserInfo | null) {
+  if (!row) return
   await ElMessageBox.confirm(`确定删除用户「${row.userAccount}」吗？`, '删除用户', {
     type: 'warning'
   })
@@ -218,25 +234,29 @@ async function handleDelete(row: UserInfo) {
   await load()
 }
 
-async function toggleRole(row: UserInfo) {
-  await updateUserRole(row.id, row.userRole === 'admin' ? 'user' : 'admin')
-  ElMessage.success('已更新角色')
+async function toggleRole(role: string) {
+  const row = selectedRow.value
+  if (!row) return
+  await updateUserRole(row.id, role)
+  ElMessage.success(role === 'admin' ? '已设为管理员' : '已设为普通用户')
   await load()
 }
 
-async function toggleStatus(row: UserInfo) {
-  await updateUserStatus(row.id, row.status !== 1)
-  ElMessage.success(row.status === 1 ? '已禁用' : '已启用')
+async function toggleStatus(enabled: boolean) {
+  const row = selectedRow.value
+  if (!row) return
+  await updateUserStatus(row.id, enabled)
+  ElMessage.success(enabled ? '已启用' : '已禁用')
   await load()
 }
 
 function handleSelectionChange(rows: UserInfo[]) {
-  selectedUsers.value = rows
+  selected.value = rows
 }
 
 async function batchToggle(enabled: boolean) {
   const self = userStore.user?.id
-  const targets = selectedUsers.value.filter((u) => u.id !== self)
+  const targets = selected.value.filter((u) => u.id !== self)
   if (targets.length === 0) {
     ElMessage.warning('不能操作当前账号')
     return
@@ -260,9 +280,10 @@ onMounted(load)
   display: flex;
   gap: 8px;
 }
-.batch-bar {
+.action-bar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
