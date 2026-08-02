@@ -14,7 +14,7 @@
       </div>
     </div>
 
-    <div class="action-bar">
+            <div class="action-bar">
       <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
         详情/调试
       </el-button>
@@ -31,27 +31,21 @@
         size="small"
         type="danger"
         plain
-        :disabled="!selectedRow || subscribeMap[selectedRow.id] !== 1"
-        @click="handleUnsubscribe(selectedRow)"
+        :disabled="selected.length === 0"
+        @click="handleUnsubscribe"
       >
         取消订阅
       </el-button>
       <template v-if="isAdmin">
-        <el-button size="small" type="success" :disabled="!selectedRow || selectedRow.status !== 0" @click="toggleStatus(selectedRow)">
+        <el-button size="small" type="success" :disabled="selected.length === 0" @click="toggleStatus(1)">
           上线
         </el-button>
-        <el-button size="small" type="warning" :disabled="!selectedRow || selectedRow.status !== 1" @click="toggleStatus(selectedRow)">
+        <el-button size="small" type="warning" :disabled="selected.length === 0" @click="toggleStatus(0)">
           下线
         </el-button>
         <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openEditForm(selectedRow)">编辑</el-button>
-        <el-button size="small" type="danger" plain :disabled="!selectedRow" @click="handleDeleteInterface(selectedRow)">
+        <el-button size="small" type="danger" plain :disabled="selected.length === 0" @click="handleDeleteInterface">
           删除
-        </el-button>
-        <el-divider direction="vertical" />
-        <el-button size="small" type="success" plain :disabled="selected.length === 0" @click="batchStatus(1)">批量上线</el-button>
-        <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="batchStatus(0)">批量下线</el-button>
-        <el-button size="small" type="danger" :disabled="selected.length === 0" @click="batchDelete">
-          批量删除
         </el-button>
       </template>
       <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
@@ -304,28 +298,28 @@ async function handleSubscribe() {
   }
 }
 
-async function toggleStatus(row: InterfaceInfo | null) {
-  if (!row) return
-  if (row.status === 1) {
-    await offlineInterface(row.id)
-    ElMessage.success('已下线')
-  } else {
-    await onlineInterface(row.id)
-    ElMessage.success('已上线')
+async function toggleStatus(status: number) {
+  const rows = selected.value
+  if (rows.length === 0) return
+  if (rows.length > 1) {
+    await ElMessageBox.confirm(`确定对选中的 ${rows.length} 个接口执行「${status === 1 ? '上线' : '下线'}」吗？`, '操作确认', { type: 'warning' })
   }
+  const ops = rows.map((i) => (status === 1 ? onlineInterface(i.id) : offlineInterface(i.id)))
+  await Promise.all(ops)
+  ElMessage.success(status === 1 ? '已上线' : '已下线')
   await load()
 }
 
-async function handleUnsubscribe(row: InterfaceInfo | null) {
-  if (!row) return
-  const subscribeId = subscribeIdMap.value[row.id]
-  if (!subscribeId) {
-    return
-  }
-  await ElMessageBox.confirm(`确定取消订阅「${row.name}」吗？`, '取消订阅', {
-    type: 'warning'
-  })
-  await unsubscribe(subscribeId)
+async function handleUnsubscribe() {
+  const rows = selected.value
+  if (rows.length === 0) return
+  const targets = rows.filter((i) => subscribeIdMap.value[i.id])
+  if (targets.length === 0) return
+  const msg = targets.length > 1
+    ? `确定取消选中的 ${targets.length} 个订阅吗？`
+    : `确定取消订阅「${targets[0].name}」吗？`
+  await ElMessageBox.confirm(msg, '取消订阅', { type: 'warning' })
+  await Promise.all(targets.map((i) => unsubscribe(subscribeIdMap.value[i.id])))
   ElMessage.success('已取消订阅')
   await load()
 }
@@ -458,12 +452,14 @@ async function handleSaveForm() {
   }
 }
 
-async function handleDeleteInterface(row: InterfaceInfo | null) {
-  if (!row) return
-  await ElMessageBox.confirm(`确定删除接口「${row.name}」吗？`, '删除接口', {
-    type: 'warning'
-  })
-  await deleteInterface(row.id)
+async function handleDeleteInterface() {
+  const rows = selected.value
+  if (rows.length === 0) return
+  const msg = rows.length > 1
+    ? `确定删除选中的 ${rows.length} 个接口吗？`
+    : `确定删除接口「${rows[0].name}」吗？`
+  await ElMessageBox.confirm(msg, '删除接口', { type: 'warning' })
+  await Promise.all(rows.map((i) => deleteInterface(i.id)))
   ElMessage.success('已删除')
   await load()
 }
@@ -476,23 +472,9 @@ function handleRowClick(row: InterfaceInfo) {
   tableRef.value?.toggleRowSelection(row)
 }
 
-async function batchStatus(status: number) {
-  const ops = selected.value.map((i) =>
-    status === 1 ? onlineInterface(i.id) : offlineInterface(i.id)
-  )
-  await Promise.all(ops)
-  ElMessage.success(status === 1 ? '已批量上线' : '已批量下线')
-  await load()
-}
 
-async function batchDelete() {
-  await ElMessageBox.confirm(`确定删除选中的 ${selected.value.length} 个接口吗？`, '批量删除', {
-    type: 'warning'
-  })
-  await Promise.all(selected.value.map((i) => deleteInterface(i.id)))
-  ElMessage.success('已批量删除')
-  await load()
-}
+
+
 
 onMounted(load)
 </script>

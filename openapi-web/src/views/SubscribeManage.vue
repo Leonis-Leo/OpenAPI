@@ -11,32 +11,11 @@
     </div>
     <el-tabs v-model="activeTab">
       <el-tab-pane v-if="isAdmin" label="待审批" name="pending">
-        <div class="action-bar">
-          <el-button
-            size="small"
-            type="success"
-            :disabled="!pendingRow"
-            @click="handleApprove(pendingRow, true)"
-          >
-            通过
-          </el-button>
-          <el-button
-            size="small"
-            type="danger"
-            :disabled="!pendingRow"
-            @click="handleApprove(pendingRow, false)"
-          >
-            拒绝
-          </el-button>
-          <el-divider direction="vertical" />
-          <el-button size="small" type="success" :disabled="selectedPending.length === 0" @click="batchApprove(true)">
-            批量通过
-          </el-button>
-          <el-button size="small" type="danger" plain :disabled="selectedPending.length === 0" @click="batchApprove(false)">
-            批量拒绝
-          </el-button>
-          <span v-if="selectedPending.length" class="batch-tip">已选 {{ selectedPending.length }} 项</span>
-        </div>
+            <div class="action-bar">
+      <el-button size="small" type="success" :disabled="selectedPending.length === 0" @click="handleApprove(true)">通过</el-button>
+      <el-button size="small" type="danger" :disabled="selectedPending.length === 0" @click="handleApprove(false)">拒绝</el-button>
+      <span v-if="selectedPending.length" class="batch-tip">已选 {{ selectedPending.length }} 项</span>
+    </div>
         <el-table
           ref="pendingTableRef"
           :data="pagedPending"
@@ -65,28 +44,10 @@
         />
       </el-tab-pane>
       <el-tab-pane label="我的订阅" name="mine">
-        <div class="action-bar">
-          <el-button
-            size="small"
-            type="danger"
-            plain
-            :disabled="!mineRow || mineRow.status !== 1"
-            @click="handleUnsubscribe(mineRow)"
-          >
-            取消订阅
-          </el-button>
-          <el-divider direction="vertical" />
-          <el-button
-            size="small"
-            type="danger"
-            plain
-            :disabled="selectedMine.length === 0"
-            @click="batchUnsubscribe"
-          >
-            批量取消订阅
-          </el-button>
-          <span v-if="selectedMine.length" class="batch-tip">已选 {{ selectedMine.length }} 项</span>
-        </div>
+            <div class="action-bar">
+      <el-button size="small" type="danger" plain :disabled="selectedMine.length === 0" @click="handleUnsubscribe">取消订阅</el-button>
+      <span v-if="selectedMine.length" class="batch-tip">已选 {{ selectedMine.length }} 项</span>
+    </div>
         <el-table
           ref="mineTableRef"
           :data="pagedMine"
@@ -205,42 +166,32 @@ async function load() {
   myList.value = await mySubscribes()
 }
 
-async function handleApprove(row: SubscribeInfo | null, approved: boolean) {
-  if (!row) return
-  await approve(row.id, approved)
+async function handleApprove(approved: boolean) {
+  const rows = selectedPending.value
+  if (rows.length === 0) return
+  if (rows.length > 1) {
+    await ElMessageBox.confirm(`确定对选中的 ${rows.length} 条申请执行「${approved ? '通过' : '拒绝'}」吗？`, '操作确认', { type: 'warning' })
+  }
+  await Promise.all(rows.map((s) => approve(s.id, approved)))
   ElMessage.success(approved ? '已通过' : '已拒绝')
   await load()
 }
 
-async function handleUnsubscribe(row: SubscribeInfo | null) {
-  if (!row) return
-  await ElMessageBox.confirm(`确定取消订阅「${row.interfaceName}」吗？`, '取消订阅', {
-    type: 'warning'
-  })
-  await unsubscribe(row.id)
+async function handleUnsubscribe() {
+  const rows = selectedMine.value.filter((s) => s.status === 1)
+  if (rows.length === 0) return
+  const msg = rows.length > 1
+    ? `确定取消选中的 ${rows.length} 个订阅吗？`
+    : `确定取消订阅「${rows[0].interfaceName}」吗？`
+  await ElMessageBox.confirm(msg, '取消订阅', { type: 'warning' })
+  await Promise.all(rows.map((s) => unsubscribe(s.id)))
   ElMessage.success('已取消订阅')
   await load()
 }
 
-async function batchApprove(approved: boolean) {
-  await Promise.all(selectedPending.value.map((s) => approve(s.id, approved)))
-  ElMessage.success(approved ? '已批量通过' : '已批量拒绝')
-  await load()
-}
 
-async function batchUnsubscribe() {
-  const targets = selectedMine.value.filter((s) => s.status === 1)
-  if (targets.length === 0) {
-    ElMessage.warning('仅已通过的订阅可以取消')
-    return
-  }
-  await ElMessageBox.confirm(`确定取消选中的 ${targets.length} 个订阅吗？`, '批量取消订阅', {
-    type: 'warning'
-  })
-  await Promise.all(targets.map((s) => unsubscribe(s.id)))
-  ElMessage.success('已批量取消')
-  await load()
-}
+
+
 
 function statusText(status: number) {
   return status === 1 ? '已通过' : status === 2 ? '已拒绝' : '待审批'

@@ -14,54 +14,13 @@
       </div>
     </div>
 
-    <div class="action-bar">
+            <div class="action-bar">
       <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openEdit(selectedRow)">编辑</el-button>
-      <el-button
-        size="small"
-        type="danger"
-        plain
-        :disabled="!selectedRow || selectedRow.userRole === 'admin'"
-        @click="toggleRole('admin')"
-      >
-        设为管理员
-      </el-button>
-      <el-button
-        size="small"
-        type="primary"
-        plain
-        :disabled="!selectedRow || selectedRow.userRole !== 'admin'"
-        @click="toggleRole('user')"
-      >
-        设为普通用户
-      </el-button>
-      <el-button
-        size="small"
-        type="success"
-        :disabled="!selectedRow || selectedRow.status === 1 || selectedRow.id === userStore.user?.id"
-        @click="toggleStatus(true)"
-      >
-        启用
-      </el-button>
-      <el-button
-        size="small"
-        type="danger"
-        :disabled="!selectedRow || selectedRow.status !== 1 || selectedRow.id === userStore.user?.id"
-        @click="toggleStatus(false)"
-      >
-        禁用
-      </el-button>
-      <el-button
-        size="small"
-        type="danger"
-        plain
-        :disabled="!selectedRow || selectedRow.id === userStore.user?.id"
-        @click="handleDelete(selectedRow)"
-      >
-        删除
-      </el-button>
-      <el-divider direction="vertical" />
-      <el-button size="small" type="success" plain :disabled="selected.length === 0" @click="batchToggle(true)">批量启用</el-button>
-      <el-button size="small" type="danger" plain :disabled="selected.length === 0" @click="batchToggle(false)">批量禁用</el-button>
+      <el-button size="small" type="danger" plain :disabled="selected.length === 0" @click="toggleRole('admin')">设为管理员</el-button>
+      <el-button size="small" type="primary" plain :disabled="selected.length === 0" @click="toggleRole('user')">设为普通用户</el-button>
+      <el-button size="small" type="success" :disabled="selected.length === 0" @click="toggleStatus(true)">启用</el-button>
+      <el-button size="small" type="danger" :disabled="selected.length === 0" @click="toggleStatus(false)">禁用</el-button>
+      <el-button size="small" type="danger" plain :disabled="selected.length === 0" @click="handleDelete">删除</el-button>
       <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
     </div>
 
@@ -256,28 +215,36 @@ async function handleSave() {
   }
 }
 
-async function handleDelete(row: UserInfo | null) {
-  if (!row) return
-  await ElMessageBox.confirm(`确定删除用户「${row.userAccount}」吗？`, '删除用户', {
-    type: 'warning'
-  })
-  await deleteUser(row.id)
+async function handleDelete() {
+  const rows = selected.value.filter((u) => u.id !== userStore.user?.id)
+  if (rows.length === 0) return
+  const msg = rows.length > 1
+    ? `确定删除选中的 ${rows.length} 个用户吗？`
+    : `确定删除用户「${rows[0].userAccount}」吗？`
+  await ElMessageBox.confirm(msg, '删除用户', { type: 'warning' })
+  await Promise.all(rows.map((u) => deleteUser(u.id)))
   ElMessage.success('已删除')
   await load()
 }
 
 async function toggleRole(role: string) {
-  const row = selectedRow.value
-  if (!row) return
-  await updateUserRole(row.id, role)
+  const rows = selected.value
+  if (rows.length === 0) return
+  if (rows.length > 1) {
+    await ElMessageBox.confirm(`确定对选中的 ${rows.length} 个用户执行「${role === 'admin' ? '设为管理员' : '设为普通用户'}」吗？`, '操作确认', { type: 'warning' })
+  }
+  await Promise.all(rows.map((u) => updateUserRole(u.id, role)))
   ElMessage.success(role === 'admin' ? '已设为管理员' : '已设为普通用户')
   await load()
 }
 
 async function toggleStatus(enabled: boolean) {
-  const row = selectedRow.value
-  if (!row) return
-  await updateUserStatus(row.id, enabled)
+  const rows = selected.value.filter((u) => u.id !== userStore.user?.id)
+  if (rows.length === 0) return
+  if (rows.length > 1) {
+    await ElMessageBox.confirm(`确定对选中的 ${rows.length} 个用户执行「${enabled ? '启用' : '禁用'}」吗？`, '操作确认', { type: 'warning' })
+  }
+  await Promise.all(rows.map((u) => updateUserStatus(u.id, enabled)))
   ElMessage.success(enabled ? '已启用' : '已禁用')
   await load()
 }
@@ -295,17 +262,7 @@ function openDetail(row: UserInfo) {
   detailVisible.value = true
 }
 
-async function batchToggle(enabled: boolean) {
-  const self = userStore.user?.id
-  const targets = selected.value.filter((u) => u.id !== self)
-  if (targets.length === 0) {
-    ElMessage.warning('不能操作当前账号')
-    return
-  }
-  await Promise.all(targets.map((u) => updateUserStatus(u.id, enabled)))
-  ElMessage.success(enabled ? '已批量启用' : '已批量禁用')
-  await load()
-}
+
 
 onMounted(load)
 </script>

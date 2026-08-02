@@ -14,18 +14,14 @@
       </div>
     </div>
 
-    <div class="action-bar">
+            <div class="action-bar">
       <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="copySelected('ak')">复制AK</el-button>
       <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="copySelected('sk')">复制SK</el-button>
       <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openRename(selectedRow)">重命名</el-button>
-      <el-button size="small" type="warning" plain :disabled="!selectedRow" @click="handleResetSecret(selectedRow)">重置密钥</el-button>
-      <el-button size="small" type="success" :disabled="!selectedRow || selectedRow.status === 1" @click="toggleOne(true)">启用</el-button>
-      <el-button size="small" type="warning" :disabled="!selectedRow || selectedRow.status !== 1" @click="toggleOne(false)">禁用</el-button>
-      <el-button size="small" type="danger" :disabled="!selectedRow" @click="handleDelete(selectedRow)">删除</el-button>
-      <el-divider direction="vertical" />
-      <el-button size="small" type="success" plain :disabled="selected.length === 0" @click="batchToggle(true)">批量启用</el-button>
-      <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="batchToggle(false)">批量禁用</el-button>
-      <el-button size="small" type="danger" :disabled="selected.length === 0" @click="batchDelete">批量删除</el-button>
+      <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="handleResetSecret">重置密钥</el-button>
+      <el-button size="small" type="success" :disabled="selected.length === 0" @click="toggleOne(true)">启用</el-button>
+      <el-button size="small" type="warning" :disabled="selected.length === 0" @click="toggleOne(false)">禁用</el-button>
+      <el-button size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">删除</el-button>
       <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
     </div>
 
@@ -200,30 +196,37 @@ async function handleSave() {
   }
 }
 
-async function handleResetSecret(row: AppInfo | null) {
-  if (!row) return
-  await ElMessageBox.confirm(`确定重置「${row.appName}」的 SecretKey 吗？旧密钥将失效`, '重置密钥', {
-    type: 'warning'
-  })
-  const app = await resetAppSecret(row.id)
-  ElMessage.success('已重置，新 SecretKey：' + app.secretKey)
+async function handleResetSecret() {
+  const rows = selected.value
+  if (rows.length === 0) return
+  const msg = rows.length > 1
+    ? `确定重置选中的 ${rows.length} 个应用的 SecretKey 吗？旧密钥将失效`
+    : `确定重置「${rows[0].appName}」的 SecretKey 吗？旧密钥将失效`
+  await ElMessageBox.confirm(msg, '重置密钥', { type: 'warning' })
+  await Promise.all(rows.map((a) => resetAppSecret(a.id)))
+  ElMessage.success('已重置')
   await load()
 }
 
 async function toggleOne(enabled: boolean) {
-  const row = selectedRow.value
-  if (!row) return
-  await updateAppStatus(row.id, enabled)
+  const rows = selected.value
+  if (rows.length === 0) return
+  if (rows.length > 1) {
+    await ElMessageBox.confirm(`确定对选中的 ${rows.length} 个应用执行「${enabled ? '启用' : '禁用'}」吗？`, '操作确认', { type: 'warning' })
+  }
+  await Promise.all(rows.map((a) => updateAppStatus(a.id, enabled)))
   ElMessage.success(enabled ? '已启用' : '已禁用')
   await load()
 }
 
-async function handleDelete(row: AppInfo | null) {
-  if (!row) return
-  await ElMessageBox.confirm(`确定删除应用「${row.appName}」吗？`, '删除应用', {
-    type: 'warning'
-  })
-  await deleteApp(row.id)
+async function handleDelete() {
+  const rows = selected.value
+  if (rows.length === 0) return
+  const msg = rows.length > 1
+    ? `确定删除选中的 ${rows.length} 个应用吗？`
+    : `确定删除应用「${rows[0].appName}」吗？`
+  await ElMessageBox.confirm(msg, '删除应用', { type: 'warning' })
+  await Promise.all(rows.map((a) => deleteApp(a.id)))
   ElMessage.success('已删除')
   await load()
 }
@@ -241,20 +244,9 @@ function openDetail(row: AppInfo) {
   detailVisible.value = true
 }
 
-async function batchToggle(enabled: boolean) {
-  await Promise.all(selected.value.map((a) => updateAppStatus(a.id, enabled)))
-  ElMessage.success(enabled ? '已批量启用' : '已批量禁用')
-  await load()
-}
 
-async function batchDelete() {
-  await ElMessageBox.confirm(`确定删除选中的 ${selected.value.length} 个应用吗？`, '批量删除', {
-    type: 'warning'
-  })
-  await Promise.all(selected.value.map((a) => deleteApp(a.id)))
-  ElMessage.success('已批量删除')
-  await load()
-}
+
+
 
 onMounted(load)
 </script>

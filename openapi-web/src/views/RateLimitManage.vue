@@ -7,13 +7,11 @@
     </p>
     <el-tabs v-model="activeTab">
       <el-tab-pane label="按应用限流" name="app">
-        <div class="action-bar">
-          <el-button size="small" type="primary" :disabled="!appRow" @click="handleSaveApp(appRow)">
-            保存配置
-          </el-button>
-          <el-button size="small" type="danger" plain :disabled="!appRow" @click="handleDeleteApp(appRow)">删除配置</el-button>
-          <span v-if="appRow" class="batch-tip">已选 {{ appRow.appName }}</span>
-        </div>
+            <div class="action-bar">
+      <el-button size="small" type="primary" :disabled="appSelected.length === 0" @click="handleSaveApp">保存配置</el-button>
+      <el-button size="small" type="danger" plain :disabled="appSelected.length === 0" @click="handleDeleteApp">删除配置</el-button>
+      <span v-if="appSelected.length" class="batch-tip">已选 {{ appSelected.length }} 项</span>
+    </div>
         <el-table
           ref="appTableRef"
           :data="appList"
@@ -50,15 +48,11 @@
         </el-table>
       </el-tab-pane>
       <el-tab-pane label="按接口限流" name="interface">
-        <div class="action-bar">
-          <el-button size="small" type="primary" :disabled="!interfaceRow" @click="handleSaveInterface(interfaceRow)">
-            保存配置
-          </el-button>
-          <el-button size="small" type="danger" plain :disabled="!interfaceRow" @click="handleDeleteInterface(interfaceRow)">
-            删除配置
-          </el-button>
-          <span v-if="interfaceRow" class="batch-tip">已选 {{ interfaceRow.interfaceName }}</span>
-        </div>
+            <div class="action-bar">
+      <el-button size="small" type="primary" :disabled="interfaceSelected.length === 0" @click="handleSaveInterface">保存配置</el-button>
+      <el-button size="small" type="danger" plain :disabled="interfaceSelected.length === 0" @click="handleDeleteInterface">删除配置</el-button>
+      <span v-if="interfaceSelected.length" class="batch-tip">已选 {{ interfaceSelected.length }} 项</span>
+    </div>
         <el-table
           ref="interfaceTableRef"
           :data="interfaceList"
@@ -136,46 +130,42 @@ async function load() {
   interfaceList.value = await listRateLimitConfigs()
 }
 
-async function handleSaveApp(row: AppRateLimitConfig | null) {
-  if (!row) return
-  await saveAppRateLimitConfig({
-    appId: row.appId,
-    capacity: row.capacity,
-    refillRate: row.refillRate,
-    enabled: row.enabled
-  })
+async function handleSaveApp() {
+  const rows = appSelected.value
+  if (rows.length === 0) return
+  await Promise.all(rows.map((r) => saveAppRateLimitConfig({ appId: r.appId, capacity: r.capacity, refillRate: r.refillRate, enabled: r.enabled })))
   ElMessage.success('已保存')
   await load()
 }
 
-async function handleDeleteApp(row: AppRateLimitConfig | null) {
-  if (!row) return
-  await ElMessageBox.confirm(`确定删除「${row.appName}」的限流配置吗？`, '删除配置', {
-    type: 'warning'
-  })
-  await deleteAppRateLimitConfig(row.appId)
+async function handleDeleteApp() {
+  const rows = appSelected.value
+  if (rows.length === 0) return
+  const msg = rows.length > 1
+    ? `确定删除选中的 ${rows.length} 个应用的限流配置吗？`
+    : `确定删除「${rows[0].appName}」的限流配置吗？`
+  await ElMessageBox.confirm(msg, '删除配置', { type: 'warning' })
+  await Promise.all(rows.map((r) => deleteAppRateLimitConfig(r.appId)))
   ElMessage.success('已删除')
   await load()
 }
 
-async function handleSaveInterface(row: RateLimitConfig | null) {
-  if (!row) return
-  await saveRateLimitConfig({
-    interfaceId: row.interfaceId,
-    capacity: row.capacity,
-    refillRate: row.refillRate,
-    enabled: row.enabled
-  })
+async function handleSaveInterface() {
+  const rows = interfaceSelected.value
+  if (rows.length === 0) return
+  await Promise.all(rows.map((r) => saveRateLimitConfig({ interfaceId: r.interfaceId, capacity: r.capacity, refillRate: r.refillRate, enabled: r.enabled })))
   ElMessage.success('已保存')
   await load()
 }
 
-async function handleDeleteInterface(row: RateLimitConfig | null) {
-  if (!row) return
-  await ElMessageBox.confirm(`确定删除「${row.interfaceName}」的限流配置吗？`, '删除配置', {
-    type: 'warning'
-  })
-  await deleteRateLimitConfig(row.interfaceId)
+async function handleDeleteInterface() {
+  const rows = interfaceSelected.value
+  if (rows.length === 0) return
+  const msg = rows.length > 1
+    ? `确定删除选中的 ${rows.length} 个接口的限流配置吗？`
+    : `确定删除「${rows[0].interfaceName}」的限流配置吗？`
+  await ElMessageBox.confirm(msg, '删除配置', { type: 'warning' })
+  await Promise.all(rows.map((r) => deleteRateLimitConfig(r.interfaceId)))
   ElMessage.success('已删除')
   await load()
 }

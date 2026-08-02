@@ -15,15 +15,12 @@
       </div>
     </div>
 
-    <div class="action-bar">
+            <div class="action-bar">
       <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
         查看详情
       </el-button>
-      <el-button size="small" type="danger" :disabled="!selectedRow" @click="handleDelete(selectedRow)">
+      <el-button size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">
         删除
-      </el-button>
-      <el-button size="small" type="danger" plain :disabled="selected.length === 0" @click="handleBatchDelete">
-        批量删除
       </el-button>
       <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
     </div>
@@ -135,24 +132,19 @@ async function openDetail(row: ApiLog | null) {
   detailVisible.value = true
 }
 
-async function handleDelete(row: ApiLog | null) {
-  if (!row) return
-  await ElMessageBox.confirm(`确定删除日志 #${row.id} 吗？`, '删除日志', {
-    type: 'warning'
-  })
-  await deleteApiLog(row.id)
+async function handleDelete() {
+  const rows = selected.value
+  if (rows.length === 0) return
+  const msg = rows.length > 1
+    ? `确定删除选中的 ${rows.length} 条日志吗？`
+    : `确定删除日志 #${rows[0].id} 吗？`
+  await ElMessageBox.confirm(msg, '删除日志', { type: 'warning' })
+  await Promise.all(rows.map((l) => deleteApiLog(l.id)))
   ElMessage.success('已删除')
   await load()
 }
 
-async function handleBatchDelete() {
-  await ElMessageBox.confirm(`确定删除选中的 ${selected.value.length} 条日志吗？`, '批量删除', {
-    type: 'warning'
-  })
-  await deleteApiLogs(selected.value.map((l) => l.id))
-  ElMessage.success('已批量删除')
-  await load()
-}
+
 
 function prettyJson(value?: string): string {
   if (!value) return ''
