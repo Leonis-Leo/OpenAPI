@@ -1,0 +1,11 @@
+/* 全局布局重置：去掉浏览器默认边距，应用撑满视口 */
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+body {
+  background: var(--el-bg-color-page, #f0f2f5);
+}
