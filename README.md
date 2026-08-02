@@ -73,3 +73,5 @@ cd openapi-web && npm install && npm run dev
 管理后台地址（开发模式）：`http://localhost:5173`
 
 > 注意：`openapi-backend/src/main/resources/application.yml` 中的数据库与 Redis 连接参数需与本机环境一致。
+
+> 生产部署（Nginx 反代、history 路由回退、Cookie 说明）：见 `docs/01-项目文档/部署.md`

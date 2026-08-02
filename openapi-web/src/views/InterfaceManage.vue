@@ -185,7 +185,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import {
@@ -241,6 +241,13 @@ const filteredInterfaces = computed(() => {
 const pagedInterfaces = computed(() => {
   const start = (currentPage.value - 1) * pageSize
   return filteredInterfaces.value.slice(start, start + pageSize)
+})
+
+watch(filteredInterfaces, () => {
+  const max = Math.max(1, Math.ceil(filteredInterfaces.value.length / pageSize))
+  if (currentPage.value > max) {
+    currentPage.value = max
+  }
 })
 
 const formVisible = ref(false)

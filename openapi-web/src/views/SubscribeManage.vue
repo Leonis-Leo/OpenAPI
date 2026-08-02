@@ -115,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import { listSubscribes, mySubscribes, approve, unsubscribe, type SubscribeInfo } from '@/api'
@@ -151,6 +151,20 @@ const filteredMine = computed(() => myList.value.filter(matchKw))
 const pagedMine = computed(() => {
   const start = (minePage.value - 1) * pageSize
   return filteredMine.value.slice(start, start + pageSize)
+})
+
+watch(filteredPending, () => {
+  const max = Math.max(1, Math.ceil(filteredPending.value.length / pageSize))
+  if (pendingPage.value > max) {
+    pendingPage.value = max
+  }
+})
+
+watch(filteredMine, () => {
+  const max = Math.max(1, Math.ceil(filteredMine.value.length / pageSize))
+  if (minePage.value > max) {
+    minePage.value = max
+  }
 })
 
 async function load() {

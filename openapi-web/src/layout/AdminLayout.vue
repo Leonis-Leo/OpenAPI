@@ -26,16 +26,25 @@
     <el-container>
       <el-header class="header">
         <span class="header-title">OpenAPI 开放平台管理后台</span>
-        <el-dropdown @command="handleCommand">
-          <span class="user">
-            {{ userStore.user?.userName || userStore.user?.userAccount || '用户' }}
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        <div class="header-right">
+          <el-switch
+            v-model="isDark"
+            inline-prompt
+            active-text="暗"
+            inactive-text="亮"
+            @change="toggleTheme"
+          />
+          <el-dropdown @command="handleCommand">
+            <span class="user">
+              {{ userStore.user?.userName || userStore.user?.userAccount || '用户' }}
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
       </el-header>
       <el-main>
         <router-view />
@@ -45,12 +54,19 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const isDark = ref(document.documentElement.classList.contains('dark'))
+
+function toggleTheme(value: boolean) {
+  document.documentElement.classList.toggle('dark', value)
+  localStorage.setItem('openapi-theme', value ? 'dark' : 'light')
+}
 
 function handleCommand(command: string) {
   if (command === 'logout') {
@@ -79,7 +95,12 @@ function handleCommand(command: string) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--el-border-color, #eee);
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .header-title {
   font-weight: 600;

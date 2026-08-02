@@ -34,8 +34,8 @@ const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
 const form = reactive({
-  userAccount: 'admin',
-  userPassword: '123456'
+  userAccount: '',
+  userPassword: ''
 })
 
 async function handleLogin() {
@@ -61,7 +61,7 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0f2f5;
+  background: var(--el-bg-color-page, #f0f2f5);
 }
 .login-card {
   width: 380px;

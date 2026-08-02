@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.util.StringUtils;
@@ -47,9 +49,15 @@ public class UserController {
     @Operation(summary = "用户登录")
     public ApiResponse<Map<String, Object>> login(
             @Parameter(description = "账号", example = "admin") @RequestParam String userAccount,
-            @Parameter(description = "密码", example = "123456") @RequestParam String userPassword) {
+            @Parameter(description = "密码", example = "123456") @RequestParam String userPassword,
+            HttpServletResponse response) {
         User user = userService.login(userAccount, userPassword);
         String token = jwtUtils.generateToken(user.getId());
+        Cookie cookie = new Cookie("openapi_token", token);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge((int) (24 * 60 * 60));
+        response.addCookie(cookie);
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
         result.put("user", user);

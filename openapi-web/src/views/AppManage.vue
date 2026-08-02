@@ -96,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
@@ -132,6 +132,13 @@ const filteredApps = computed(() => {
 const pagedApps = computed(() => {
   const start = (currentPage.value - 1) * pageSize
   return filteredApps.value.slice(start, start + pageSize)
+})
+
+watch(filteredApps, () => {
+  const max = Math.max(1, Math.ceil(filteredApps.value.length / pageSize))
+  if (currentPage.value > max) {
+    currentPage.value = max
+  }
 })
 
 async function load() {

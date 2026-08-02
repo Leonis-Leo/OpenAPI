@@ -10,19 +10,11 @@ interface ApiResponse<T> {
 
 const request = axios.create({
   baseURL: '/v1',
-  timeout: 10000
-})
-
-request.interceptors.request.use((config) => {
-  const token = localStorage.getItem('openapi_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
+  timeout: 10000,
+  withCredentials: true
 })
 
 function redirectToLogin() {
-  localStorage.removeItem('openapi_token')
   localStorage.removeItem('openapi_user')
   window.location.href = '/login'
 }

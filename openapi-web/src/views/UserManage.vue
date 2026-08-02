@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import { listUsers, updateUserRole, updateUserStatus, type UserInfo } from '@/api'
@@ -96,6 +96,13 @@ const filteredUsers = computed(() => {
 const pagedUsers = computed(() => {
   const start = (currentPage.value - 1) * pageSize
   return filteredUsers.value.slice(start, start + pageSize)
+})
+
+watch(filteredUsers, () => {
+  const max = Math.max(1, Math.ceil(filteredUsers.value.length / pageSize))
+  if (currentPage.value > max) {
+    currentPage.value = max
+  }
 })
 
 async function load() {
