@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onActivated, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { listApps, listInterfaces, mySubscribes, listSubscribes, statsOverview, type StatsOverview } from '@/api'
@@ -75,7 +75,7 @@ const subscribeCount = ref(0)
 const pendingCount = ref(0)
 const stats = ref<StatsOverview>({ total: 0, success: 0, fail: 0, successRate: 0 })
 
-onMounted(async () => {
+async function loadDashboard() {
   if (userStore.user) {
     const apps = await listApps(userStore.user.id)
     appCount.value = apps.length
@@ -89,6 +89,12 @@ onMounted(async () => {
     const pending = await listSubscribes(0)
     pendingCount.value = pending.length
   }
+}
+
+onMounted(loadDashboard)
+
+onActivated(() => {
+  loadDashboard()
 })
 </script>
 

@@ -120,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import {
@@ -311,6 +311,10 @@ function exportCsv() {
 }
 
 onMounted(load)
+
+onActivated(() => {
+  load()
+})
 </script>
 
 <style scoped>

@@ -319,12 +319,17 @@ const javaSample = computed(() => {
   const paramLines = sampleParamKeys(info.requestParams)
     .map((k) => `        params.put("${k}", "");`)
     .join('\n')
+  const isGet = info.method === 'GET'
+  const requestLine = isGet
+    ? `        String url = "${info.url}" + (params.isEmpty() ? "" : "?" + HttpUtil.toParams(params));
+        HttpRequest request = HttpRequest.get(url)`
+    : `        String url = "${info.url}";
+        HttpRequest request = HttpRequest.post(url)
+                .form(params)`
   return `// 依赖：hutool-all 5.8.x（或使用 JDK 自带 HttpURLConnection）
 import cn.hutool.crypto.digest.HMac;
 import cn.hutool.crypto.digest.HmacAlgorithm;
 import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpUtil;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -348,8 +353,7 @@ ${paramLines || '        // params.put("name", "Alice");'}
         String sign = new HMac(HmacAlgorithm.HmacSHA256, secretKey.getBytes())
                 .digestHex(content.substring(0, content.length() - 1));
 
-        String url = "${info.url}" + (${info.method === 'GET'} ? "?" + HttpUtil.toParams(params) : "");
-        HttpRequest request = HttpRequest.get(url)
+${requestLine}
                 .header("X-Access-Key", accessKey)
                 .header("X-Timestamp", timestamp)
                 .header("X-Nonce", nonce)

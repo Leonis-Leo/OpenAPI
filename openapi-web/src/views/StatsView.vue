@@ -98,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onActivated, onBeforeUnmount, onMounted, ref } from 'vue'
 import { CircleCheck, CircleClose, DataLine, Odometer } from '@element-plus/icons-vue'
 import { init, use, type ECharts } from 'echarts/core'
 import { LineChart } from 'echarts/charts'
@@ -181,6 +181,10 @@ async function reload() {
 
 onMounted(async () => {
   await reload()
+})
+
+onActivated(() => {
+  reload()
 })
 
 onBeforeUnmount(() => {
