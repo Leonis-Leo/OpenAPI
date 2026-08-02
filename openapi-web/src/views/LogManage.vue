@@ -19,10 +19,10 @@
       <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
         查看详情
       </el-button>
-      <el-button size="small" type="danger" plain :disabled="!selectedRow" @click="handleDelete(selectedRow)">
+      <el-button size="small" type="danger" :disabled="!selectedRow" @click="handleDelete(selectedRow)">
         删除
       </el-button>
-      <el-button size="small" type="danger" :disabled="selected.length === 0" @click="handleBatchDelete">
+      <el-button size="small" type="danger" plain :disabled="selected.length === 0" @click="handleBatchDelete">
         批量删除
       </el-button>
       <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>

@@ -15,9 +15,11 @@
     </div>
 
     <div class="action-bar">
-      <el-button size="small" :disabled="!selectedRow" @click="openEdit(selectedRow)">编辑</el-button>
+      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openEdit(selectedRow)">编辑</el-button>
       <el-button
         size="small"
+        type="danger"
+        plain
         :disabled="!selectedRow || selectedRow.userRole === 'admin'"
         @click="toggleRole('admin')"
       >
@@ -25,6 +27,8 @@
       </el-button>
       <el-button
         size="small"
+        type="primary"
+        plain
         :disabled="!selectedRow || selectedRow.userRole !== 'admin'"
         @click="toggleRole('user')"
       >
@@ -32,6 +36,7 @@
       </el-button>
       <el-button
         size="small"
+        type="success"
         :disabled="!selectedRow || selectedRow.status === 1 || selectedRow.id === userStore.user?.id"
         @click="toggleStatus(true)"
       >
@@ -39,6 +44,7 @@
       </el-button>
       <el-button
         size="small"
+        type="danger"
         :disabled="!selectedRow || selectedRow.status !== 1 || selectedRow.id === userStore.user?.id"
         @click="toggleStatus(false)"
       >
@@ -47,14 +53,15 @@
       <el-button
         size="small"
         type="danger"
+        plain
         :disabled="!selectedRow || selectedRow.id === userStore.user?.id"
         @click="handleDelete(selectedRow)"
       >
         删除
       </el-button>
       <el-divider direction="vertical" />
-      <el-button size="small" :disabled="selected.length === 0" @click="batchToggle(true)">批量启用</el-button>
-      <el-button size="small" :disabled="selected.length === 0" @click="batchToggle(false)">批量禁用</el-button>
+      <el-button size="small" type="success" plain :disabled="selected.length === 0" @click="batchToggle(true)">批量启用</el-button>
+      <el-button size="small" type="danger" plain :disabled="selected.length === 0" @click="batchToggle(false)">批量禁用</el-button>
       <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
     </div>
 

@@ -11,7 +11,7 @@
           <el-button size="small" type="primary" :disabled="!appRow" @click="handleSaveApp(appRow)">
             保存配置
           </el-button>
-          <el-button size="small" :disabled="!appRow" @click="handleDeleteApp(appRow)">删除配置</el-button>
+          <el-button size="small" type="danger" plain :disabled="!appRow" @click="handleDeleteApp(appRow)">删除配置</el-button>
           <span v-if="appRow" class="batch-tip">已选 {{ appRow.appName }}</span>
         </div>
         <el-table
@@ -52,7 +52,7 @@
           <el-button size="small" type="primary" :disabled="!interfaceRow" @click="handleSaveInterface(interfaceRow)">
             保存配置
           </el-button>
-          <el-button size="small" :disabled="!interfaceRow" @click="handleDeleteInterface(interfaceRow)">
+          <el-button size="small" type="danger" plain :disabled="!interfaceRow" @click="handleDeleteInterface(interfaceRow)">
             删除配置
           </el-button>
           <span v-if="interfaceRow" class="batch-tip">已选 {{ interfaceRow.interfaceName }}</span>

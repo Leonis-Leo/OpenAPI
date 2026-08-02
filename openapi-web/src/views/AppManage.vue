@@ -15,16 +15,16 @@
     </div>
 
     <div class="action-bar">
-      <el-button size="small" :disabled="!selectedRow" @click="copySelected('ak')">复制AK</el-button>
-      <el-button size="small" :disabled="!selectedRow" @click="copySelected('sk')">复制SK</el-button>
-      <el-button size="small" :disabled="!selectedRow" @click="openRename(selectedRow)">重命名</el-button>
-      <el-button size="small" :disabled="!selectedRow" @click="handleResetSecret(selectedRow)">重置密钥</el-button>
-      <el-button size="small" :disabled="!selectedRow || selectedRow.status === 1" @click="toggleOne(true)">启用</el-button>
-      <el-button size="small" :disabled="!selectedRow || selectedRow.status !== 1" @click="toggleOne(false)">禁用</el-button>
+      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="copySelected('ak')">复制AK</el-button>
+      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="copySelected('sk')">复制SK</el-button>
+      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openRename(selectedRow)">重命名</el-button>
+      <el-button size="small" type="warning" plain :disabled="!selectedRow" @click="handleResetSecret(selectedRow)">重置密钥</el-button>
+      <el-button size="small" type="success" :disabled="!selectedRow || selectedRow.status === 1" @click="toggleOne(true)">启用</el-button>
+      <el-button size="small" type="warning" :disabled="!selectedRow || selectedRow.status !== 1" @click="toggleOne(false)">禁用</el-button>
       <el-button size="small" type="danger" :disabled="!selectedRow" @click="handleDelete(selectedRow)">删除</el-button>
       <el-divider direction="vertical" />
-      <el-button size="small" :disabled="selected.length === 0" @click="batchToggle(true)">批量启用</el-button>
-      <el-button size="small" :disabled="selected.length === 0" @click="batchToggle(false)">批量禁用</el-button>
+      <el-button size="small" type="success" plain :disabled="selected.length === 0" @click="batchToggle(true)">批量启用</el-button>
+      <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="batchToggle(false)">批量禁用</el-button>
       <el-button size="small" type="danger" :disabled="selected.length === 0" @click="batchDelete">批量删除</el-button>
       <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
     </div>

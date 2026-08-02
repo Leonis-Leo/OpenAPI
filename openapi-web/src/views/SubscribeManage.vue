@@ -32,7 +32,7 @@
           <el-button size="small" type="success" :disabled="selectedPending.length === 0" @click="batchApprove(true)">
             批量通过
           </el-button>
-          <el-button size="small" type="danger" :disabled="selectedPending.length === 0" @click="batchApprove(false)">
+          <el-button size="small" type="danger" plain :disabled="selectedPending.length === 0" @click="batchApprove(false)">
             批量拒绝
           </el-button>
           <span v-if="selectedPending.length" class="batch-tip">已选 {{ selectedPending.length }} 项</span>
@@ -73,6 +73,7 @@
           <el-button
             size="small"
             type="danger"
+            plain
             :disabled="selectedMine.length === 0"
             @click="batchUnsubscribe"
           >

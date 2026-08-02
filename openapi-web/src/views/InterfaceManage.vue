@@ -20,6 +20,8 @@
       </el-button>
       <el-button
         size="small"
+        type="primary"
+        plain
         :disabled="!selectedRow || subscribeMap[selectedRow.id] === 0 || subscribeMap[selectedRow.id] === 1"
         @click="openSubscribe(selectedRow)"
       >
@@ -35,19 +37,19 @@
         取消订阅
       </el-button>
       <template v-if="isAdmin">
-        <el-button size="small" :disabled="!selectedRow || selectedRow.status !== 0" @click="toggleStatus(selectedRow)">
+        <el-button size="small" type="success" :disabled="!selectedRow || selectedRow.status !== 0" @click="toggleStatus(selectedRow)">
           上线
         </el-button>
-        <el-button size="small" :disabled="!selectedRow || selectedRow.status !== 1" @click="toggleStatus(selectedRow)">
+        <el-button size="small" type="warning" :disabled="!selectedRow || selectedRow.status !== 1" @click="toggleStatus(selectedRow)">
           下线
         </el-button>
-        <el-button size="small" :disabled="!selectedRow" @click="openEditForm(selectedRow)">编辑</el-button>
+        <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openEditForm(selectedRow)">编辑</el-button>
         <el-button size="small" type="danger" plain :disabled="!selectedRow" @click="handleDeleteInterface(selectedRow)">
           删除
         </el-button>
         <el-divider direction="vertical" />
-        <el-button size="small" :disabled="selected.length === 0" @click="batchStatus(1)">批量上线</el-button>
-        <el-button size="small" :disabled="selected.length === 0" @click="batchStatus(0)">批量下线</el-button>
+        <el-button size="small" type="success" plain :disabled="selected.length === 0" @click="batchStatus(1)">批量上线</el-button>
+        <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="batchStatus(0)">批量下线</el-button>
         <el-button size="small" type="danger" :disabled="selected.length === 0" @click="batchDelete">
           批量删除
         </el-button>
