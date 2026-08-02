@@ -1,138 +1,211 @@
+<script setup lang="ts">
+import { onActivated, onMounted, reactive, ref } from 'vue'
+import { useUserStore } from '@/store/user'
+import {
+  listApps, mySubscribes, listInterfaces, listSubscribes,
+  statsOverview, statsDaily, statsTopInterfaces, statsTopApps, listApiLogs,
+  type ApiLog, type TopStat
+} from '@/api'
+import {
+  buildOverviewSeries, buildStatCards,
+  type DashboardStatItem, type OverviewSeries
+} from '@/components/dashboard/dashboard-model'
+import StatCard from '@/components/dashboard/StatCard.vue'
+import TrendChart from '@/components/dashboard/TrendChart.vue'
+import RankList from '@/components/dashboard/RankList.vue'
+import RecentLogs from '@/components/dashboard/RecentLogs.vue'
+import QuickStart from '@/components/dashboard/QuickStart.vue'
+
+const userStore = useUserStore()
+const isAdmin = userStore.user?.userRole === 'admin'
+const today = new Date().toLocaleDateString('zh-CN', {
+  year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+})
+
+const cards = ref<DashboardStatItem[]>([])
+const series = ref<OverviewSeries>({ days: [], total: [], ok: [], fail: [] })
+const chartDays = ref(7)
+const topInterfaces = ref<TopStat[]>([])
+const topApps = ref<TopStat[]>([])
+const logs = ref<ApiLog[]>([])
+const loading = reactive({ cards: false, trend: false, ranks: false, logs: false })
+const failed = reactive({ trend: false, ranks: false, logs: false })
+
+async function loadCards() {
+  loading.cards = true
+  try {
+    const apps = userStore.user ? await listApps(userStore.user.id) : []
+    const subscribes = await mySubscribes()
+    const infos = await listInterfaces()
+    let total = 0
+    let successRate = 0
+    let pending = 0
+    if (isAdmin) {
+      const overview = await statsOverview()
+      total = overview.total
+      successRate = overview.successRate
+      pending = (await listSubscribes(0)).length
+    }
+    cards.value = buildStatCards({
+      appCount: apps.length,
+      subscribeCount: subscribes.filter((s) => s.status === 1).length,
+      interfaceCount: infos.length,
+      total,
+      successRate,
+      pendingCount: pending,
+      isAdmin
+    })
+  } finally {
+    loading.cards = false
+  }
+}
+
+async function loadTrend() {
+  if (!isAdmin) return
+  loading.trend = true
+  failed.trend = false
+  try {
+    series.value = buildOverviewSeries(await statsDaily(chartDays.value))
+  } catch {
+    failed.trend = true
+  } finally {
+    loading.trend = false
+  }
+}
+
+async function loadRanks() {
+  if (!isAdmin) return
+  loading.ranks = true
+  failed.ranks = false
+  try {
+    const [interfaces, apps] = await Promise.all([statsTopInterfaces(10), statsTopApps(10)])
+    topInterfaces.value = interfaces
+    topApps.value = apps
+  } catch {
+    failed.ranks = true
+  } finally {
+    loading.ranks = false
+  }
+}
+
+async function loadLogs() {
+  if (!isAdmin) return
+  loading.logs = true
+  failed.logs = false
+  try {
+    logs.value = (await listApiLogs({ current: 1, size: 8 })).records
+  } catch {
+    failed.logs = true
+  } finally {
+    loading.logs = false
+  }
+}
+
+async function reload() {
+  await Promise.allSettled([loadCards(), loadTrend(), loadRanks(), loadLogs()])
+}
+
+function onDaysChange(days: number) {
+  chartDays.value = days
+  loadTrend()
+}
+
+onMounted(reload)
+onActivated(reload)
+</script>
+
 <template>
-  <div>
-    <div class="toolbar">
-      <h2>概览</h2>
-      <span class="welcome">你好，{{ userStore.user?.userName || userStore.user?.userAccount || '用户' }} 👋</span>
-    </div>
-    <el-row :gutter="16">
-      <el-col :xs="24" :sm="12" :md="8" :lg="4">
-        <el-card class="stat-card clickable" shadow="hover" @click="router.push('/apps')">
-          <p class="stat-label">我的应用</p>
-          <p class="stat-value">{{ appCount }}</p>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="8" :lg="4">
-        <el-card class="stat-card clickable" shadow="hover" @click="router.push('/subscribes')">
-          <p class="stat-label">已订阅接口</p>
-          <p class="stat-value">{{ subscribeCount }}</p>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="8" :lg="4">
-        <el-card class="stat-card clickable" shadow="hover" @click="router.push('/interfaces')">
-          <p class="stat-label">可调用接口</p>
-          <p class="stat-value">{{ interfaceCount }}</p>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="8" :lg="4">
-        <el-card class="stat-card clickable" shadow="hover" @click="router.push('/stats')">
-          <p class="stat-label">累计调用</p>
-          <p class="stat-value">{{ stats.total }}</p>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="8" :lg="4">
-        <el-card class="stat-card clickable" shadow="hover" @click="router.push('/stats')">
-          <p class="stat-label">成功率</p>
-          <p class="stat-value success">{{ stats.successRate }}%</p>
-        </el-card>
-      </el-col>
-      <el-col v-if="isAdmin" :xs="24" :sm="12" :md="8" :lg="4">
-        <el-card class="stat-card clickable" shadow="hover" @click="router.push('/subscribes')">
-          <p class="stat-label">待审批订阅</p>
-          <p class="stat-value warning">{{ pendingCount }}</p>
-        </el-card>
-      </el-col>
-    </el-row>
-    <el-card class="tips">
-      <h3>快速开始</h3>
-      <p>1. 在「应用管理」创建应用，获得 AccessKey / SecretKey</p>
-      <p>2. 在「接口管理」查看可调用的开放接口</p>
-      <p>3. 使用 SDK 或带签名请求调用接口（详见项目知识库）</p>
-    </el-card>
-    <el-card class="tips">
-      <h3>快捷入口</h3>
-      <div class="quick-links">
-        <el-link type="primary" @click="router.push('/apps')">应用管理</el-link>
-        <el-link type="primary" @click="router.push('/interfaces')">接口管理</el-link>
-        <el-link type="primary" @click="router.push('/stats')">调用统计</el-link>
-        <el-link type="primary" @click="router.push('/logs')">API 日志</el-link>
+  <div class="dashboard">
+    <div class="page-head">
+      <div>
+        <h2 class="page-title">概览</h2>
+        <p class="page-greet">你好，{{ userStore.user?.userName || userStore.user?.userAccount || '用户' }} 👋 · {{ today }}</p>
       </div>
-    </el-card>
+      <el-button type="primary" plain @click="reload">刷新</el-button>
+    </div>
+
+    <div class="card-grid">
+      <StatCard v-for="item in cards" :key="item.key" :item="item" :loading="loading.cards" />
+    </div>
+
+    <template v-if="isAdmin">
+      <div class="row">
+        <div class="col-main">
+          <TrendChart :series="series" :days="chartDays" :loading="loading.trend" @change-days="onDaysChange" />
+          <div v-if="failed.trend" class="module-error">
+            <span>趋势加载失败</span>
+            <el-button size="small" @click="loadTrend">重试</el-button>
+          </div>
+        </div>
+        <div class="col-side">
+          <RankList :interfaces="topInterfaces" :apps="topApps" :loading="loading.ranks" />
+          <div v-if="failed.ranks" class="module-error">
+            <span>排行加载失败</span>
+            <el-button size="small" @click="loadRanks">重试</el-button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-main">
+          <RecentLogs :logs="logs" :loading="loading.logs" />
+          <div v-if="failed.logs" class="module-error">
+            <span>动态加载失败</span>
+            <el-button size="small" @click="loadLogs">重试</el-button>
+          </div>
+        </div>
+        <div class="col-side">
+          <QuickStart />
+        </div>
+      </div>
+    </template>
+
+    <div v-else class="row">
+      <div class="col-main">
+        <QuickStart />
+      </div>
+    </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { onActivated, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useUserStore } from '@/store/user'
-import { listApps, listInterfaces, mySubscribes, listSubscribes, statsOverview, type StatsOverview } from '@/api'
-
-const router = useRouter()
-const userStore = useUserStore()
-const isAdmin = userStore.user?.userRole === 'admin'
-const appCount = ref(0)
-const interfaceCount = ref(0)
-const subscribeCount = ref(0)
-const pendingCount = ref(0)
-const stats = ref<StatsOverview>({ total: 0, success: 0, fail: 0, successRate: 0 })
-
-async function loadDashboard() {
-  if (userStore.user) {
-    const apps = await listApps(userStore.user.id)
-    appCount.value = apps.length
-    const subscribes = await mySubscribes()
-    subscribeCount.value = subscribes.filter((s) => s.status === 1).length
-  }
-  const infos = await listInterfaces()
-  interfaceCount.value = infos.length
-  if (userStore.user?.userRole === 'admin') {
-    stats.value = await statsOverview()
-    const pending = await listSubscribes(0)
-    pendingCount.value = pending.length
-  }
-}
-
-onMounted(loadDashboard)
-
-onActivated(() => {
-  loadDashboard()
-})
-</script>
-
 <style scoped>
-.toolbar {
+.page-head {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
-.welcome {
-  color: #909399;
-  font-size: 14px;
+.page-title { margin: 0; font-size: 20px; font-weight: 600; }
+.page-greet { margin: 6px 0 0; color: var(--el-text-color-secondary); font-size: 14px; }
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
 }
-.stat-label {
-  margin: 0;
-  color: #909399;
-}
-.stat-value {
-  margin: 8px 0 0;
-  font-size: 28px;
-  font-weight: 600;
-}
-.stat-value.success {
-  color: #67c23a;
-}
-.stat-value.warning {
-  color: #e6a23c;
-}
-.clickable {
-  cursor: pointer;
-}
-.tips {
+.row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
   margin-top: 16px;
 }
-.quick-links {
+.col-main, .col-side {
   display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+@media (min-width: 1200px) {
+  .row { grid-template-columns: 14fr 10fr; }
+}
+.module-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
 }
 </style>
