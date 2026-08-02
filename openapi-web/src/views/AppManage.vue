@@ -36,7 +36,7 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="50" />
-      <el-table-column prop="id" label="ID" width="60" />
+      <el-table-column type="index" label="#" width="60" :index="indexMethod" />
       <el-table-column prop="appName" label="应用名称" min-width="120" />
       <el-table-column prop="accessKey" label="AccessKey" min-width="220" show-overflow-tooltip />
       <el-table-column label="SecretKey" min-width="260" show-overflow-tooltip>
@@ -102,6 +102,7 @@ const appName = ref('')
 const saving = ref(false)
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
+const indexMethod = (i: number) => (currentPage.value - 1) * pageSize + i + 1
 
 const filteredApps = computed(() => {
   const kw = keyword.value.trim().toLowerCase()

@@ -65,7 +65,7 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="50" />
-      <el-table-column prop="id" label="ID" width="70" />
+      <el-table-column type="index" label="#" width="60" :index="indexMethod" />
       <el-table-column prop="userAccount" label="账号" />
       <el-table-column prop="userName" label="昵称" />
       <el-table-column prop="userRole" label="角色" width="100">
@@ -150,6 +150,7 @@ const userForm = ref({
 })
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
+const indexMethod = (i: number) => (currentPage.value - 1) * pageSize + i + 1
 
 const filteredUsers = computed(() => {
   const kw = keyword.value.trim().toLowerCase()

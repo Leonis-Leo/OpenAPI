@@ -62,7 +62,7 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="50" />
-      <el-table-column prop="id" label="ID" width="70" />
+      <el-table-column type="index" label="#" width="60" :index="indexMethod" />
       <el-table-column prop="name" label="名称" />
       <el-table-column prop="description" label="描述" min-width="160" />
       <el-table-column prop="method" label="方式" width="90">
@@ -213,6 +213,7 @@ const subscribing = ref(false)
 const selected = ref<InterfaceInfo[]>([])
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
+const indexMethod = (i: number) => (currentPage.value - 1) * pageSize + i + 1
 
 const detailVisible = ref(false)
 const detailTab = ref('info')

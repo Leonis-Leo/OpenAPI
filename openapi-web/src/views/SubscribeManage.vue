@@ -44,7 +44,7 @@
           @selection-change="(rows: SubscribeInfo[]) => (selectedPending = rows)"
         >
           <el-table-column type="selection" width="50" />
-          <el-table-column prop="id" label="ID" width="70" />
+          <el-table-column type="index" label="#" width="60" :index="pendingIndex" />
           <el-table-column prop="interfaceName" label="接口" />
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
           <el-table-column prop="appName" label="申请应用" />
@@ -87,7 +87,7 @@
           @selection-change="(rows: SubscribeInfo[]) => (selectedMine = rows)"
         >
           <el-table-column type="selection" width="50" />
-          <el-table-column prop="id" label="ID" width="70" />
+          <el-table-column type="index" label="#" width="60" :index="mineIndex" />
           <el-table-column prop="interfaceName" label="接口" />
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
           <el-table-column prop="appName" label="应用" />
@@ -132,6 +132,8 @@ const selectedMine = ref<SubscribeInfo[]>([])
 
 const pendingRow = computed(() => (selectedPending.value.length === 1 ? selectedPending.value[0] : null))
 const mineRow = computed(() => (selectedMine.value.length === 1 ? selectedMine.value[0] : null))
+const pendingIndex = (i: number) => (pendingPage.value - 1) * pageSize + i + 1
+const mineIndex = (i: number) => (minePage.value - 1) * pageSize + i + 1
 
 function matchKw(item: SubscribeInfo): boolean {
   const kw = keyword.value.trim().toLowerCase()

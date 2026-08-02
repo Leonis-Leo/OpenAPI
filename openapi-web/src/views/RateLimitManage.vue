@@ -21,7 +21,7 @@
           @selection-change="(rows: AppRateLimitConfig[]) => (appSelected = rows)"
         >
           <el-table-column type="selection" width="50" />
-          <el-table-column prop="appId" label="ID" width="70" />
+          <el-table-column type="index" label="#" width="60" />
           <el-table-column prop="appName" label="应用名称" />
           <el-table-column prop="accessKey" label="AccessKey" min-width="200" show-overflow-tooltip />
           <el-table-column label="配置状态" width="100">
@@ -64,7 +64,7 @@
           @selection-change="(rows: RateLimitConfig[]) => (interfaceSelected = rows)"
         >
           <el-table-column type="selection" width="50" />
-          <el-table-column prop="interfaceId" label="ID" width="70" />
+          <el-table-column type="index" label="#" width="60" />
           <el-table-column prop="interfaceName" label="接口名称" />
           <el-table-column prop="method" label="方式" width="80">
             <template #default="{ row }">

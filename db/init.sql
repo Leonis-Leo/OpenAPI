@@ -7,7 +7,7 @@ USE `openapi`;
 -- 用户表
 CREATE TABLE IF NOT EXISTS `user`
 (
-    `id`            BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `id`            BIGINT       NOT NULL COMMENT '主键（雪花）',
     `user_account`  VARCHAR(64)  NOT NULL COMMENT '账号',
     `user_password` VARCHAR(128) NOT NULL COMMENT '密码',
     `user_name`     VARCHAR(64)  DEFAULT NULL COMMENT '昵称',
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `user`
 -- 应用表（一个应用对应一对 AccessKey/SecretKey）
 CREATE TABLE IF NOT EXISTS `app`
 (
-    `id`          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `id`          BIGINT       NOT NULL COMMENT '主键（雪花）',
     `app_name`    VARCHAR(64)  NOT NULL COMMENT '应用名称',
     `access_key`  VARCHAR(64)  NOT NULL COMMENT 'AccessKey',
     `secret_key`  VARCHAR(128) NOT NULL COMMENT 'SecretKey',
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `app`
 -- 接口信息表（平台对外发布的接口）
 CREATE TABLE IF NOT EXISTS `interface_info`
 (
-    `id`               BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `id`               BIGINT       NOT NULL COMMENT '主键（雪花）',
     `name`             VARCHAR(64)  NOT NULL COMMENT '接口名称',
     `description`      VARCHAR(512) DEFAULT NULL COMMENT '接口描述',
     `method`           VARCHAR(8)   NOT NULL COMMENT '请求方式：GET/POST',
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS `interface_info`
 -- 接口订阅表（开发者申请订阅接口，管理员审批后才有调用权限）
 CREATE TABLE IF NOT EXISTS `interface_subscribe`
 (
-    `id`           BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `id`           BIGINT      NOT NULL COMMENT '主键（雪花）',
     `interface_id` BIGINT      NOT NULL COMMENT '接口 ID',
     `app_id`       BIGINT      NOT NULL COMMENT '应用 ID',
     `user_id`      BIGINT      NOT NULL COMMENT '申请用户 ID',
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS `interface_subscribe`
 -- 接口调用日志表（MQ 消费者异步写入，用于调用统计）
 CREATE TABLE IF NOT EXISTS `invoke_log`
 (
-    `id`           BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `id`           BIGINT   NOT NULL COMMENT '主键（雪花）',
     `interface_id` BIGINT   NOT NULL COMMENT '接口 ID',
     `app_id`       BIGINT   NOT NULL COMMENT '应用 ID',
     `user_id`      BIGINT   NOT NULL COMMENT '用户 ID',
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `invoke_log`
 -- 接口限流配置表（管理平台配置，网关按接口限流）
 CREATE TABLE IF NOT EXISTS `rate_limit_config`
 (
-    `id`           BIGINT  NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `id`           BIGINT  NOT NULL COMMENT '主键（雪花）',
     `interface_id` BIGINT  NOT NULL COMMENT '接口 ID',
     `capacity`     INT     DEFAULT 20 COMMENT '令牌桶容量',
     `refill_rate`  INT     DEFAULT 5 COMMENT '每秒补充令牌数',
@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS `rate_limit_config`
 -- 应用限流配置表（按应用维度限流）
 CREATE TABLE IF NOT EXISTS `app_rate_limit_config`
 (
-    `id`           BIGINT  NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `id`           BIGINT  NOT NULL COMMENT '主键（雪花）',
     `app_id`       BIGINT  NOT NULL COMMENT '应用 ID',
     `capacity`     INT     DEFAULT 20 COMMENT '令牌桶容量',
     `refill_rate`  INT     DEFAULT 5 COMMENT '每秒补充令牌数',
@@ -126,19 +126,19 @@ CREATE TABLE IF NOT EXISTS `app_rate_limit_config`
   DEFAULT CHARSET = utf8mb4 COMMENT ='应用限流配置表';
 
 -- 演示数据
-INSERT INTO `user` (`user_account`, `user_password`, `user_name`, `user_role`)
-VALUES ('admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', '管理员', 'admin');
+INSERT INTO `user` (`id`, `user_account`, `user_password`, `user_name`, `user_role`)
+VALUES (1, 'admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', '管理员', 'admin');
 
-INSERT INTO `app` (`app_name`, `access_key`, `secret_key`, `user_id`, `status`)
-VALUES ('演示应用', 'demo-access-key', 'demo-secret-key', 1, 1);
+INSERT INTO `app` (`id`, `app_name`, `access_key`, `secret_key`, `user_id`, `status`)
+VALUES (1, '演示应用', 'demo-access-key', 'demo-secret-key', 1, 1);
 
-INSERT INTO `interface_info` (`name`, `description`, `method`, `url`, `request_params`, `response_example`, `status`)
-VALUES ('随机名称', '随机返回一个英文名', 'GET', '/api/demo/name', '{"prefix":"名称前缀(可选)"}',
+INSERT INTO `interface_info` (`id`, `name`, `description`, `method`, `url`, `request_params`, `response_example`, `status`)
+VALUES (1, '随机名称', '随机返回一个英文名', 'GET', '/api/demo/name', '{"prefix":"名称前缀(可选)"}',
         '{"code":0,"data":"Alice"}', 1),
-       ('参数回显', '原样返回表单参数', 'POST', '/api/demo/echo', '{"任意参数":"原样回显"}',
+       (2, '参数回显', '原样返回表单参数', 'POST', '/api/demo/echo', '{"任意参数":"原样回显"}',
         '{"code":0,"data":{}}', 1);
 
 -- 演示应用默认已订阅两个演示接口（审批通过），保证 CI 测试可直接调用
-INSERT INTO `interface_subscribe` (`interface_id`, `app_id`, `user_id`, `status`)
-VALUES (1, 1, 1, 1),
-       (2, 1, 1, 1);
+INSERT INTO `interface_subscribe` (`id`, `interface_id`, `app_id`, `user_id`, `status`)
+VALUES (1, 1, 1, 1, 1),
+       (2, 2, 1, 1, 1);
