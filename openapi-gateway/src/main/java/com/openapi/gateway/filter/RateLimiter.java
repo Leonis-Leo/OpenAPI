@@ -64,6 +64,21 @@ public class RateLimiter {
                         return tryAcquire(keyPrefix + "i:" + method + ":" + path,
                                 config.capacity(), config.refillRate());
                     }
+                    return tryAcquireGlobal(accessKey);
+                })
+                .switchIfEmpty(Mono.defer(() -> tryAcquireGlobal(accessKey)));
+    }
+
+    /**
+     * 全局限流（按 AccessKey）：优先读取管理平台配置的全局参数，否则用 yml 默认值。
+     */
+    private Mono<Boolean> tryAcquireGlobal(String accessKey) {
+        return redisTemplate.opsForValue().get(configPrefix + "global")
+                .flatMap(json -> {
+                    RateLimitConfigValue global = parseConfig(json);
+                    if (global != null) {
+                        return tryAcquire(keyPrefix + accessKey, global.capacity(), global.refillRate());
+                    }
                     return tryAcquire(keyPrefix + accessKey, capacity, refillRate);
                 })
                 .switchIfEmpty(Mono.defer(() -> tryAcquire(keyPrefix + accessKey, capacity, refillRate)));

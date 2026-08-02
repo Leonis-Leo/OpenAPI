@@ -13,4 +13,8 @@ public interface RateLimitConfigService extends IService<RateLimitConfig> {
     void saveConfig(Long interfaceId, int capacity, int refillRate, boolean enabled);
 
     void deleteConfig(Long interfaceId);
+
+    Map<String, Object> getGlobalConfig();
+
+    void saveGlobalConfig(int capacity, int refillRate);
 }

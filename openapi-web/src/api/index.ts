@@ -155,6 +155,19 @@ export const updateUserRole = (id: number, role: string) =>
 export const updateUserStatus = (id: number, enabled: boolean) =>
   request.post<unknown, void>('/user/update-status', null, { params: { id, enabled } })
 
+export const createUser = (data: {
+  userAccount: string
+  userPassword: string
+  userName?: string
+  role: string
+}) => request.post<unknown, UserInfo>('/user/create', null, { params: data })
+
+export const updateUser = (id: number, data: { userName?: string; userPassword?: string }) =>
+  request.post<unknown, void>('/user/update', null, { params: { id, ...data } })
+
+export const deleteUser = (id: number) =>
+  request.post<unknown, void>('/user/delete', null, { params: { id } })
+
 export interface RateLimitConfig {
   interfaceId: number
   interfaceName: string
@@ -163,6 +176,7 @@ export interface RateLimitConfig {
   capacity: number
   refillRate: number
   enabled: boolean
+  configured?: boolean
 }
 
 export const listRateLimitConfigs = () =>
@@ -177,3 +191,9 @@ export const saveRateLimitConfig = (data: {
 
 export const deleteRateLimitConfig = (interfaceId: number) =>
   request.post<unknown, void>('/ratelimit/delete', null, { params: { interfaceId } })
+
+export const getGlobalRateLimit = () =>
+  request.get<unknown, { capacity: number; refillRate: number }>('/ratelimit/global')
+
+export const saveGlobalRateLimit = (capacity: number, refillRate: number) =>
+  request.post<unknown, void>('/ratelimit/global/save', null, { params: { capacity, refillRate } })

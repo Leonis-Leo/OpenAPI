@@ -1,6 +1,8 @@
 package com.openapi.backend.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openapi.backend.entity.InterfaceInfo;
 import com.openapi.backend.entity.RateLimitConfig;
 import com.openapi.backend.mapper.InterfaceInfoMapper;
@@ -22,9 +24,11 @@ public class RateLimitConfigServiceImpl extends ServiceImpl<RateLimitConfigMappe
         implements RateLimitConfigService {
 
     private static final String REDIS_CONFIG_PREFIX = "openapi:ratelimit:config:";
+    private static final String GLOBAL_KEY = "openapi:ratelimit:config:global";
 
     private final InterfaceInfoMapper interfaceInfoMapper;
     private final StringRedisTemplate stringRedisTemplate;
+    private final ObjectMapper objectMapper;
 
     @Override
     public List<Map<String, Object>> listWithInterfaces() {
@@ -37,6 +41,7 @@ public class RateLimitConfigServiceImpl extends ServiceImpl<RateLimitConfigMappe
             RateLimitConfig config = lambdaQuery()
                     .eq(RateLimitConfig::getInterfaceId, info.getId())
                     .one();
+            map.put("configured", config != null);
             map.put("capacity", config == null ? 20 : config.getCapacity());
             map.put("refillRate", config == null ? 5 : config.getRefillRate());
             map.put("enabled", config != null && Integer.valueOf(1).equals(config.getEnabled()));
@@ -83,5 +88,30 @@ public class RateLimitConfigServiceImpl extends ServiceImpl<RateLimitConfigMappe
 
     private String configKey(String method, String url) {
         return REDIS_CONFIG_PREFIX + method + ":" + url;
+    }
+
+    @Override
+    public Map<String, Object> getGlobalConfig() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("capacity", 20);
+        result.put("refillRate", 5);
+        String json = stringRedisTemplate.opsForValue().get(GLOBAL_KEY);
+        if (json != null) {
+            try {
+                JsonNode node = objectMapper.readTree(json);
+                result.put("capacity", node.path("capacity").asInt(20));
+                result.put("refillRate", node.path("refillRate").asInt(5));
+            } catch (Exception ignored) {
+                // 解析失败则用默认值
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public void saveGlobalConfig(int capacity, int refillRate) {
+        stringRedisTemplate.opsForValue().set(
+                GLOBAL_KEY,
+                "{\"capacity\":" + capacity + ",\"refillRate\":" + refillRate + "}");
     }
 }

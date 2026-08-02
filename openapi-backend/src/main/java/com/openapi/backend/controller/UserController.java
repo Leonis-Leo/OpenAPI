@@ -93,6 +93,40 @@ public class UserController {
         return ApiResponse.ok();
     }
 
+    @PostMapping("/create")
+    @Operation(summary = "新增用户（管理员）")
+    public ApiResponse<User> create(@RequestParam String userAccount,
+                                    @RequestParam String userPassword,
+                                    @RequestParam(required = false) String userName,
+                                    @Parameter(example = "user") @RequestParam(defaultValue = "user") String role,
+                                    HttpServletRequest request) {
+        requireAdmin(request);
+        return ApiResponse.ok(userService.createUser(userAccount, userPassword, userName, role));
+    }
+
+    @PostMapping("/update")
+    @Operation(summary = "编辑用户（昵称/重置密码，管理员）")
+    public ApiResponse<Void> update(@RequestParam Long id,
+                                    @RequestParam(required = false) String userName,
+                                    @RequestParam(required = false) String userPassword,
+                                    HttpServletRequest request) {
+        requireAdmin(request);
+        userService.updateUser(id, userName, userPassword);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/delete")
+    @Operation(summary = "删除用户（管理员）")
+    public ApiResponse<Void> delete(@RequestParam Long id, HttpServletRequest request) {
+        requireAdmin(request);
+        Long selfId = (Long) request.getAttribute("openapi.userId");
+        if (selfId != null && selfId.equals(id)) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "不能删除当前账号");
+        }
+        userService.deleteUser(id);
+        return ApiResponse.ok();
+    }
+
     private void requireAdmin(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("openapi.userId");
         User user = userService.getById(userId);

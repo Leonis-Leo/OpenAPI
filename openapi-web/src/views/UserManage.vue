@@ -2,13 +2,16 @@
   <div>
     <div class="toolbar">
       <h2>用户管理</h2>
-      <el-input
-        v-model="keyword"
-        placeholder="搜索账号 / 昵称"
-        clearable
-        style="width: 220px"
-        @input="currentPage = 1"
-      />
+      <div class="toolbar-right">
+        <el-input
+          v-model="keyword"
+          placeholder="搜索账号 / 昵称"
+          clearable
+          style="width: 220px"
+          @input="currentPage = 1"
+        />
+        <el-button type="primary" @click="openCreate">新增用户</el-button>
+      </div>
     </div>
     <div class="batch-bar">
       <el-button size="small" :disabled="selectedUsers.length === 0" @click="batchToggle(true)">
@@ -43,8 +46,8 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createTime" label="创建时间" width="180" />
-      <el-table-column label="操作" width="220">
+      <el-table-column prop="createTime" label="创建时间" width="170" />
+      <el-table-column label="操作" width="300">
         <template #default="{ row }">
           <el-button size="small" @click="toggleRole(row)">
             {{ row.userRole === 'admin' ? '设为普通用户' : '设为管理员' }}
@@ -57,6 +60,16 @@
           >
             {{ row.status === 1 ? '禁用' : '启用' }}
           </el-button>
+          <el-button size="small" @click="openEdit(row)">编辑</el-button>
+          <el-button
+            size="small"
+            type="danger"
+            plain
+            :disabled="row.id === userStore.user?.id"
+            @click="handleDelete(row)"
+          >
+            删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -67,14 +80,46 @@
       :page-size="pageSize"
       v-model:current-page="currentPage"
     />
+
+    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑用户' : '新增用户'" width="420px">
+      <el-form label-width="80px">
+        <el-form-item v-if="!editingId" label="账号">
+          <el-input v-model="userForm.userAccount" placeholder="请输入账号" />
+        </el-form-item>
+        <el-form-item label="密码">
+          <el-input v-model="userForm.userPassword" type="password" show-password placeholder="请输入密码" />
+        </el-form-item>
+        <el-form-item label="昵称">
+          <el-input v-model="userForm.userName" placeholder="请输入昵称" />
+        </el-form-item>
+        <el-form-item v-if="!editingId" label="角色">
+          <el-select v-model="userForm.role" style="width: 100%">
+            <el-option label="普通用户" value="user" />
+            <el-option label="管理员" value="admin" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/user'
-import { listUsers, updateUserRole, updateUserStatus, type UserInfo } from '@/api'
+import {
+  listUsers,
+  updateUserRole,
+  updateUserStatus,
+  createUser,
+  updateUser,
+  deleteUser,
+  type UserInfo
+} from '@/api'
 
 const userStore = useUserStore()
 const users = ref<UserInfo[]>([])
@@ -82,6 +127,15 @@ const keyword = ref('')
 const currentPage = ref(1)
 const pageSize = 10
 const selectedUsers = ref<UserInfo[]>([])
+const dialogVisible = ref(false)
+const editingId = ref<number | null>(null)
+const saving = ref(false)
+const userForm = ref({
+  userAccount: '',
+  userPassword: '',
+  userName: '',
+  role: 'user'
+})
 
 const filteredUsers = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
@@ -107,6 +161,61 @@ watch(filteredUsers, () => {
 
 async function load() {
   users.value = await listUsers()
+}
+
+function openCreate() {
+  editingId.value = null
+  userForm.value = { userAccount: '', userPassword: '', userName: '', role: 'user' }
+  dialogVisible.value = true
+}
+
+function openEdit(row: UserInfo) {
+  editingId.value = row.id
+  userForm.value = { userAccount: row.userAccount, userPassword: '', userName: row.userName ?? '', role: row.userRole }
+  dialogVisible.value = true
+}
+
+async function handleSave() {
+  const form = userForm.value
+  if (!editingId.value && !form.userAccount.trim()) {
+    ElMessage.warning('请输入账号')
+    return
+  }
+  if (!form.userPassword) {
+    ElMessage.warning('请输入密码')
+    return
+  }
+  saving.value = true
+  try {
+    if (editingId.value) {
+      await updateUser(editingId.value, {
+        userName: form.userName,
+        userPassword: form.userPassword
+      })
+      ElMessage.success('已保存')
+    } else {
+      await createUser({
+        userAccount: form.userAccount.trim(),
+        userPassword: form.userPassword,
+        userName: form.userName,
+        role: form.role
+      })
+      ElMessage.success('已创建')
+    }
+    dialogVisible.value = false
+    await load()
+  } finally {
+    saving.value = false
+  }
+}
+
+async function handleDelete(row: UserInfo) {
+  await ElMessageBox.confirm(`确定删除用户「${row.userAccount}」吗？`, '删除用户', {
+    type: 'warning'
+  })
+  await deleteUser(row.id)
+  ElMessage.success('已删除')
+  await load()
 }
 
 async function toggleRole(row: UserInfo) {
@@ -146,6 +255,10 @@ onMounted(load)
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+.toolbar-right {
+  display: flex;
+  gap: 8px;
 }
 .batch-bar {
   display: flex;

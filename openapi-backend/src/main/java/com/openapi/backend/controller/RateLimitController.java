@@ -57,6 +57,23 @@ public class RateLimitController {
         return ApiResponse.ok();
     }
 
+    @GetMapping("/global")
+    @Operation(summary = "全局限流配置（管理员）")
+    public ApiResponse<Map<String, Object>> global(HttpServletRequest request) {
+        requireAdmin(request);
+        return ApiResponse.ok(rateLimitConfigService.getGlobalConfig());
+    }
+
+    @PostMapping("/global/save")
+    @Operation(summary = "保存全局限流配置（管理员）")
+    public ApiResponse<Void> saveGlobal(@RequestParam int capacity,
+                                        @RequestParam int refillRate,
+                                        HttpServletRequest request) {
+        requireAdmin(request);
+        rateLimitConfigService.saveGlobalConfig(capacity, refillRate);
+        return ApiResponse.ok();
+    }
+
     private void requireAdmin(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("openapi.userId");
         User user = userService.getById(userId);

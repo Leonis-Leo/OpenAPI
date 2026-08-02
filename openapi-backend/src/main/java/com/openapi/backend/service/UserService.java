@@ -16,4 +16,10 @@ public interface UserService extends IService<User> {
     void updateRole(Long id, String role);
 
     void updateStatus(Long id, int status);
+
+    User createUser(String userAccount, String userPassword, String userName, String role);
+
+    void updateUser(Long id, String userName, String userPassword);
+
+    void deleteUser(Long id);
 }

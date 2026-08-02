@@ -76,4 +76,46 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setStatus(status);
         updateById(user);
     }
+
+    @Override
+    public User createUser(String userAccount, String userPassword, String userName, String role) {
+        long count = lambdaQuery().eq(User::getUserAccount, userAccount).count();
+        if (count > 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号已存在");
+        }
+        User user = new User();
+        user.setUserAccount(userAccount);
+        user.setUserPassword(PasswordUtils.sha256(userPassword));
+        user.setUserName(StringUtils.hasText(userName) ? userName : userAccount);
+        user.setUserRole(StringUtils.hasText(role) ? role : "user");
+        user.setStatus(1);
+        user.setIsDelete(0);
+        save(user);
+        user.setUserPassword(null);
+        return user;
+    }
+
+    @Override
+    public void updateUser(Long id, String userName, String userPassword) {
+        User user = getById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+        }
+        if (StringUtils.hasText(userName)) {
+            user.setUserName(userName);
+        }
+        if (StringUtils.hasText(userPassword)) {
+            user.setUserPassword(PasswordUtils.sha256(userPassword));
+        }
+        updateById(user);
+    }
+
+    @Override
+    public void deleteUser(Long id) {
+        User user = getById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+        }
+        removeById(id);
+    }
 }
