@@ -23,6 +23,8 @@ public enum ErrorCode {
 
     NO_SUBSCRIBE(40300, "未订阅该接口或订阅未通过审批"),
 
+    RATE_LIMITED(42900, "请求过于频繁，请稍后再试"),
+
     SYSTEM_ERROR(50000, "系统内部错误");
 
     private final int code;

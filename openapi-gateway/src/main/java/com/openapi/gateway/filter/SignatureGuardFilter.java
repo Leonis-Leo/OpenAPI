@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 public class SignatureGuardFilter implements GlobalFilter, Ordered {
 
     private final ObjectMapper objectMapper;
+    private final RateLimiter rateLimiter;
 
     @Value("${openapi.sign.max-clock-skew-millis:300000}")
     private long maxClockSkewMillis;
@@ -53,13 +54,23 @@ public class SignatureGuardFilter implements GlobalFilter, Ordered {
             return writeJson(exchange, ErrorCode.TIMESTAMP_EXPIRED);
         }
 
-        // TODO: Redis + Lua 令牌桶限流；nonce 防重放（可复用后端实现或下沉到网关）
-        return chain.filter(exchange);
+        // Redis + Lua 令牌桶限流（按接口配置，未配置时按 AccessKey）
+        return rateLimiter.tryAcquire(accessKey, request.getMethod().name(), request.getURI().getPath())
+                .flatMap(allowed -> {
+                    if (!allowed) {
+                        return writeJson(exchange, ErrorCode.RATE_LIMITED, HttpStatus.TOO_MANY_REQUESTS);
+                    }
+                    return chain.filter(exchange);
+                });
     }
 
     private Mono<Void> writeJson(ServerWebExchange exchange, ErrorCode errorCode) {
+        return writeJson(exchange, errorCode, HttpStatus.UNAUTHORIZED);
+    }
+
+    private Mono<Void> writeJson(ServerWebExchange exchange, ErrorCode errorCode, HttpStatus status) {
         ServerHttpResponse response = exchange.getResponse();
-        response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        response.setStatusCode(status);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         byte[] bytes;
         try {

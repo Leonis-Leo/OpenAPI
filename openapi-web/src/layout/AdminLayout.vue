@@ -21,6 +21,9 @@
         <el-menu-item index="/users">
           <span>用户管理</span>
         </el-menu-item>
+        <el-menu-item index="/ratelimit">
+          <span>限流配置</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

@@ -20,7 +20,8 @@ ttl key             # 查看过期时间
 ## 在项目中的用途
 
 1. **nonce 防重放**：`openapi:nonce:{accessKey}:{nonce}` 键 5 分钟过期，防止请求重放
-2. 后续规划：Redis + Lua 令牌桶限流、接口调用统计缓存
+2. **网关限流**：Redis + Lua 令牌桶（`rate_limit.lua`），支持全局按 AccessKey 限流和管理平台按接口配置（容量/补充速率），见 [[CI自动化测试]] 中的限流配置页
+3. 后续规划：接口调用统计缓存
 
 ## 关键知识点
 

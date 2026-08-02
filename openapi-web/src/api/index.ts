@@ -154,3 +154,26 @@ export const updateUserRole = (id: number, role: string) =>
 
 export const updateUserStatus = (id: number, enabled: boolean) =>
   request.post<unknown, void>('/user/update-status', null, { params: { id, enabled } })
+
+export interface RateLimitConfig {
+  interfaceId: number
+  interfaceName: string
+  url: string
+  method: string
+  capacity: number
+  refillRate: number
+  enabled: boolean
+}
+
+export const listRateLimitConfigs = () =>
+  request.get<unknown, RateLimitConfig[]>('/ratelimit/list')
+
+export const saveRateLimitConfig = (data: {
+  interfaceId: number
+  capacity: number
+  refillRate: number
+  enabled: boolean
+}) => request.post<unknown, void>('/ratelimit/save', null, { params: data })
+
+export const deleteRateLimitConfig = (interfaceId: number) =>
+  request.post<unknown, void>('/ratelimit/delete', null, { params: { interfaceId } })

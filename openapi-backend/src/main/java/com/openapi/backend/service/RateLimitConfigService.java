@@ -1,0 +1,16 @@
+package com.openapi.backend.service;
+
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.openapi.backend.entity.RateLimitConfig;
+
+import java.util.List;
+import java.util.Map;
+
+public interface RateLimitConfigService extends IService<RateLimitConfig> {
+
+    List<Map<String, Object>> listWithInterfaces();
+
+    void saveConfig(Long interfaceId, int capacity, int refillRate, boolean enabled);
+
+    void deleteConfig(Long interfaceId);
+}

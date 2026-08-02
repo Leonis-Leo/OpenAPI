@@ -50,6 +50,12 @@ const router = createRouter({
           name: 'users',
           component: () => import('@/views/UserManage.vue'),
           meta: { title: '用户管理' }
+        },
+        {
+          path: 'ratelimit',
+          name: 'ratelimit',
+          component: () => import('@/views/RateLimitManage.vue'),
+          meta: { title: '限流配置' }
         }
       ]
     },
