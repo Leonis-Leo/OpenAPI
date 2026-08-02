@@ -105,12 +105,16 @@ public class UserController {
     }
 
     @PostMapping("/update")
-    @Operation(summary = "编辑用户（昵称/重置密码，管理员）")
+    @Operation(summary = "编辑用户（昵称/重置密码/角色，管理员）")
     public ApiResponse<Void> update(@RequestParam Long id,
                                     @RequestParam(required = false) String userName,
                                     @RequestParam(required = false) String userPassword,
+                                    @RequestParam(required = false) String role,
                                     HttpServletRequest request) {
         requireAdmin(request);
+        if (StringUtils.hasText(role)) {
+            userService.updateRole(id, role);
+        }
         userService.updateUser(id, userName, userPassword);
         return ApiResponse.ok();
     }

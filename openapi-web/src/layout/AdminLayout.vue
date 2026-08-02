@@ -25,19 +25,19 @@
           <el-icon><DocumentChecked /></el-icon>
           <span>订阅审批</span>
         </el-menu-item>
-        <el-menu-item index="/stats" :title="'调用统计'">
+        <el-menu-item v-if="isAdmin" index="/stats" :title="'调用统计'">
           <el-icon><TrendCharts /></el-icon>
           <span>调用统计</span>
         </el-menu-item>
-        <el-menu-item index="/users" :title="'用户管理'">
+        <el-menu-item v-if="isAdmin" index="/users" :title="'用户管理'">
           <el-icon><User /></el-icon>
           <span>用户管理</span>
         </el-menu-item>
-        <el-menu-item index="/ratelimit" :title="'限流配置'">
+        <el-menu-item v-if="isAdmin" index="/ratelimit" :title="'限流配置'">
           <el-icon><Timer /></el-icon>
           <span>限流配置</span>
         </el-menu-item>
-        <el-menu-item index="/logs" :title="'API 日志'">
+        <el-menu-item v-if="isAdmin" index="/logs" :title="'API 日志'">
           <el-icon><Document /></el-icon>
           <span>API 日志</span>
         </el-menu-item>
@@ -133,6 +133,7 @@ import { selfUpdate } from '@/api'
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const isAdmin = userStore.user?.userRole === 'admin'
 const isDark = ref(document.documentElement.classList.contains('dark'))
 const isCollapse = ref(localStorage.getItem('openapi-sidebar') === '1')
 const profileVisible = ref(false)

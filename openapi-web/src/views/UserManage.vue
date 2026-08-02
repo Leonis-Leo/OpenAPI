@@ -4,11 +4,11 @@
       <h2>用户管理</h2>
       <div class="toolbar-right">
         <el-input
-          v-model="keyword"
+          v-model="keywordInput"
           placeholder="搜索账号 / 昵称"
           clearable
           style="width: 220px"
-          @input="currentPage = 1"
+          @input="onKeywordInput"
         />
         <el-button type="primary" @click="openCreate">新增用户</el-button>
       </div>
@@ -86,8 +86,8 @@
         <el-form-item label="昵称">
           <el-input v-model="userForm.userName" placeholder="请输入昵称" />
         </el-form-item>
-        <el-form-item v-if="!editingId" label="角色">
-          <el-select v-model="userForm.role" style="width: 100%">
+        <el-form-item label="角色">
+          <el-select v-model="userForm.role" style="width: 100%" :disabled="editingId === userStore.user?.id">
             <el-option label="普通用户" value="user" />
             <el-option label="管理员" value="admin" />
           </el-select>
@@ -167,6 +167,7 @@ const userStore = useUserStore()
 const users = ref<UserInfo[]>([])
 const loading = ref(false)
 const keyword = ref('')
+const keywordInput = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const selected = ref<UserInfo[]>([])
@@ -190,6 +191,15 @@ const userForm = ref({
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
+let keywordTimer: ReturnType<typeof setTimeout> | undefined
+
+function onKeywordInput() {
+  clearTimeout(keywordTimer)
+  keywordTimer = setTimeout(() => {
+    keyword.value = keywordInput.value
+    currentPage.value = 1
+  }, 300)
+}
 
 const filteredUsers = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
@@ -252,7 +262,7 @@ async function handleSave() {
       if (form.userPassword) {
         payload.userPassword = form.userPassword
       }
-      await updateUser(editingId.value, payload)
+      await updateUser(editingId.value, { ...payload, role: form.role })
       ElMessage.success('已保存')
     } else {
       await createUser({

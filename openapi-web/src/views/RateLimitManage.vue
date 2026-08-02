@@ -241,6 +241,11 @@ async function handleSaveApp() {
 async function handleEnableApp(enabled: boolean) {
   const rows = appSelected.value
   if (rows.length === 0) return
+  await ElMessageBox.confirm(
+    `确定对选中的 ${rows.length} 个应用执行「${enabled ? '启用' : '禁用'}」限流吗？`,
+    '操作确认',
+    { type: 'warning' }
+  )
   const results = await Promise.allSettled(
     rows.map((r) =>
       saveAppRateLimitConfig({
@@ -312,6 +317,11 @@ async function handleSaveInterface() {
 async function handleEnableInterface(enabled: boolean) {
   const rows = interfaceSelected.value
   if (rows.length === 0) return
+  await ElMessageBox.confirm(
+    `确定对选中的 ${rows.length} 个接口执行「${enabled ? '启用' : '禁用'}」限流吗？`,
+    '操作确认',
+    { type: 'warning' }
+  )
   const results = await Promise.allSettled(
     rows.map((r) =>
       saveRateLimitConfig({

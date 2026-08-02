@@ -78,6 +78,10 @@ router.beforeEach((to) => {
   if (to.path !== '/login' && !userStore.user) {
     return '/login'
   }
+  const adminRoutes = ['/stats', '/users', '/ratelimit', '/logs']
+  if (adminRoutes.includes(to.path) && userStore.user?.userRole !== 'admin') {
+    return '/dashboard'
+  }
   return true
 })
 

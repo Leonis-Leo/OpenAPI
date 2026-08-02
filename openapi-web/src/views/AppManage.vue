@@ -4,11 +4,11 @@
       <h2>应用管理</h2>
       <div class="toolbar-right">
         <el-input
-          v-model="keyword"
+          v-model="keywordInput"
           placeholder="搜索应用名称 / AccessKey"
           clearable
           style="width: 240px"
-          @input="currentPage = 1"
+          @input="onKeywordInput"
         />
         <el-button type="primary" @click="openCreate">新建应用</el-button>
       </div>
@@ -116,15 +116,23 @@
     <el-dialog v-model="detailVisible" :title="`应用详情 - ${detailRow?.appName ?? ''}`" width="640px">
       <el-descriptions :column="1" border>
         <el-descriptions-item label="应用名称">{{ detailRow?.appName }}</el-descriptions-item>
-        <el-descriptions-item label="AccessKey">{{ detailRow?.accessKey }}</el-descriptions-item>
-        <el-descriptions-item label="SecretKey">
-          <span class="secret-text" @click="toggleSecret(detailRow!.id)">
-            {{ showSecretIds.has(detailRow!.id) ? detailRow?.secretKey : maskSecret(detailRow?.secretKey ?? '') }}
+        <el-descriptions-item label="AccessKey">
+          <span class="key-line">
+            {{ detailRow?.accessKey }}
+            <el-button size="small" plain @click="copyText(detailRow?.accessKey)">复制</el-button>
           </span>
-          <el-icon class="secret-eye" @click="toggleSecret(detailRow!.id)">
-            <View v-if="showSecretIds.has(detailRow!.id)" />
-            <Hide v-else />
-          </el-icon>
+        </el-descriptions-item>
+        <el-descriptions-item label="SecretKey">
+          <span class="key-line">
+            <span class="secret-text" @click="toggleSecret(detailRow!.id)">
+              {{ showSecretIds.has(detailRow!.id) ? detailRow?.secretKey : maskSecret(detailRow?.secretKey ?? '') }}
+            </span>
+            <el-icon class="secret-eye" @click="toggleSecret(detailRow!.id)">
+              <View v-if="showSecretIds.has(detailRow!.id)" />
+              <Hide v-else />
+            </el-icon>
+            <el-button size="small" plain @click="copyText(detailRow?.secretKey)">复制</el-button>
+          </span>
         </el-descriptions-item>
         <el-descriptions-item label="状态">
           {{ detailRow?.status === 1 ? '启用' : '禁用' }}
@@ -171,6 +179,7 @@ const userStore = useUserStore()
 const apps = ref<AppInfo[]>([])
 const loading = ref(false)
 const keyword = ref('')
+const keywordInput = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const selected = ref<AppInfo[]>([])
@@ -188,6 +197,15 @@ const showSecretIds = ref<Set<number>>(new Set())
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
+let keywordTimer: ReturnType<typeof setTimeout> | undefined
+
+function onKeywordInput() {
+  clearTimeout(keywordTimer)
+  keywordTimer = setTimeout(() => {
+    keyword.value = keywordInput.value
+    currentPage.value = 1
+  }, 300)
+}
 
 const filteredApps = computed(() => {
   const kw = keyword.value.trim().toLowerCase()

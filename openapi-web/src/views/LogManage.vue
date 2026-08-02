@@ -109,12 +109,12 @@
         <span>请求参数</span>
         <el-button size="small" plain @click="copyText(detail?.requestParams)">复制</el-button>
       </div>
-      <pre class="json-block">{{ prettyJson(detail?.requestParams) || '-' }}</pre>
+      <pre class="json-block" v-html="highlightJson(prettyJson(detail?.requestParams))"></pre>
       <div class="block-toolbar">
         <span>响应体</span>
         <el-button size="small" plain @click="copyText(detail?.responseBody)">复制</el-button>
       </div>
-      <pre class="json-block">{{ prettyJson(detail?.responseBody) || '-' }}</pre>
+      <pre class="json-block" v-html="highlightJson(prettyJson(detail?.responseBody))"></pre>
     </el-dialog>
   </div>
 </template>
@@ -249,6 +249,28 @@ function prettyJson(value?: string): string {
   }
 }
 
+function highlightJson(text: string): string {
+  if (!text) return ''
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  return escaped.replace(
+    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
+    (match) => {
+      let cls = 'json-number'
+      if (/^"/.test(match)) {
+        cls = /:$/.test(match) ? 'json-key' : 'json-string'
+      } else if (/true|false/.test(match)) {
+        cls = 'json-boolean'
+      } else if (/null/.test(match)) {
+        cls = 'json-null'
+      }
+      return `<span class="${cls}">${match}</span>`
+    }
+  )
+}
+
 async function copyText(value?: string) {
   if (!value) return
   try {
@@ -329,6 +351,21 @@ onMounted(load)
   overflow: auto;
   font-size: 12px;
   white-space: pre-wrap;
+}
+.json-block :deep(.json-key) {
+  color: var(--el-color-primary, #409eff);
+}
+.json-block :deep(.json-string) {
+  color: var(--el-color-success, #67c23a);
+}
+.json-block :deep(.json-number) {
+  color: var(--el-color-warning, #e6a23c);
+}
+.json-block :deep(.json-boolean) {
+  color: var(--el-color-danger, #f56c6c);
+}
+.json-block :deep(.json-null) {
+  color: var(--el-text-color-placeholder, #c0c4cc);
 }
 .block-toolbar {
   display: flex;

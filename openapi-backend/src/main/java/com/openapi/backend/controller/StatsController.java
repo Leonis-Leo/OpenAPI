@@ -5,10 +5,15 @@ import com.openapi.backend.mapper.InterfaceInfoMapper;
 import com.openapi.backend.mapper.AppMapper;
 import com.openapi.backend.entity.InterfaceInfo;
 import com.openapi.backend.entity.App;
+import com.openapi.backend.entity.User;
+import com.openapi.backend.service.UserService;
 import com.openapi.common.model.ApiResponse;
+import com.openapi.common.exception.BusinessException;
+import com.openapi.common.model.enums.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,10 +35,12 @@ public class StatsController {
     private final InvokeLogMapper invokeLogMapper;
     private final InterfaceInfoMapper interfaceInfoMapper;
     private final AppMapper appMapper;
+    private final UserService userService;
 
     @GetMapping("/overview")
     @Operation(summary = "调用统计概览")
-    public ApiResponse<Map<String, Object>> overview() {
+    public ApiResponse<Map<String, Object>> overview(HttpServletRequest request) {
+        requireAdmin(request);
         Long total = invokeLogMapper.countAll();
         Long success = invokeLogMapper.countSuccess();
         Map<String, Object> result = new HashMap<>();
@@ -49,7 +56,9 @@ public class StatsController {
     @Operation(summary = "近 N 天调用趋势")
     public ApiResponse<List<Map<String, Object>>> daily(
             @Parameter(description = "天数", example = "7")
-            @RequestParam(defaultValue = "7") int days) {
+            @RequestParam(defaultValue = "7") int days,
+            HttpServletRequest request) {
+        requireAdmin(request);
         LocalDateTime since = LocalDate.now().minusDays(days - 1L).atStartOfDay();
         return ApiResponse.ok(invokeLogMapper.dailyStats(since));
     }
@@ -58,7 +67,9 @@ public class StatsController {
     @Operation(summary = "接口调用排行")
     public ApiResponse<List<Map<String, Object>>> topInterfaces(
             @Parameter(description = "条数", example = "10")
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            HttpServletRequest request) {
+        requireAdmin(request);
         return ApiResponse.ok(invokeLogMapper.statsByInterface(limit).stream().map(row -> {
             Map<String, Object> map = new HashMap<>(row);
             Object id = row.get("interfaceId");
@@ -74,7 +85,9 @@ public class StatsController {
     @Operation(summary = "应用调用排行")
     public ApiResponse<List<Map<String, Object>>> topApps(
             @Parameter(description = "条数", example = "10")
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            HttpServletRequest request) {
+        requireAdmin(request);
         return ApiResponse.ok(invokeLogMapper.statsByApp(limit).stream().map(row -> {
             Map<String, Object> map = new HashMap<>(row);
             Object id = row.get("appId");
@@ -84,5 +97,13 @@ public class StatsController {
             }
             return map;
         }).toList());
+    }
+
+    private void requireAdmin(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("openapi.userId");
+        User user = userService.getById(userId);
+        if (user == null || !"admin".equals(user.getUserRole())) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "仅管理员可查看统计");
+        }
     }
 }

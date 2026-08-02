@@ -5,37 +5,37 @@
       <span class="welcome">你好，{{ userStore.user?.userName || userStore.user?.userAccount || '用户' }} 👋</span>
     </div>
     <el-row :gutter="16">
-      <el-col :span="4">
+      <el-col :xs="24" :sm="12" :md="8" :lg="4">
         <el-card class="stat-card clickable" shadow="hover" @click="router.push('/apps')">
           <p class="stat-label">我的应用</p>
           <p class="stat-value">{{ appCount }}</p>
         </el-card>
       </el-col>
-      <el-col :span="4">
+      <el-col :xs="24" :sm="12" :md="8" :lg="4">
         <el-card class="stat-card clickable" shadow="hover" @click="router.push('/subscribes')">
           <p class="stat-label">已订阅接口</p>
           <p class="stat-value">{{ subscribeCount }}</p>
         </el-card>
       </el-col>
-      <el-col :span="4">
+      <el-col :xs="24" :sm="12" :md="8" :lg="4">
         <el-card class="stat-card clickable" shadow="hover" @click="router.push('/interfaces')">
           <p class="stat-label">可调用接口</p>
           <p class="stat-value">{{ interfaceCount }}</p>
         </el-card>
       </el-col>
-      <el-col :span="4">
+      <el-col :xs="24" :sm="12" :md="8" :lg="4">
         <el-card class="stat-card clickable" shadow="hover" @click="router.push('/stats')">
           <p class="stat-label">累计调用</p>
           <p class="stat-value">{{ stats.total }}</p>
         </el-card>
       </el-col>
-      <el-col :span="4">
+      <el-col :xs="24" :sm="12" :md="8" :lg="4">
         <el-card class="stat-card clickable" shadow="hover" @click="router.push('/stats')">
           <p class="stat-label">成功率</p>
           <p class="stat-value success">{{ stats.successRate }}%</p>
         </el-card>
       </el-col>
-      <el-col :span="4">
+      <el-col :xs="24" :sm="12" :md="8" :lg="4">
         <el-card class="stat-card clickable" shadow="hover" @click="router.push('/subscribes')">
           <p class="stat-label">待审批订阅</p>
           <p class="stat-value warning">{{ pendingCount }}</p>
@@ -83,8 +83,8 @@ onMounted(async () => {
   }
   const infos = await listInterfaces()
   interfaceCount.value = infos.length
-  stats.value = await statsOverview()
   if (userStore.user?.userRole === 'admin') {
+    stats.value = await statsOverview()
     const pending = await listSubscribes(0)
     pendingCount.value = pending.length
   }

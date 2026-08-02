@@ -10,6 +10,50 @@
       />
     </div>
     <el-tabs v-model="activeTab">
+      <el-tab-pane v-if="isAdmin" label="全部订阅" name="all">
+        <div class="action-bar">
+          <el-button class="danger-right" size="small" type="danger" plain :disabled="selectedAll.length === 0" @click="handleDeleteAll">删除记录</el-button>
+          <span v-if="selectedAll.length" class="batch-tip">已选 {{ selectedAll.length }} 项</span>
+        </div>
+        <el-table
+          ref="allTableRef"
+          :data="pagedAll"
+          border
+          stripe
+          v-loading="loading"
+          @row-click="(row: SubscribeInfo) => allTableRef?.toggleRowSelection(row)"
+          @selection-change="(rows: SubscribeInfo[]) => (selectedAll = rows)"
+        >
+          <el-table-column type="selection" width="50" />
+          <el-table-column type="index" label="#" width="60" :index="allIndex" />
+          <el-table-column label="接口">
+            <template #default="{ row }">
+              <el-link type="primary" @click="openDetail(row)">{{ row.interfaceName }}</el-link>
+            </template>
+          </el-table-column>
+          <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
+          <el-table-column prop="appName" label="应用" />
+          <el-table-column prop="userAccount" label="申请人" width="120" />
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="statusType(row.status)" size="small">
+                {{ statusText(row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="申请时间" width="180" />
+        </el-table>
+        <el-pagination
+          class="pagination"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="allList.length"
+          :page-sizes="[10, 20, 50, 100]"
+          v-model:current-page="allPage"
+          v-model:page-size="pageSize"
+          @current-change="clearAllSelection"
+          @size-change="clearAllSelection"
+        />
+      </el-tab-pane>
       <el-tab-pane v-if="isAdmin" label="待审批" name="pending">
             <div class="action-bar">
       <el-button size="small" type="success" :disabled="selectedPending.length === 0" @click="handleApprove(true)">通过</el-button>
@@ -112,22 +156,33 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
-import { listSubscribes, mySubscribes, approve, unsubscribe, type SubscribeInfo } from '@/api'
+import {
+  listSubscribes,
+  mySubscribes,
+  approve,
+  unsubscribe,
+  deleteSubscribeRecord,
+  type SubscribeInfo
+} from '@/api'
 
 const userStore = useUserStore()
 const isAdmin = userStore.user?.userRole === 'admin'
 const activeTab = ref('pending')
 const pendingList = ref<SubscribeInfo[]>([])
 const myList = ref<SubscribeInfo[]>([])
+const allList = ref<SubscribeInfo[]>([])
 const keyword = ref('')
 const loading = ref(false)
 const pendingPage = ref(1)
 const minePage = ref(1)
+const allPage = ref(1)
 const pageSize = ref(10)
 const selectedPending = ref<SubscribeInfo[]>([])
 const selectedMine = ref<SubscribeInfo[]>([])
+const selectedAll = ref<SubscribeInfo[]>([])
 const pendingTableRef = ref<TableInstance>()
 const mineTableRef = ref<TableInstance>()
+const allTableRef = ref<TableInstance>()
 const detailVisible = ref(false)
 const detailRow = ref<SubscribeInfo | null>(null)
 
@@ -135,6 +190,7 @@ const pendingRow = computed(() => (selectedPending.value.length === 1 ? selected
 const mineRow = computed(() => (selectedMine.value.length === 1 ? selectedMine.value[0] : null))
 const pendingIndex = (i: number) => (pendingPage.value - 1) * pageSize.value + i + 1
 const mineIndex = (i: number) => (minePage.value - 1) * pageSize.value + i + 1
+const allIndex = (i: number) => (allPage.value - 1) * pageSize.value + i + 1
 
 function clearPendingSelection() {
   selectedPending.value = []
@@ -144,6 +200,11 @@ function clearPendingSelection() {
 function clearMineSelection() {
   selectedMine.value = []
   mineTableRef.value?.clearSelection()
+}
+
+function clearAllSelection() {
+  selectedAll.value = []
+  allTableRef.value?.clearSelection()
 }
 
 function matchKw(item: SubscribeInfo): boolean {
@@ -166,6 +227,11 @@ const pagedMine = computed(() => {
   const start = (minePage.value - 1) * pageSize.value
   return filteredMine.value.slice(start, start + pageSize.value)
 })
+const filteredAll = computed(() => allList.value.filter(matchKw))
+const pagedAll = computed(() => {
+  const start = (allPage.value - 1) * pageSize.value
+  return filteredAll.value.slice(start, start + pageSize.value)
+})
 
 watch(filteredPending, () => {
   const max = Math.max(1, Math.ceil(filteredPending.value.length / pageSize.value))
@@ -181,16 +247,36 @@ watch(filteredMine, () => {
   }
 })
 
+watch(filteredAll, () => {
+  const max = Math.max(1, Math.ceil(filteredAll.value.length / pageSize.value))
+  if (allPage.value > max) {
+    allPage.value = max
+  }
+})
+
 async function load() {
   loading.value = true
   try {
     if (isAdmin) {
       pendingList.value = await listSubscribes(0)
+      allList.value = await listSubscribes()
     }
     myList.value = await mySubscribes()
   } finally {
     loading.value = false
   }
+}
+
+async function handleDeleteAll() {
+  const rows = selectedAll.value
+  if (rows.length === 0) return
+  const msg = rows.length > 1
+    ? `确定删除选中的 ${rows.length} 条订阅记录吗？`
+    : `确定删除「${rows[0].interfaceName}」的订阅记录吗？`
+  await ElMessageBox.confirm(msg, '删除记录', { type: 'warning' })
+  const results = await Promise.allSettled(rows.map((s) => deleteSubscribeRecord(s.id)))
+  summarizeResults(results, rows.length, '删除')
+  await load()
 }
 
 async function handleApprove(approved: boolean) {

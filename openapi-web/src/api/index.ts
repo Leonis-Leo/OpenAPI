@@ -102,6 +102,9 @@ export const approve = (id: number, approved: boolean) =>
 export const unsubscribe = (id: number) =>
   request.post<unknown, void>('/interface/unsubscribe', null, { params: { id } })
 
+export const deleteSubscribeRecord = (id: number) =>
+  request.post<unknown, void>('/interface/subscribe-delete', null, { params: { id } })
+
 export interface InterfaceForm {
   name: string
   description: string
@@ -179,7 +182,7 @@ export const createUser = (data: {
   role: string
 }) => request.post<unknown, UserInfo>('/user/create', null, { params: data })
 
-export const updateUser = (id: number, data: { userName?: string; userPassword?: string }) =>
+export const updateUser = (id: number, data: { userName?: string; userPassword?: string; role?: string }) =>
   request.post<unknown, void>('/user/update', null, { params: { id, ...data } })
 
 export const selfUpdate = (data: { userName?: string; userPassword?: string }) =>

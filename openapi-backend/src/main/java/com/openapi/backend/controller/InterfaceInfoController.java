@@ -119,6 +119,14 @@ public class InterfaceInfoController {
         return ApiResponse.ok();
     }
 
+    @PostMapping("/subscribe-delete")
+    @Operation(summary = "删除订阅记录（管理员）")
+    public ApiResponse<Void> deleteSubscribe(@RequestParam Long id, HttpServletRequest request) {
+        requireAdmin(request);
+        subscribeService.removeById(id);
+        return ApiResponse.ok();
+    }
+
     @PostMapping("/create")
     @Operation(summary = "新增接口（管理员）")
     public ApiResponse<InterfaceInfo> create(

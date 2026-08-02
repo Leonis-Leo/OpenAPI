@@ -4,11 +4,11 @@
       <h2>接口管理</h2>
       <div class="toolbar-right">
         <el-input
-          v-model="keyword"
+          v-model="keywordInput"
           placeholder="搜索名称 / 路径"
           clearable
           style="width: 220px"
-          @input="currentPage = 1"
+          @input="onKeywordInput"
         />
         <el-button v-if="isAdmin" type="primary" @click="openCreateForm">新增接口</el-button>
       </div>
@@ -107,9 +107,15 @@
             <el-descriptions-item label="路径" :span="2">{{ debugInterface?.url }}</el-descriptions-item>
             <el-descriptions-item label="描述" :span="2">{{ debugInterface?.description }}</el-descriptions-item>
           </el-descriptions>
-          <h4>请求参数说明</h4>
+          <div class="block-toolbar">
+            <span>请求参数说明</span>
+            <el-button size="small" plain @click="copyText(debugInterface?.requestParams)">复制</el-button>
+          </div>
           <pre class="json-block" v-html="highlightJson(prettyJson(debugInterface?.requestParams))"></pre>
-          <h4>响应示例</h4>
+          <div class="block-toolbar">
+            <span>响应示例</span>
+            <el-button size="small" plain @click="copyText(debugInterface?.responseExample)">复制</el-button>
+          </div>
           <pre class="json-block" v-html="highlightJson(prettyJson(debugInterface?.responseExample))"></pre>
         </el-tab-pane>
         <el-tab-pane label="在线调试" name="debug">
@@ -235,6 +241,7 @@ const isAdmin = userStore.user?.userRole === 'admin'
 const interfaces = ref<InterfaceInfo[]>([])
 const loading = ref(false)
 const keyword = ref('')
+const keywordInput = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const apps = ref<AppInfo[]>([])
@@ -249,6 +256,15 @@ const tableRef = ref<TableInstance>()
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
+let keywordTimer: ReturnType<typeof setTimeout> | undefined
+
+function onKeywordInput() {
+  clearTimeout(keywordTimer)
+  keywordTimer = setTimeout(() => {
+    keyword.value = keywordInput.value
+    currentPage.value = 1
+  }, 300)
+}
 
 const detailVisible = ref(false)
 const detailTab = ref('info')
@@ -308,6 +324,16 @@ async function copyCurl() {
   try {
     await navigator.clipboard.writeText(curl)
     ElMessage.success('Curl 已复制')
+  } catch {
+    ElMessage.error('复制失败')
+  }
+}
+
+async function copyText(value?: string) {
+  if (!value) return
+  try {
+    await navigator.clipboard.writeText(value)
+    ElMessage.success('已复制')
   } catch {
     ElMessage.error('复制失败')
   }
@@ -441,7 +467,7 @@ async function openDetail(row: InterfaceInfo | null) {
   if (!row) return
   const detail = await interfaceDetail(row.id)
   debugInterface.value = detail
-  debugParamsJson.value = ''
+  debugParamsJson.value = buildExampleParams(detail.requestParams)
   debugHeadersJson.value = ''
   debugAppId.value = apps.value[0]?.id ?? null
   debugStatus.value = null
@@ -449,6 +475,21 @@ async function openDetail(row: InterfaceInfo | null) {
   debugBody.value = ''
   detailTab.value = 'info'
   detailVisible.value = true
+}
+
+function buildExampleParams(requestParams?: string): string {
+  if (!requestParams) return ''
+  try {
+    const obj = JSON.parse(requestParams)
+    if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) return ''
+    const example: Record<string, string> = {}
+    Object.keys(obj).forEach((k) => {
+      example[k] = ''
+    })
+    return JSON.stringify(example, null, 2)
+  } catch {
+    return ''
+  }
 }
 
 function clearDebug() {
@@ -679,6 +720,13 @@ onMounted(load)
   overflow: auto;
   font-size: 12px;
   white-space: pre-wrap;
+}
+.block-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0 4px;
+  font-weight: 600;
 }
 .debug-header {
   display: flex;
