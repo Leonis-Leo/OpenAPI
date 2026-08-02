@@ -103,3 +103,30 @@ jobs:
           name: apifox-reports
           path: apifox-reports/
           if-no-files-found: warn
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: openapi-web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: openapi-web
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: openapi-web
+        run: npm run build
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-web-dist
+          path: openapi-web/dist/
+          if-no-files-found: error
