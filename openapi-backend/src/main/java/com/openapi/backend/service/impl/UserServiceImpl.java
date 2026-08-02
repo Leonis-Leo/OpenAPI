@@ -7,11 +7,13 @@ import com.openapi.backend.mapper.UserMapper;
 import com.openapi.backend.service.UserService;
 import com.openapi.common.exception.BusinessException;
 import com.openapi.common.model.enums.ErrorCode;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
 
+@Slf4j
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
@@ -23,7 +25,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         User user = new User();
         user.setUserAccount(userAccount);
-        user.setUserPassword(PasswordUtils.sha256(userPassword));
+        user.setUserPassword(PasswordUtils.encode(userPassword));
         user.setUserName(StringUtils.hasText(userName) ? userName : userAccount);
         user.setUserRole("user");
         user.setIsDelete(0);
@@ -34,14 +36,34 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public User login(String userAccount, String userPassword) {
         User user = lambdaQuery().eq(User::getUserAccount, userAccount).one();
-        if (user == null || !user.getUserPassword().equals(PasswordUtils.sha256(userPassword))) {
+        if (user == null || !passwordMatches(user, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号或密码错误");
         }
         if (Integer.valueOf(0).equals(user.getStatus())) {
             throw new BusinessException(ErrorCode.NO_AUTH, "账号已被禁用");
         }
+        migrateLegacyPassword(user, userPassword);
         user.setUserPassword(null);
         return user;
+    }
+
+    private boolean passwordMatches(User user, String rawPassword) {
+        String stored = user.getUserPassword();
+        if (PasswordUtils.isLegacySha256(stored)) {
+            return PasswordUtils.sha256(rawPassword).equalsIgnoreCase(stored);
+        }
+        return PasswordUtils.matches(rawPassword, stored);
+    }
+
+    private void migrateLegacyPassword(User user, String rawPassword) {
+        if (PasswordUtils.isLegacySha256(user.getUserPassword())) {
+            try {
+                user.setUserPassword(PasswordUtils.encode(rawPassword));
+                updateById(user);
+            } catch (Exception e) {
+                log.warn("存量密码迁移 BCrypt 失败，账号：{}", user.getUserAccount(), e);
+            }
+        }
     }
 
     @Override
@@ -85,7 +107,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         User user = new User();
         user.setUserAccount(userAccount);
-        user.setUserPassword(PasswordUtils.sha256(userPassword));
+        user.setUserPassword(PasswordUtils.encode(userPassword));
         user.setUserName(StringUtils.hasText(userName) ? userName : userAccount);
         user.setUserRole(StringUtils.hasText(role) ? role : "user");
         user.setStatus(1);
@@ -105,7 +127,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             user.setUserName(userName);
         }
         if (StringUtils.hasText(userPassword)) {
-            user.setUserPassword(PasswordUtils.sha256(userPassword));
+            user.setUserPassword(PasswordUtils.encode(userPassword));
         }
         updateById(user);
     }
