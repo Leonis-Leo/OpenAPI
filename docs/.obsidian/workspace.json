@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "01-项目文档/签名鉴权原理.md",
+                "file": "01-项目文档/架构设计.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "签名鉴权原理"
+              "title": "架构设计"
             }
           }
         ]
@@ -188,18 +188,19 @@
   },
   "active": "b44f932cc350e23c",
   "lastOpenFiles": [
+    "05-接口文档/接口文档.md",
+    "04-模板/问题记录模板.md",
     "01-项目文档/项目规划.md",
     "00-项目总览.md",
+    "01-项目文档/CI自动化测试.md",
+    "01-项目文档/签名鉴权原理.md",
     "未命名.base",
-    "05-接口文档/接口文档.md",
     "05-接口文档/openapi.json",
     "05-接口文档/Apifox签名前置脚本.js",
     "05-接口文档",
-    "04-模板/问题记录模板.md",
     "04-模板",
     "03-问题记录/MySQL8-PublicKeyRetrieval.md",
     "03-问题记录",
-    "01-项目文档/CI自动化测试.md",
     "04-问题记录/MySQL8-PublicKeyRetrieval.md",
     "03-面试准备/常见面试题.md",
     "接口文档/接口文档.md",
@@ -209,7 +210,6 @@
     "99-模板/问题记录模板.md",
     "接口文档/openapi.json",
     "接口文档",
-    "01-项目文档/签名鉴权原理.md",
     "01-项目文档/架构设计.md"
   ]
 }
