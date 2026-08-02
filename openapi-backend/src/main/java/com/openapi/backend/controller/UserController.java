@@ -64,6 +64,17 @@ public class UserController {
         return ApiResponse.ok(result);
     }
 
+    @PostMapping("/logout")
+    @Operation(summary = "退出登录")
+    public ApiResponse<Void> logout(HttpServletResponse response) {
+        Cookie cookie = new Cookie("openapi_token", null);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+        return ApiResponse.ok();
+    }
+
     @GetMapping("/list")
     @Operation(summary = "用户列表（管理员）")
     public ApiResponse<List<User>> listUsers(

@@ -54,6 +54,8 @@ export interface SubscribeInfo {
 export const login = (params: LoginParams) =>
   request.post<unknown, LoginResult>('/user/login', null, { params })
 
+export const logout = () => request.post<unknown, void>('/user/logout')
+
 export const createApp = (appName: string, userId: number) =>
   request.post<unknown, AppInfo>('/app/create', null, { params: { appName, userId } })
 

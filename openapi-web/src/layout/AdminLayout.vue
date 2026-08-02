@@ -128,7 +128,7 @@ import {
   User
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
-import { selfUpdate } from '@/api'
+import { logout as logoutApi, selfUpdate } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -150,10 +150,15 @@ function toggleCollapse() {
   localStorage.setItem('openapi-sidebar', isCollapse.value ? '1' : '0')
 }
 
-function handleCommand(command: string) {
+async function handleCommand(command: string) {
   if (command === 'logout') {
+    try {
+      await logoutApi()
+    } catch {
+      // 忽略退出接口异常，本地照常清理
+    }
     userStore.logout()
-    router.push('/login')
+    window.location.href = '/login'
   } else if (command === 'profile') {
     profileForm.userName = userStore.user?.userName ?? ''
     profileForm.userPassword = ''
