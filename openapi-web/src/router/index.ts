@@ -44,6 +44,12 @@ const router = createRouter({
           name: 'stats',
           component: () => import('@/views/StatsView.vue'),
           meta: { title: '调用统计' }
+        },
+        {
+          path: 'users',
+          name: 'users',
+          component: () => import('@/views/UserManage.vue'),
+          meta: { title: '用户管理' }
         }
       ]
     }

@@ -18,6 +18,9 @@
         <el-menu-item index="/stats">
           <span>调用统计</span>
         </el-menu-item>
+        <el-menu-item index="/users">
+          <span>用户管理</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

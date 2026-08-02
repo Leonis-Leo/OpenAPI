@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS `user`
     `user_password` VARCHAR(128) NOT NULL COMMENT '密码',
     `user_name`     VARCHAR(64)  DEFAULT NULL COMMENT '昵称',
     `user_role`     VARCHAR(16)  DEFAULT 'user' COMMENT '角色：user/admin',
+    `status`        TINYINT      DEFAULT 1 COMMENT '状态：0禁用 1启用',
     `create_time`   DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time`   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `is_delete`     TINYINT      DEFAULT 0 COMMENT '是否删除：0否 1是',

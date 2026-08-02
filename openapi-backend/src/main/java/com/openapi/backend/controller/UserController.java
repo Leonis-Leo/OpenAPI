@@ -9,7 +9,9 @@ import com.openapi.common.model.enums.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -51,5 +54,40 @@ public class UserController {
         result.put("token", token);
         result.put("user", user);
         return ApiResponse.ok(result);
+    }
+
+    @GetMapping("/list")
+    @Operation(summary = "用户列表（管理员）")
+    public ApiResponse<List<User>> listUsers(HttpServletRequest request) {
+        requireAdmin(request);
+        return ApiResponse.ok(userService.listUsers());
+    }
+
+    @PostMapping("/update-role")
+    @Operation(summary = "修改用户角色（管理员）")
+    public ApiResponse<Void> updateRole(@RequestParam Long id,
+                                        @Parameter(example = "admin") @RequestParam String role,
+                                        HttpServletRequest request) {
+        requireAdmin(request);
+        userService.updateRole(id, role);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/update-status")
+    @Operation(summary = "启用/禁用用户（管理员）")
+    public ApiResponse<Void> updateStatus(@RequestParam Long id,
+                                          @RequestParam Boolean enabled,
+                                          HttpServletRequest request) {
+        requireAdmin(request);
+        userService.updateStatus(id, enabled ? 1 : 0);
+        return ApiResponse.ok();
+    }
+
+    private void requireAdmin(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("openapi.userId");
+        User user = userService.getById(userId);
+        if (user == null || !"admin".equals(user.getUserRole())) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "仅管理员可操作");
+        }
     }
 }

@@ -10,6 +10,8 @@ import com.openapi.common.model.enums.ErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
+
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
@@ -35,7 +37,37 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null || !user.getUserPassword().equals(PasswordUtils.sha256(userPassword))) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号或密码错误");
         }
+        if (Integer.valueOf(0).equals(user.getStatus())) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "账号已被禁用");
+        }
         user.setUserPassword(null);
         return user;
+    }
+
+    @Override
+    public List<User> listUsers() {
+        List<User> users = list();
+        users.forEach(user -> user.setUserPassword(null));
+        return users;
+    }
+
+    @Override
+    public void updateRole(Long id, String role) {
+        User user = getById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+        }
+        user.setUserRole(role);
+        updateById(user);
+    }
+
+    @Override
+    public void updateStatus(Long id, int status) {
+        User user = getById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+        }
+        user.setStatus(status);
+        updateById(user);
     }
 }

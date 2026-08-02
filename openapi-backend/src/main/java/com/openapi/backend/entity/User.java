@@ -33,6 +33,8 @@ public class User implements Serializable {
 
     private String userRole;
 
+    private Integer status;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

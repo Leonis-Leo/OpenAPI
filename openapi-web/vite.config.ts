@@ -15,6 +15,10 @@ export default defineConfig({
       '/v1': {
         target: 'http://localhost:8101',
         changeOrigin: true
+      },
+      '/api': {
+        target: 'http://localhost:8101',
+        changeOrigin: true
       }
     }
   }

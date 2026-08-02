@@ -34,6 +34,8 @@ export interface InterfaceInfo {
   method: string
   url: string
   status: number
+  requestParams?: string
+  responseExample?: string
 }
 
 export interface SubscribeInfo {
@@ -58,6 +60,9 @@ export const listApps = (userId: number) =>
 
 export const listInterfaces = () =>
   request.get<unknown, InterfaceInfo[]>('/interface/list')
+
+export const interfaceDetail = (id: number) =>
+  request.get<unknown, InterfaceInfo>(`/interface/${id}`)
 
 export const listAllInterfaces = () =>
   request.get<unknown, InterfaceInfo[]>('/interface/list-all')
@@ -101,3 +106,21 @@ export const statsOverview = () =>
 
 export const statsDaily = (days: number) =>
   request.get<unknown, DailyStat[]>('/stats/daily', { params: { days } })
+
+export interface UserInfo {
+  id: number
+  userAccount: string
+  userName: string
+  userRole: string
+  status: number
+  createTime: string
+}
+
+export const listUsers = () =>
+  request.get<unknown, UserInfo[]>('/user/list')
+
+export const updateUserRole = (id: number, role: string) =>
+  request.post<unknown, void>('/user/update-role', null, { params: { id, role } })
+
+export const updateUserStatus = (id: number, enabled: boolean) =>
+  request.post<unknown, void>('/user/update-status', null, { params: { id, enabled } })

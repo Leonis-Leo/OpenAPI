@@ -2,6 +2,8 @@ package com.openapi.backend.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openapi.backend.common.JwtUtils;
+import com.openapi.backend.entity.User;
+import com.openapi.backend.service.UserService;
 import com.openapi.common.model.ApiResponse;
 import com.openapi.common.model.enums.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +24,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     private final JwtUtils jwtUtils;
     private final ObjectMapper objectMapper;
+    private final UserService userService;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
@@ -32,6 +35,10 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
         try {
             Long userId = jwtUtils.parseUserId(authorization.substring(7));
+            User user = userService.getById(userId);
+            if (user == null || Integer.valueOf(0).equals(user.getStatus())) {
+                return reject(response);
+            }
             request.setAttribute("openapi.userId", userId);
             return true;
         } catch (Exception e) {
