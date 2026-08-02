@@ -1,6 +1,7 @@
 package com.openapi.backend.config;
 
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +19,10 @@ public class JacksonConfig {
 
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer jacksonCustomizer() {
-        return builder -> builder.serializers(new LocalDateTimeSerializer(DATE_TIME_FORMATTER));
+        return builder -> builder
+                .serializers(new LocalDateTimeSerializer(DATE_TIME_FORMATTER))
+                // 雪花 ID 超过 JS 安全整数，Long 统一输出为字符串避免前端精度丢失
+                .serializerByType(Long.class, ToStringSerializer.instance)
+                .serializerByType(Long.TYPE, ToStringSerializer.instance);
     }
 }
