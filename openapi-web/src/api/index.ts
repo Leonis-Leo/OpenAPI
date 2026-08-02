@@ -59,6 +59,9 @@ export const listApps = (userId: number) =>
 export const listInterfaces = () =>
   request.get<unknown, InterfaceInfo[]>('/interface/list')
 
+export const listAllInterfaces = () =>
+  request.get<unknown, InterfaceInfo[]>('/interface/list-all')
+
 export const onlineInterface = (id: number) =>
   request.post<unknown, void>('/interface/online', null, { params: { id } })
 

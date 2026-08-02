@@ -35,11 +35,17 @@ public class InterfaceSubscribeServiceImpl extends ServiceImpl<InterfaceSubscrib
         if (app == null || !app.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "应用不存在或不属于当前用户");
         }
-        long exists = lambdaQuery()
+        InterfaceSubscribe existing = lambdaQuery()
                 .eq(InterfaceSubscribe::getInterfaceId, interfaceId)
                 .eq(InterfaceSubscribe::getAppId, appId)
-                .count();
-        if (exists > 0) {
+                .one();
+        if (existing != null && existing.getStatus() == 2) {
+            // 被拒绝后允许重新申请
+            existing.setStatus(0);
+            updateById(existing);
+            return existing;
+        }
+        if (existing != null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "已提交过该接口的订阅申请");
         }
         InterfaceSubscribe subscribe = new InterfaceSubscribe();

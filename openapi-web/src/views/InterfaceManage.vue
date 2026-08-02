@@ -30,7 +30,13 @@
       </el-table-column>
       <el-table-column label="操作" width="220">
         <template #default="{ row }">
-          <el-button size="small" @click="openSubscribe(row)">订阅</el-button>
+          <el-button
+            size="small"
+            :disabled="subscribeMap[row.id] === 0 || subscribeMap[row.id] === 1"
+            @click="openSubscribe(row)"
+          >
+            {{ subscribeMap[row.id] === 1 ? '已订阅' : subscribeMap[row.id] === 0 ? '已申请' : '订阅' }}
+          </el-button>
           <el-button
             v-if="isAdmin"
             size="small"
@@ -70,6 +76,7 @@ import {
   listApps,
   type AppInfo,
   listInterfaces,
+  listAllInterfaces,
   onlineInterface,
   offlineInterface,
   subscribe,
@@ -88,7 +95,7 @@ const selectedAppId = ref<number | null>(null)
 const subscribing = ref(false)
 
 async function load() {
-  interfaces.value = await listInterfaces()
+  interfaces.value = isAdmin ? await listAllInterfaces() : await listInterfaces()
   const subscribes = await mySubscribes()
   const map: Record<number, number> = {}
   subscribes.forEach((s) => {

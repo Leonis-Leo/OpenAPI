@@ -40,6 +40,13 @@ public class InterfaceInfoController {
         return ApiResponse.ok(interfaceInfoService.listOnline());
     }
 
+    @GetMapping("/list-all")
+    @Operation(summary = "全部接口列表（管理员）")
+    public ApiResponse<List<InterfaceInfo>> listAll(HttpServletRequest request) {
+        requireAdmin(request);
+        return ApiResponse.ok(interfaceInfoService.listAll());
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "查询接口详情")
     public ApiResponse<InterfaceInfo> detail(

@@ -20,6 +20,11 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
     }
 
     @Override
+    public List<InterfaceInfo> listAll() {
+        return list();
+    }
+
+    @Override
     public void online(Long id) {
         updateStatus(id, 1);
     }

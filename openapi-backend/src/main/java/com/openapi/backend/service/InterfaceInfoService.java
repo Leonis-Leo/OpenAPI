@@ -9,6 +9,8 @@ public interface InterfaceInfoService extends IService<InterfaceInfo> {
 
     List<InterfaceInfo> listOnline();
 
+    List<InterfaceInfo> listAll();
+
     void online(Long id);
 
     void offline(Long id);
