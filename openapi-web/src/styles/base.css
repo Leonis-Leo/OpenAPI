@@ -14,3 +14,8 @@ body {
 .el-descriptions__content {
   word-break: break-all;
 }
+
+/* 固定表格行高，避免数据加载时行高重算导致的行闪烁 */
+.el-table__cell {
+  height: 48px;
+}
