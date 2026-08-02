@@ -7,6 +7,7 @@
 | 分类 | 技术 |
 | --- | --- |
 | 语言 / 框架 | Java 17、Spring Boot 3.3、Spring Cloud Gateway |
+| 前端 | Vue 3、Vite、Element Plus、Pinia |
 | 数据存储 | MySQL 8、MyBatis-Plus、Redis 7 |
 | 接口规范 | OpenAPI 3.0 / springdoc-openapi（Knife4j 兼容） |
 | 部署运维 | Docker Compose、Maven |
@@ -30,8 +31,9 @@ flowchart LR
 openapi-platform
 ├── openapi-common    # 公共模块：常量、签名工具、统一响应体、错误码
 ├── openapi-sdk       # 开发者调用 SDK：自动完成请求签名
-├── openapi-backend   # 业务后端：用户/应用/接口管理 + 签名校验拦截器
+├── openapi-backend   # 业务后端：用户/应用/接口管理 + 签名校验 + JWT 登录
 ├── openapi-gateway   # 网关：统一入口、签名头校验、限流扩展点
+├── openapi-web       # 管理后台前端：Vue3 + Element Plus
 ├── db                # 数据库初始化脚本
 └── docker-compose.yml # MySQL + Redis 一键启动
 ```
@@ -61,9 +63,13 @@ mvn package -DskipTests
 java -jar openapi-backend/target/openapi-backend-0.0.1-SNAPSHOT.jar
 java -jar openapi-gateway/target/openapi-gateway-0.0.1-SNAPSHOT.jar
 
-# 4. 使用 SDK 调用已发布接口（见 openapi-sdk 的 DemoInvokeMain）
+# 4. 启动管理后台前端（开发模式）
+cd openapi-web && npm install && npm run dev
+
+# 5. 使用 SDK 调用已发布接口（见 openapi-sdk 的 DemoInvokeMain）
 ```
 
 接口文档地址（后端直连，便于调试）：`http://localhost:8101/swagger-ui.html`
+管理后台地址（开发模式）：`http://localhost:5173`
 
 > 注意：`openapi-backend/src/main/resources/application.yml` 中的数据库与 Redis 连接参数需与本机环境一致。

@@ -35,3 +35,8 @@ openapi:
   sign:
     # 允许的最大请求时间偏差（毫秒）
     max-clock-skew-millis: 300000
+  jwt:
+    # JWT 签名密钥（HS256 要求至少 32 字节）
+    secret: openapi-platform-jwt-secret-key-0123456789abcdef0123456789abcdef
+    # token 有效期（毫秒），默认 24 小时
+    expire-millis: 86400000
