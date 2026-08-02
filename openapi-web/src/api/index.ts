@@ -36,6 +36,17 @@ export interface InterfaceInfo {
   status: number
 }
 
+export interface SubscribeInfo {
+  id: number
+  interfaceId: number
+  interfaceName: string
+  interfaceUrl: string
+  appId: number
+  appName: string
+  status: number
+  createTime: string
+}
+
 export const login = (params: LoginParams) =>
   request.post<unknown, LoginResult>('/user/login', null, { params })
 
@@ -47,3 +58,21 @@ export const listApps = (userId: number) =>
 
 export const listInterfaces = () =>
   request.get<unknown, InterfaceInfo[]>('/interface/list')
+
+export const onlineInterface = (id: number) =>
+  request.post<unknown, void>('/interface/online', null, { params: { id } })
+
+export const offlineInterface = (id: number) =>
+  request.post<unknown, void>('/interface/offline', null, { params: { id } })
+
+export const subscribe = (interfaceId: number, appId: number) =>
+  request.post<unknown, SubscribeInfo>('/interface/subscribe', null, { params: { interfaceId, appId } })
+
+export const mySubscribes = () =>
+  request.get<unknown, SubscribeInfo[]>('/interface/my-subscribes')
+
+export const listSubscribes = (status?: number) =>
+  request.get<unknown, SubscribeInfo[]>('/interface/subscribes', { params: { status } })
+
+export const approve = (id: number, approved: boolean) =>
+  request.post<unknown, void>('/interface/approve', null, { params: { id, approved } })

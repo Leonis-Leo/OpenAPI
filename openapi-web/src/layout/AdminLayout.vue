@@ -12,6 +12,9 @@
         <el-menu-item index="/interfaces">
           <span>接口管理</span>
         </el-menu-item>
+        <el-menu-item index="/subscribes">
+          <span>订阅审批</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

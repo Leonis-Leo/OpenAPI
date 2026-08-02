@@ -8,4 +8,8 @@ import java.util.List;
 public interface InterfaceInfoService extends IService<InterfaceInfo> {
 
     List<InterfaceInfo> listOnline();
+
+    void online(Long id);
+
+    void offline(Long id);
 }

@@ -32,6 +32,12 @@ const router = createRouter({
           name: 'interfaces',
           component: () => import('@/views/InterfaceManage.vue'),
           meta: { title: '接口管理' }
+        },
+        {
+          path: 'subscribes',
+          name: 'subscribes',
+          component: () => import('@/views/SubscribeManage.vue'),
+          meta: { title: '订阅审批' }
         }
       ]
     }

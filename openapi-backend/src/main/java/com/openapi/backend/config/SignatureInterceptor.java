@@ -3,7 +3,10 @@ package com.openapi.backend.config;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openapi.backend.entity.App;
+import com.openapi.backend.entity.InterfaceInfo;
 import com.openapi.backend.mapper.AppMapper;
+import com.openapi.backend.mapper.InterfaceInfoMapper;
+import com.openapi.backend.service.InterfaceSubscribeService;
 import com.openapi.common.constant.SignConstant;
 import com.openapi.common.model.ApiResponse;
 import com.openapi.common.model.enums.ErrorCode;
@@ -32,6 +35,8 @@ import java.util.Map;
 public class SignatureInterceptor implements HandlerInterceptor {
 
     private final AppMapper appMapper;
+    private final InterfaceInfoMapper interfaceInfoMapper;
+    private final InterfaceSubscribeService subscribeService;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
 
@@ -81,12 +86,24 @@ public class SignatureInterceptor implements HandlerInterceptor {
             return reject(response, ErrorCode.SIGN_ERROR);
         }
 
+        // 订阅权限校验：调用已发布的接口需所属应用已订阅且审批通过
+        InterfaceInfo interfaceInfo = interfaceInfoMapper.selectOne(
+                new LambdaQueryWrapper<InterfaceInfo>()
+                        .eq(InterfaceInfo::getUrl, request.getRequestURI())
+                        .eq(InterfaceInfo::getMethod, request.getMethod()));
+        if (interfaceInfo != null
+                && !subscribeService.hasApprovedSubscription(app.getId(), interfaceInfo.getId())) {
+            return reject(response, ErrorCode.NO_SUBSCRIBE);
+        }
+
         request.setAttribute("openapi.app", app);
         return true;
     }
 
     private boolean reject(HttpServletResponse response, ErrorCode errorCode) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setStatus(errorCode == ErrorCode.NO_SUBSCRIBE
+                ? HttpServletResponse.SC_FORBIDDEN
+                : HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.error(errorCode)));
         return false;

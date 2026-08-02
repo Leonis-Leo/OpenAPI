@@ -21,6 +21,8 @@ public enum ErrorCode {
 
     APP_NOT_FOUND(40401, "应用不存在"),
 
+    NO_SUBSCRIBE(40300, "未订阅该接口或订阅未通过审批"),
+
     SYSTEM_ERROR(50000, "系统内部错误");
 
     private final int code;
