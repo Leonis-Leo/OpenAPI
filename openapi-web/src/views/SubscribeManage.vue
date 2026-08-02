@@ -37,10 +37,11 @@
         </el-table>
         <el-pagination
           class="pagination"
-          layout="total, prev, pager, next"
+          layout="total, sizes, prev, pager, next, jumper"
           :total="filteredPending.length"
-          :page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
           v-model:current-page="pendingPage"
+          v-model:page-size="pageSize"
         />
       </el-tab-pane>
       <el-tab-pane label="我的订阅" name="mine">
@@ -76,10 +77,11 @@
         </el-table>
         <el-pagination
           class="pagination"
-          layout="total, prev, pager, next"
+          layout="total, sizes, prev, pager, next, jumper"
           :total="filteredMine.length"
-          :page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
           v-model:current-page="minePage"
+          v-model:page-size="pageSize"
         />
       </el-tab-pane>
     </el-tabs>
@@ -111,7 +113,7 @@ const myList = ref<SubscribeInfo[]>([])
 const keyword = ref('')
 const pendingPage = ref(1)
 const minePage = ref(1)
-const pageSize = 10
+const pageSize = ref(10)
 const selectedPending = ref<SubscribeInfo[]>([])
 const selectedMine = ref<SubscribeInfo[]>([])
 const pendingTableRef = ref<TableInstance>()
@@ -121,8 +123,8 @@ const detailRow = ref<SubscribeInfo | null>(null)
 
 const pendingRow = computed(() => (selectedPending.value.length === 1 ? selectedPending.value[0] : null))
 const mineRow = computed(() => (selectedMine.value.length === 1 ? selectedMine.value[0] : null))
-const pendingIndex = (i: number) => (pendingPage.value - 1) * pageSize + i + 1
-const mineIndex = (i: number) => (minePage.value - 1) * pageSize + i + 1
+const pendingIndex = (i: number) => (pendingPage.value - 1) * pageSize.value + i + 1
+const mineIndex = (i: number) => (minePage.value - 1) * pageSize.value + i + 1
 
 function matchKw(item: SubscribeInfo): boolean {
   const kw = keyword.value.trim().toLowerCase()
@@ -136,24 +138,24 @@ function matchKw(item: SubscribeInfo): boolean {
 
 const filteredPending = computed(() => pendingList.value.filter(matchKw))
 const pagedPending = computed(() => {
-  const start = (pendingPage.value - 1) * pageSize
-  return filteredPending.value.slice(start, start + pageSize)
+  const start = (pendingPage.value - 1) * pageSize.value
+  return filteredPending.value.slice(start, start + pageSize.value)
 })
 const filteredMine = computed(() => myList.value.filter(matchKw))
 const pagedMine = computed(() => {
-  const start = (minePage.value - 1) * pageSize
-  return filteredMine.value.slice(start, start + pageSize)
+  const start = (minePage.value - 1) * pageSize.value
+  return filteredMine.value.slice(start, start + pageSize.value)
 })
 
 watch(filteredPending, () => {
-  const max = Math.max(1, Math.ceil(filteredPending.value.length / pageSize))
+  const max = Math.max(1, Math.ceil(filteredPending.value.length / pageSize.value))
   if (pendingPage.value > max) {
     pendingPage.value = max
   }
 })
 
 watch(filteredMine, () => {
-  const max = Math.max(1, Math.ceil(filteredMine.value.length / pageSize))
+  const max = Math.max(1, Math.ceil(filteredMine.value.length / pageSize.value))
   if (minePage.value > max) {
     minePage.value = max
   }

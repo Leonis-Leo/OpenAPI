@@ -94,10 +94,11 @@
 
     <el-pagination
       class="pagination"
-      layout="total, prev, pager, next"
+      layout="total, sizes, prev, pager, next, jumper"
       :total="filteredInterfaces.length"
-      :page-size="pageSize"
+      :page-sizes="[10, 20, 50, 100]"
       v-model:current-page="currentPage"
+      v-model:page-size="pageSize"
     />
 
     <el-dialog v-model="detailVisible" :title="`接口详情 - ${debugInterface?.name ?? ''}`" width="720px">
@@ -205,7 +206,7 @@ const isAdmin = userStore.user?.userRole === 'admin'
 const interfaces = ref<InterfaceInfo[]>([])
 const keyword = ref('')
 const currentPage = ref(1)
-const pageSize = 10
+const pageSize = ref(10)
 const apps = ref<AppInfo[]>([])
 const subscribeMap = ref<Record<number, number>>({})
 const subscribeIdMap = ref<Record<number, number>>({})
@@ -217,7 +218,7 @@ const selected = ref<InterfaceInfo[]>([])
 const tableRef = ref<TableInstance>()
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
-const indexMethod = (i: number) => (currentPage.value - 1) * pageSize + i + 1
+const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
 
 const detailVisible = ref(false)
 const detailTab = ref('info')
@@ -237,12 +238,12 @@ const filteredInterfaces = computed(() => {
 })
 
 const pagedInterfaces = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredInterfaces.value.slice(start, start + pageSize)
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredInterfaces.value.slice(start, start + pageSize.value)
 })
 
 watch(filteredInterfaces, () => {
-  const max = Math.max(1, Math.ceil(filteredInterfaces.value.length / pageSize))
+  const max = Math.max(1, Math.ceil(filteredInterfaces.value.length / pageSize.value))
   if (currentPage.value > max) {
     currentPage.value = max
   }

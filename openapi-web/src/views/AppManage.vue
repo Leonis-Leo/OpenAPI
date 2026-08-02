@@ -58,10 +58,11 @@
 
     <el-pagination
       class="pagination"
-      layout="total, prev, pager, next"
+      layout="total, sizes, prev, pager, next, jumper"
       :total="filteredApps.length"
-      :page-size="pageSize"
+      :page-sizes="[10, 20, 50, 100]"
       v-model:current-page="currentPage"
+      v-model:page-size="pageSize"
     />
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '重命名应用' : '新建应用'" width="420px">
@@ -125,7 +126,7 @@ const userStore = useUserStore()
 const apps = ref<AppInfo[]>([])
 const keyword = ref('')
 const currentPage = ref(1)
-const pageSize = 10
+const pageSize = ref(10)
 const selected = ref<AppInfo[]>([])
 const tableRef = ref<TableInstance>()
 const detailVisible = ref(false)
@@ -137,7 +138,7 @@ const appName = ref('')
 const saving = ref(false)
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
-const indexMethod = (i: number) => (currentPage.value - 1) * pageSize + i + 1
+const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
 
 const filteredApps = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
@@ -148,12 +149,12 @@ const filteredApps = computed(() => {
 })
 
 const pagedApps = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredApps.value.slice(start, start + pageSize)
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredApps.value.slice(start, start + pageSize.value)
 })
 
 watch(filteredApps, () => {
-  const max = Math.max(1, Math.ceil(filteredApps.value.length / pageSize))
+  const max = Math.max(1, Math.ceil(filteredApps.value.length / pageSize.value))
   if (currentPage.value > max) {
     currentPage.value = max
   }

@@ -96,6 +96,14 @@ public class LogController {
         return ApiResponse.ok();
     }
 
+    @PostMapping("/clear")
+    @Operation(summary = "清空日志（管理员）")
+    public ApiResponse<Void> clear(HttpServletRequest request) {
+        requireAdmin(request);
+        invokeLogMapper.delete(null);
+        return ApiResponse.ok();
+    }
+
     private Map<String, Object> enrich(InvokeLog log) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", log.getId());

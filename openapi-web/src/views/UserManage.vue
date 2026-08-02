@@ -59,10 +59,11 @@
 
     <el-pagination
       class="pagination"
-      layout="total, prev, pager, next"
+      layout="total, sizes, prev, pager, next, jumper"
       :total="filteredUsers.length"
-      :page-size="pageSize"
+      :page-sizes="[10, 20, 50, 100]"
       v-model:current-page="currentPage"
+      v-model:page-size="pageSize"
     />
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑用户' : '新增用户'" width="420px">
@@ -124,7 +125,7 @@ const userStore = useUserStore()
 const users = ref<UserInfo[]>([])
 const keyword = ref('')
 const currentPage = ref(1)
-const pageSize = 10
+const pageSize = ref(10)
 const selected = ref<UserInfo[]>([])
 const tableRef = ref<TableInstance>()
 const detailVisible = ref(false)
@@ -140,7 +141,7 @@ const userForm = ref({
 })
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
-const indexMethod = (i: number) => (currentPage.value - 1) * pageSize + i + 1
+const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
 
 const filteredUsers = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
@@ -153,12 +154,12 @@ const filteredUsers = computed(() => {
 })
 
 const pagedUsers = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredUsers.value.slice(start, start + pageSize)
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredUsers.value.slice(start, start + pageSize.value)
 })
 
 watch(filteredUsers, () => {
-  const max = Math.max(1, Math.ceil(filteredUsers.value.length / pageSize))
+  const max = Math.max(1, Math.ceil(filteredUsers.value.length / pageSize.value))
   if (currentPage.value > max) {
     currentPage.value = max
   }

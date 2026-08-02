@@ -250,3 +250,6 @@ export const deleteApiLog = (id: number) =>
 
 export const deleteApiLogs = (ids: number[]) =>
   request.post<unknown, void>('/log/delete-batch', null, { params: { ids: ids.join(',') } })
+
+export const clearApiLogs = () =>
+  request.post<unknown, void>('/log/clear')

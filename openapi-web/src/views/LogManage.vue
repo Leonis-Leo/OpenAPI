@@ -22,6 +22,8 @@
       <el-button size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">
         删除
       </el-button>
+      <el-divider direction="vertical" />
+      <el-button size="small" type="danger" plain @click="handleClear">清空日志</el-button>
       <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
     </div>
 
@@ -62,10 +64,12 @@
 
     <el-pagination
       class="pagination"
-      layout="total, prev, pager, next"
+      layout="total, sizes, prev, pager, next, jumper"
       :total="total"
-      :page-size="pageSize"
+      :page-sizes="[10, 20, 50, 100]"
       v-model:current-page="currentPage"
+      v-model:page-size="pageSize"
+      @size-change="reload"
       @current-change="load"
     />
 
@@ -92,12 +96,19 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
-import { listApiLogs, getApiLog, deleteApiLog, deleteApiLogs, type ApiLog } from '@/api'
+import {
+  listApiLogs,
+  getApiLog,
+  deleteApiLog,
+  deleteApiLogs,
+  clearApiLogs,
+  type ApiLog
+} from '@/api'
 
 const logs = ref<ApiLog[]>([])
 const total = ref(0)
 const currentPage = ref(1)
-const pageSize = 10
+const pageSize = ref(10)
 const keyword = ref('')
 const selected = ref<ApiLog[]>([])
 const tableRef = ref<TableInstance>()
@@ -105,12 +116,12 @@ const detailVisible = ref(false)
 const detail = ref<ApiLog | null>(null)
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
-const indexMethod = (i: number) => (currentPage.value - 1) * pageSize + i + 1
+const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
 
 async function load() {
   const page = await listApiLogs({
     current: currentPage.value,
-    size: pageSize,
+    size: pageSize.value,
     keyword: keyword.value.trim() || undefined
   })
   logs.value = page.records
@@ -142,6 +153,15 @@ async function handleDelete() {
   await Promise.all(rows.map((l) => deleteApiLog(l.id)))
   ElMessage.success('已删除')
   await load()
+}
+
+async function handleClear() {
+  await ElMessageBox.confirm('确定清空全部日志吗？此操作不可恢复', '清空日志', {
+    type: 'warning'
+  })
+  await clearApiLogs()
+  ElMessage.success('已清空')
+  reload()
 }
 
 
