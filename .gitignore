@@ -34,3 +34,5 @@ replay_pid*
 # Erlang / 进程
 erl_crash.dump
 *.pid
+
+.edge-test/
