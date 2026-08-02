@@ -96,6 +96,7 @@ function handleCommand(command: string) {
 }
 .menu {
   height: calc(100% - 56px);
+  overflow-y: auto;
 }
 .header {
   display: flex;
