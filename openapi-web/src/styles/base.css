@@ -9,3 +9,8 @@ body,
 body {
   background: var(--el-bg-color-page, #f0f2f5);
 }
+
+/* 详情弹窗长文本自动换行（如 AccessKey / SecretKey） */
+.el-descriptions__content {
+  word-break: break-all;
+}
