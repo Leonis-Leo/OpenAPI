@@ -13,7 +13,7 @@
       <el-tab-pane v-if="isAdmin" label="待审批" name="pending">
             <div class="action-bar">
       <el-button size="small" type="success" :disabled="selectedPending.length === 0" @click="handleApprove(true)">通过</el-button>
-      <el-button size="small" type="danger" :disabled="selectedPending.length === 0" @click="handleApprove(false)">拒绝</el-button>
+      <el-button class="danger-right" size="small" type="danger" :disabled="selectedPending.length === 0" @click="handleApprove(false)">拒绝</el-button>
       <span v-if="selectedPending.length" class="batch-tip">已选 {{ selectedPending.length }} 项</span>
     </div>
         <el-table
@@ -21,6 +21,7 @@
           :data="pagedPending"
           border
           stripe
+          v-loading="loading"
           @row-click="(row: SubscribeInfo) => pendingTableRef?.toggleRowSelection(row)"
           @selection-change="(rows: SubscribeInfo[]) => (selectedPending = rows)"
         >
@@ -33,6 +34,7 @@
           </el-table-column>
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
           <el-table-column prop="appName" label="申请应用" />
+          <el-table-column v-if="isAdmin" prop="userAccount" label="申请人" width="120" />
           <el-table-column prop="createTime" label="申请时间" width="180" />
         </el-table>
         <el-pagination
@@ -42,11 +44,13 @@
           :page-sizes="[10, 20, 50, 100]"
           v-model:current-page="pendingPage"
           v-model:page-size="pageSize"
+          @current-change="clearPendingSelection"
+          @size-change="clearPendingSelection"
         />
       </el-tab-pane>
       <el-tab-pane label="我的订阅" name="mine">
             <div class="action-bar">
-      <el-button size="small" type="danger" plain :disabled="selectedMine.length === 0" @click="handleUnsubscribe">取消订阅</el-button>
+      <el-button class="danger-right" size="small" type="danger" plain :disabled="selectedMine.length === 0" @click="handleUnsubscribe">取消订阅</el-button>
       <span v-if="selectedMine.length" class="batch-tip">已选 {{ selectedMine.length }} 项</span>
     </div>
         <el-table
@@ -54,6 +58,7 @@
           :data="pagedMine"
           border
           stripe
+          v-loading="loading"
           @row-click="(row: SubscribeInfo) => mineTableRef?.toggleRowSelection(row)"
           @selection-change="(rows: SubscribeInfo[]) => (selectedMine = rows)"
         >
@@ -66,6 +71,7 @@
           </el-table-column>
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
           <el-table-column prop="appName" label="应用" />
+          <el-table-column prop="userAccount" label="申请人" width="120" />
           <el-table-column prop="status" label="状态" width="100">
             <template #default="{ row }">
               <el-tag :type="statusType(row.status)" size="small">
@@ -82,6 +88,8 @@
           :page-sizes="[10, 20, 50, 100]"
           v-model:current-page="minePage"
           v-model:page-size="pageSize"
+          @current-change="clearMineSelection"
+          @size-change="clearMineSelection"
         />
       </el-tab-pane>
     </el-tabs>
@@ -91,6 +99,7 @@
         <el-descriptions-item label="接口">{{ detailRow?.interfaceName }}</el-descriptions-item>
         <el-descriptions-item label="路径">{{ detailRow?.interfaceUrl }}</el-descriptions-item>
         <el-descriptions-item label="应用">{{ detailRow?.appName }}</el-descriptions-item>
+        <el-descriptions-item label="申请人">{{ detailRow?.userAccount }}</el-descriptions-item>
         <el-descriptions-item label="状态">{{ statusText(detailRow?.status ?? 0) }}</el-descriptions-item>
         <el-descriptions-item label="申请时间">{{ detailRow?.createTime }}</el-descriptions-item>
       </el-descriptions>
@@ -111,6 +120,7 @@ const activeTab = ref('pending')
 const pendingList = ref<SubscribeInfo[]>([])
 const myList = ref<SubscribeInfo[]>([])
 const keyword = ref('')
+const loading = ref(false)
 const pendingPage = ref(1)
 const minePage = ref(1)
 const pageSize = ref(10)
@@ -125,6 +135,16 @@ const pendingRow = computed(() => (selectedPending.value.length === 1 ? selected
 const mineRow = computed(() => (selectedMine.value.length === 1 ? selectedMine.value[0] : null))
 const pendingIndex = (i: number) => (pendingPage.value - 1) * pageSize.value + i + 1
 const mineIndex = (i: number) => (minePage.value - 1) * pageSize.value + i + 1
+
+function clearPendingSelection() {
+  selectedPending.value = []
+  pendingTableRef.value?.clearSelection()
+}
+
+function clearMineSelection() {
+  selectedMine.value = []
+  mineTableRef.value?.clearSelection()
+}
 
 function matchKw(item: SubscribeInfo): boolean {
   const kw = keyword.value.trim().toLowerCase()
@@ -162,10 +182,15 @@ watch(filteredMine, () => {
 })
 
 async function load() {
-  if (isAdmin) {
-    pendingList.value = await listSubscribes(0)
+  loading.value = true
+  try {
+    if (isAdmin) {
+      pendingList.value = await listSubscribes(0)
+    }
+    myList.value = await mySubscribes()
+  } finally {
+    loading.value = false
   }
-  myList.value = await mySubscribes()
 }
 
 async function handleApprove(approved: boolean) {
@@ -174,8 +199,8 @@ async function handleApprove(approved: boolean) {
   if (rows.length > 1) {
     await ElMessageBox.confirm(`确定对选中的 ${rows.length} 条申请执行「${approved ? '通过' : '拒绝'}」吗？`, '操作确认', { type: 'warning' })
   }
-  await Promise.all(rows.map((s) => approve(s.id, approved)))
-  ElMessage.success(approved ? '已通过' : '已拒绝')
+  const results = await Promise.allSettled(rows.map((s) => approve(s.id, approved)))
+  summarizeResults(results, rows.length, approved ? '通过' : '拒绝')
   await load()
 }
 
@@ -186,9 +211,25 @@ async function handleUnsubscribe() {
     ? `确定取消选中的 ${rows.length} 个订阅吗？`
     : `确定取消订阅「${rows[0].interfaceName}」吗？`
   await ElMessageBox.confirm(msg, '取消订阅', { type: 'warning' })
-  await Promise.all(rows.map((s) => unsubscribe(s.id)))
-  ElMessage.success('已取消订阅')
+  const results = await Promise.allSettled(rows.map((s) => unsubscribe(s.id)))
+  summarizeResults(results, rows.length, '取消订阅')
   await load()
+}
+
+function summarizeResults(
+  results: PromiseSettledResult<unknown>[],
+  total: number,
+  action: string
+) {
+  const ok = results.filter((r) => r.status === 'fulfilled').length
+  const fail = total - ok
+  if (fail === 0) {
+    ElMessage.success(`${action}成功 ${total} 项`)
+  } else if (ok === 0) {
+    ElMessage.error(`${action}失败 ${fail} 项`)
+  } else {
+    ElMessage.warning(`${action}成功 ${ok} 项，失败 ${fail} 项`)
+  }
 }
 
 
@@ -224,6 +265,9 @@ onMounted(load)
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
+}
+.danger-right {
+  margin-left: auto;
 }
 .batch-tip {
   color: #909399;

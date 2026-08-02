@@ -3,6 +3,29 @@
     <div class="toolbar">
       <h2>API 日志</h2>
       <div class="toolbar-right">
+        <el-select
+          v-model="statusFilter"
+          placeholder="状态码"
+          clearable
+          style="width: 120px"
+          @change="reload"
+        >
+          <el-option label="成功 (<400)" :value="1" />
+          <el-option label="失败 (>=400)" :value="2" />
+          <el-option label="401" :value="401" />
+          <el-option label="403" :value="403" />
+          <el-option label="429" :value="429" />
+          <el-option label="500" :value="500" />
+        </el-select>
+        <el-date-picker
+          v-model="timeRange"
+          type="datetimerange"
+          range-separator="至"
+          start-placeholder="开始时间"
+          end-placeholder="结束时间"
+          style="width: 340px"
+          @change="reload"
+        />
         <el-input
           v-model="keyword"
           placeholder="搜索路径 / IP"
@@ -19,7 +42,7 @@
       <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
         查看详情
       </el-button>
-      <el-button size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">
+      <el-button class="danger-right" size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">
         删除
       </el-button>
       <el-divider direction="vertical" />
@@ -32,6 +55,7 @@
       :data="logs"
       border
       stripe
+      v-loading="loading"
       @row-click="handleRowClick"
       @selection-change="(rows: ApiLog[]) => (selected = rows)"
     >
@@ -69,8 +93,8 @@
       :page-sizes="[10, 20, 50, 100]"
       v-model:current-page="currentPage"
       v-model:page-size="pageSize"
-      @size-change="reload"
-      @current-change="load"
+      @size-change="handleSizeChange"
+      @current-change="handlePageChange"
     />
 
     <el-dialog v-model="detailVisible" :title="`日志详情 #${detail?.id ?? ''}`" width="720px">
@@ -110,6 +134,9 @@ const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const keyword = ref('')
+const statusFilter = ref<number | undefined>(undefined)
+const timeRange = ref<[Date, Date] | null>(null)
+const loading = ref(false)
 const selected = ref<ApiLog[]>([])
 const tableRef = ref<TableInstance>()
 const detailVisible = ref(false)
@@ -119,13 +146,18 @@ const selectedRow = computed(() => (selected.value.length === 1 ? selected.value
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
 
 async function load() {
+  loading.value = true
   const page = await listApiLogs({
     current: currentPage.value,
     size: pageSize.value,
-    keyword: keyword.value.trim() || undefined
+    keyword: keyword.value.trim() || undefined,
+    statusCode: statusFilter.value,
+    startTime: formatTime(timeRange.value?.[0]),
+    endTime: formatTime(timeRange.value?.[1])
   })
   logs.value = page.records
   total.value = Number(page.total)
+  loading.value = false
 }
 
 function reload() {
@@ -133,8 +165,29 @@ function reload() {
   load()
 }
 
+function formatTime(date?: Date): string | undefined {
+  if (!date) return undefined
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
 function handleRowClick(row: ApiLog) {
   tableRef.value?.toggleRowSelection(row)
+}
+
+function clearSelection() {
+  selected.value = []
+  tableRef.value?.clearSelection()
+}
+
+function handlePageChange() {
+  clearSelection()
+  load()
+}
+
+function handleSizeChange() {
+  clearSelection()
+  reload()
 }
 
 async function openDetail(row: ApiLog | null) {
@@ -150,8 +203,8 @@ async function handleDelete() {
     ? `确定删除选中的 ${rows.length} 条日志吗？`
     : `确定删除日志 #${rows[0].id} 吗？`
   await ElMessageBox.confirm(msg, '删除日志', { type: 'warning' })
-  await Promise.all(rows.map((l) => deleteApiLog(l.id)))
-  ElMessage.success('已删除')
+  const results = await Promise.allSettled(rows.map((l) => deleteApiLog(l.id)))
+  summarizeResults(results, rows.length, '删除')
   await load()
 }
 
@@ -162,6 +215,22 @@ async function handleClear() {
   await clearApiLogs()
   ElMessage.success('已清空')
   reload()
+}
+
+function summarizeResults(
+  results: PromiseSettledResult<unknown>[],
+  total: number,
+  action: string
+) {
+  const ok = results.filter((r) => r.status === 'fulfilled').length
+  const fail = total - ok
+  if (fail === 0) {
+    ElMessage.success(`${action}成功 ${total} 项`)
+  } else if (ok === 0) {
+    ElMessage.error(`${action}失败 ${fail} 项`)
+  } else {
+    ElMessage.warning(`${action}成功 ${ok} 项，失败 ${fail} 项`)
+  }
 }
 
 
@@ -196,6 +265,9 @@ onMounted(load)
   gap: 8px;
   margin-bottom: 12px;
 }
+.danger-right {
+  margin-left: auto;
+}
 .batch-tip {
   color: #909399;
   font-size: 13px;
@@ -205,7 +277,8 @@ onMounted(load)
   justify-content: flex-end;
 }
 .json-block {
-  background: #f5f7fa;
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-text-color-regular, #303133);
   border-radius: 4px;
   padding: 12px;
   max-height: 240px;

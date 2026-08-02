@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.openapi.backend.entity.App;
 import com.openapi.backend.entity.InterfaceInfo;
 import com.openapi.backend.entity.InterfaceSubscribe;
+import com.openapi.backend.entity.User;
 import com.openapi.backend.mapper.AppMapper;
 import com.openapi.backend.mapper.InterfaceInfoMapper;
 import com.openapi.backend.mapper.InterfaceSubscribeMapper;
+import com.openapi.backend.mapper.UserMapper;
 import com.openapi.backend.service.InterfaceSubscribeService;
 import com.openapi.common.exception.BusinessException;
 import com.openapi.common.model.enums.ErrorCode;
@@ -24,6 +26,7 @@ public class InterfaceSubscribeServiceImpl extends ServiceImpl<InterfaceSubscrib
 
     private final AppMapper appMapper;
     private final InterfaceInfoMapper interfaceInfoMapper;
+    private final UserMapper userMapper;
 
     @Override
     public InterfaceSubscribe subscribe(Long userId, Long interfaceId, Long appId) {
@@ -106,6 +109,7 @@ public class InterfaceSubscribeServiceImpl extends ServiceImpl<InterfaceSubscrib
             map.put("id", item.getId());
             map.put("interfaceId", item.getInterfaceId());
             map.put("appId", item.getAppId());
+            map.put("userId", item.getUserId());
             map.put("status", item.getStatus());
             map.put("createTime", item.getCreateTime());
             InterfaceInfo info = interfaceInfoMapper.selectById(item.getInterfaceId());
@@ -113,6 +117,8 @@ public class InterfaceSubscribeServiceImpl extends ServiceImpl<InterfaceSubscrib
             map.put("interfaceUrl", info == null ? "-" : info.getUrl());
             App app = appMapper.selectById(item.getAppId());
             map.put("appName", app == null ? "-" : app.getAppName());
+            User user = userMapper.selectById(item.getUserId());
+            map.put("userAccount", user == null ? "-" : user.getUserAccount());
             return map;
         }).toList();
     }

@@ -44,7 +44,7 @@
           下线
         </el-button>
         <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openEditForm(selectedRow)">编辑</el-button>
-        <el-button size="small" type="danger" plain :disabled="selected.length === 0" @click="handleDeleteInterface">
+        <el-button class="danger-right" size="small" type="danger" plain :disabled="selected.length === 0" @click="handleDeleteInterface">
           删除
         </el-button>
       </template>
@@ -56,6 +56,7 @@
       :data="pagedInterfaces"
       border
       stripe
+      v-loading="loading"
       @row-click="handleRowClick"
       @selection-change="handleSelectionChange"
     >
@@ -99,6 +100,8 @@
       :page-sizes="[10, 20, 50, 100]"
       v-model:current-page="currentPage"
       v-model:page-size="pageSize"
+      @current-change="clearSelection"
+      @size-change="clearSelection"
     />
 
     <el-dialog v-model="detailVisible" :title="`接口详情 - ${debugInterface?.name ?? ''}`" width="720px">
@@ -158,6 +161,7 @@
               </el-tag>
               <el-tag v-else type="danger" size="small">请求失败</el-tag>
               <span v-if="debugCostMs !== null" class="debug-cost">{{ debugCostMs }} ms</span>
+              <el-button size="small" plain class="debug-copy" @click="copyCurl">复制 Curl</el-button>
             </div>
             <pre class="debug-body" v-html="debugBodyHtml"></pre>
           </div>
@@ -235,6 +239,7 @@ import { hmacSha256Hex, buildSignContent, type SignParams } from '@/utils/sign'
 const userStore = useUserStore()
 const isAdmin = userStore.user?.userRole === 'admin'
 const interfaces = ref<InterfaceInfo[]>([])
+const loading = ref(false)
 const keyword = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -269,6 +274,51 @@ const debugBodyHtml = computed(() => {
   return highlightJson(json)
 })
 
+async function buildCurl(): Promise<string> {
+  const info = debugInterface.value
+  const app = apps.value.find((a) => a.id === debugAppId.value)
+  if (!info || !app) return ''
+  const params = parseJsonObject(debugParamsJson.value, '请求参数') ?? {}
+  const customHeaders = parseJsonObject(debugHeadersJson.value, '请求头') ?? {}
+  const timestamp = String(Date.now())
+  const nonce = Math.random().toString(36).slice(2, 10)
+  const signParams: SignParams = { ...params, timestamp, nonce }
+  const content = buildSignContent(info.method, info.url, signParams)
+  const signature = await hmacSha256Hex(content, app.secretKey)
+  const parts = ['curl -X ' + info.method]
+  ;['X-Access-Key', 'X-Timestamp', 'X-Nonce', 'X-Signature'].forEach((k) => {
+    const v =
+      k === 'X-Signature'
+        ? signature
+        : k === 'X-Access-Key'
+          ? app.accessKey
+          : k === 'X-Timestamp'
+            ? timestamp
+            : nonce
+    parts.push(`-H '${k}: ${v}'`)
+  })
+  Object.entries(customHeaders).forEach(([k, v]) => parts.push(`-H '${k}: ${v}'`))
+  const qs = new URLSearchParams(params).toString()
+  if (info.method === 'GET') {
+    parts.push(`'${info.url}${qs ? '?' + qs : ''}'`)
+  } else {
+    parts.push(`'${info.url}'`)
+    if (qs) parts.push(`--data '${qs}'`)
+  }
+  return parts.join(' \\\n  ')
+}
+
+async function copyCurl() {
+  const curl = await buildCurl()
+  if (!curl) return
+  try {
+    await navigator.clipboard.writeText(curl)
+    ElMessage.success('Curl 已复制')
+  } catch {
+    ElMessage.error('复制失败')
+  }
+}
+
 const filteredInterfaces = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   if (!kw) return interfaces.value
@@ -302,18 +352,23 @@ const interfaceForm = ref<InterfaceForm>({
 })
 
 async function load() {
-  interfaces.value = isAdmin ? await listAllInterfaces() : await listInterfaces()
-  const subscribes = await mySubscribes()
-  const map: Record<number, number> = {}
-  const idMap: Record<number, number> = {}
-  subscribes.forEach((s) => {
-    map[s.interfaceId] = s.status
-    idMap[s.interfaceId] = s.id
-  })
-  subscribeMap.value = map
-  subscribeIdMap.value = idMap
-  if (userStore.user) {
-    apps.value = await listApps(userStore.user.id)
+  loading.value = true
+  try {
+    interfaces.value = isAdmin ? await listAllInterfaces() : await listInterfaces()
+    const subscribes = await mySubscribes()
+    const map: Record<number, number> = {}
+    const idMap: Record<number, number> = {}
+    subscribes.forEach((s) => {
+      map[s.interfaceId] = s.status
+      idMap[s.interfaceId] = s.id
+    })
+    subscribeMap.value = map
+    subscribeIdMap.value = idMap
+    if (userStore.user) {
+      apps.value = await listApps(userStore.user.id)
+    }
+  } finally {
+    loading.value = false
   }
 }
 
@@ -346,8 +401,8 @@ async function toggleStatus(status: number) {
     await ElMessageBox.confirm(`确定对选中的 ${rows.length} 个接口执行「${status === 1 ? '上线' : '下线'}」吗？`, '操作确认', { type: 'warning' })
   }
   const ops = rows.map((i) => (status === 1 ? onlineInterface(i.id) : offlineInterface(i.id)))
-  await Promise.all(ops)
-  ElMessage.success(status === 1 ? '已上线' : '已下线')
+  const results = await Promise.allSettled(ops)
+  summarizeResults(results, rows.length, status === 1 ? '上线' : '下线')
   await load()
 }
 
@@ -360,8 +415,10 @@ async function handleUnsubscribe() {
     ? `确定取消选中的 ${targets.length} 个订阅吗？`
     : `确定取消订阅「${targets[0].name}」吗？`
   await ElMessageBox.confirm(msg, '取消订阅', { type: 'warning' })
-  await Promise.all(targets.map((i) => unsubscribe(subscribeIdMap.value[i.id])))
-  ElMessage.success('已取消订阅')
+  const results = await Promise.allSettled(
+    targets.map((i) => unsubscribe(subscribeIdMap.value[i.id]))
+  )
+  summarizeResults(results, targets.length, '取消订阅')
   await load()
 }
 
@@ -537,13 +594,34 @@ async function handleDeleteInterface() {
     ? `确定删除选中的 ${rows.length} 个接口吗？`
     : `确定删除接口「${rows[0].name}」吗？`
   await ElMessageBox.confirm(msg, '删除接口', { type: 'warning' })
-  await Promise.all(rows.map((i) => deleteInterface(i.id)))
-  ElMessage.success('已删除')
+  const results = await Promise.allSettled(rows.map((i) => deleteInterface(i.id)))
+  summarizeResults(results, rows.length, '删除')
   await load()
+}
+
+function summarizeResults(
+  results: PromiseSettledResult<unknown>[],
+  total: number,
+  action: string
+) {
+  const ok = results.filter((r) => r.status === 'fulfilled').length
+  const fail = total - ok
+  if (fail === 0) {
+    ElMessage.success(`${action}成功 ${total} 项`)
+  } else if (ok === 0) {
+    ElMessage.error(`${action}失败 ${fail} 项`)
+  } else {
+    ElMessage.warning(`${action}成功 ${ok} 项，失败 ${fail} 项`)
+  }
 }
 
 function handleSelectionChange(rows: InterfaceInfo[]) {
   selected.value = rows
+}
+
+function clearSelection() {
+  selected.value = []
+  tableRef.value?.clearSelection()
 }
 
 function handleRowClick(row: InterfaceInfo) {
@@ -575,6 +653,9 @@ onMounted(load)
   gap: 8px;
   margin-bottom: 12px;
 }
+.danger-right {
+  margin-left: auto;
+}
 .batch-tip {
   color: #909399;
   font-size: 13px;
@@ -584,7 +665,8 @@ onMounted(load)
   justify-content: flex-end;
 }
 .json-block {
-  background: #f5f7fa;
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-text-color-regular, #303133);
   border-radius: 4px;
   padding: 12px;
   max-height: 260px;
@@ -626,6 +708,9 @@ onMounted(load)
   margin-left: auto;
   font-size: 12px;
   color: var(--el-text-color-secondary, #909399);
+}
+.debug-copy {
+  margin-left: 8px;
 }
 .debug-body {
   margin: 0;

@@ -21,7 +21,7 @@
       <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="handleResetSecret">重置密钥</el-button>
       <el-button size="small" type="success" :disabled="selected.length === 0" @click="toggleOne(true)">启用</el-button>
       <el-button size="small" type="warning" :disabled="selected.length === 0" @click="toggleOne(false)">禁用</el-button>
-      <el-button size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">删除</el-button>
+      <el-button class="danger-right" size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">删除</el-button>
       <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
     </div>
 
@@ -30,6 +30,7 @@
       :data="pagedApps"
       border
       stripe
+      v-loading="loading"
       @row-click="handleRowClick"
       @selection-change="handleSelectionChange"
     >
@@ -43,7 +44,13 @@
       <el-table-column prop="accessKey" label="AccessKey" min-width="220" show-overflow-tooltip />
       <el-table-column label="SecretKey" min-width="260" show-overflow-tooltip>
         <template #default="{ row }">
-          <el-text type="info" size="small">{{ row.secretKey }}</el-text>
+          <el-text type="info" size="small" class="secret-text" @click.stop="toggleSecret(row.id)">
+            {{ showSecretIds.has(row.id) ? row.secretKey : maskSecret(row.secretKey) }}
+          </el-text>
+          <el-icon class="secret-eye" @click.stop="toggleSecret(row.id)">
+            <View v-if="showSecretIds.has(row.id)" />
+            <Hide v-else />
+          </el-icon>
         </template>
       </el-table-column>
       <el-table-column prop="status" label="状态" width="80">
@@ -63,6 +70,8 @@
       :page-sizes="[10, 20, 50, 100]"
       v-model:current-page="currentPage"
       v-model:page-size="pageSize"
+      @current-change="clearSelection"
+      @size-change="clearSelection"
     />
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '重命名应用' : '新建应用'" width="420px">
@@ -77,11 +86,46 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="keyVisible" title="密钥信息" width="560px" :close-on-click-modal="false">
+      <el-alert
+        type="warning"
+        :closable="false"
+        title="SecretKey 仅此一次展示，请立即复制并妥善保存"
+        class="key-alert"
+      />
+      <el-descriptions :column="1" border class="key-desc">
+        <el-descriptions-item label="应用名称">{{ keyInfo?.appName }}</el-descriptions-item>
+        <el-descriptions-item label="AccessKey">
+          <div class="key-line">
+            <el-text>{{ keyInfo?.accessKey }}</el-text>
+            <el-button size="small" type="primary" plain @click="copyText(keyInfo?.accessKey)">复制</el-button>
+          </div>
+        </el-descriptions-item>
+        <el-descriptions-item label="SecretKey">
+          <div class="key-line">
+            <el-text class="key-secret">{{ keyInfo?.secretKey }}</el-text>
+            <el-button size="small" type="primary" @click="copyText(keyInfo?.secretKey)">复制</el-button>
+          </div>
+        </el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button type="primary" @click="keyVisible = false">我已保存</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="detailVisible" :title="`应用详情 - ${detailRow?.appName ?? ''}`" width="640px">
       <el-descriptions :column="1" border>
         <el-descriptions-item label="应用名称">{{ detailRow?.appName }}</el-descriptions-item>
         <el-descriptions-item label="AccessKey">{{ detailRow?.accessKey }}</el-descriptions-item>
-        <el-descriptions-item label="SecretKey">{{ detailRow?.secretKey }}</el-descriptions-item>
+        <el-descriptions-item label="SecretKey">
+          <span class="secret-text" @click="toggleSecret(detailRow!.id)">
+            {{ showSecretIds.has(detailRow!.id) ? detailRow?.secretKey : maskSecret(detailRow?.secretKey ?? '') }}
+          </span>
+          <el-icon class="secret-eye" @click="toggleSecret(detailRow!.id)">
+            <View v-if="showSecretIds.has(detailRow!.id)" />
+            <Hide v-else />
+          </el-icon>
+        </el-descriptions-item>
         <el-descriptions-item label="状态">
           {{ detailRow?.status === 1 ? '启用' : '禁用' }}
         </el-descriptions-item>
@@ -109,6 +153,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
+import { Hide, View } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 import {
   listApps,
@@ -124,6 +169,7 @@ import {
 
 const userStore = useUserStore()
 const apps = ref<AppInfo[]>([])
+const loading = ref(false)
 const keyword = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -136,6 +182,9 @@ const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const appName = ref('')
 const saving = ref(false)
+const keyVisible = ref(false)
+const keyInfo = ref<AppInfo | null>(null)
+const showSecretIds = ref<Set<number>>(new Set())
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
@@ -161,8 +210,13 @@ watch(filteredApps, () => {
 })
 
 async function load() {
-  if (userStore.user) {
-    apps.value = await listApps(userStore.user.id)
+  loading.value = true
+  try {
+    if (userStore.user) {
+      apps.value = await listApps(userStore.user.id)
+    }
+  } finally {
+    loading.value = false
   }
 }
 
@@ -204,7 +258,8 @@ async function handleSave() {
     } else {
       if (userStore.user) {
         const app = await createApp(appName.value.trim(), userStore.user.id)
-        ElMessage.success(`创建成功，SecretKey 请妥善保存（${app.accessKey}）`)
+        keyInfo.value = app
+        keyVisible.value = true
       }
     }
     dialogVisible.value = false
@@ -221,9 +276,41 @@ async function handleResetSecret() {
     ? `确定重置选中的 ${rows.length} 个应用的 SecretKey 吗？旧密钥将失效`
     : `确定重置「${rows[0].appName}」的 SecretKey 吗？旧密钥将失效`
   await ElMessageBox.confirm(msg, '重置密钥', { type: 'warning' })
-  await Promise.all(rows.map((a) => resetAppSecret(a.id)))
-  ElMessage.success('已重置')
+  if (rows.length === 1) {
+    const app = await resetAppSecret(rows[0].id)
+    keyInfo.value = app
+    keyVisible.value = true
+  } else {
+    const results = await Promise.allSettled(rows.map((a) => resetAppSecret(a.id)))
+    summarizeResults(results, rows.length, '重置密钥')
+  }
   await load()
+}
+
+async function copyText(text?: string) {
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制')
+  } catch {
+    ElMessage.error('复制失败')
+  }
+}
+
+function maskSecret(secret: string): string {
+  if (!secret) return ''
+  if (secret.length <= 8) return '********'
+  return secret.slice(0, 4) + '****' + secret.slice(-4)
+}
+
+function toggleSecret(id: number) {
+  const next = new Set(showSecretIds.value)
+  if (next.has(id)) {
+    next.delete(id)
+  } else {
+    next.add(id)
+  }
+  showSecretIds.value = next
 }
 
 async function toggleOne(enabled: boolean) {
@@ -232,8 +319,8 @@ async function toggleOne(enabled: boolean) {
   if (rows.length > 1) {
     await ElMessageBox.confirm(`确定对选中的 ${rows.length} 个应用执行「${enabled ? '启用' : '禁用'}」吗？`, '操作确认', { type: 'warning' })
   }
-  await Promise.all(rows.map((a) => updateAppStatus(a.id, enabled)))
-  ElMessage.success(enabled ? '已启用' : '已禁用')
+  const results = await Promise.allSettled(rows.map((a) => updateAppStatus(a.id, enabled)))
+  summarizeResults(results, rows.length, enabled ? '启用' : '禁用')
   await load()
 }
 
@@ -244,13 +331,34 @@ async function handleDelete() {
     ? `确定删除选中的 ${rows.length} 个应用吗？`
     : `确定删除应用「${rows[0].appName}」吗？`
   await ElMessageBox.confirm(msg, '删除应用', { type: 'warning' })
-  await Promise.all(rows.map((a) => deleteApp(a.id)))
-  ElMessage.success('已删除')
+  const results = await Promise.allSettled(rows.map((a) => deleteApp(a.id)))
+  summarizeResults(results, rows.length, '删除')
   await load()
+}
+
+function summarizeResults(
+  results: PromiseSettledResult<unknown>[],
+  total: number,
+  action: string
+) {
+  const ok = results.filter((r) => r.status === 'fulfilled').length
+  const fail = total - ok
+  if (fail === 0) {
+    ElMessage.success(`${action}成功 ${total} 项`)
+  } else if (ok === 0) {
+    ElMessage.error(`${action}失败 ${fail} 项`)
+  } else {
+    ElMessage.warning(`${action}成功 ${ok} 项，失败 ${fail} 项`)
+  }
 }
 
 function handleSelectionChange(rows: AppInfo[]) {
   selected.value = rows
+}
+
+function clearSelection() {
+  selected.value = []
+  tableRef.value?.clearSelection()
 }
 
 function handleRowClick(row: AppInfo) {
@@ -302,6 +410,9 @@ onMounted(load)
   gap: 8px;
   margin-bottom: 12px;
 }
+.danger-right {
+  margin-left: auto;
+}
 .batch-tip {
   color: #909399;
   font-size: 13px;
@@ -309,6 +420,31 @@ onMounted(load)
 .pagination {
   margin-top: 12px;
   justify-content: flex-end;
+}
+.key-alert {
+  margin-bottom: 12px;
+}
+.key-desc {
+  margin-bottom: 4px;
+}
+.key-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.key-secret {
+  font-family: Consolas, Monaco, monospace;
+  word-break: break-all;
+}
+.secret-text {
+  cursor: pointer;
+  font-family: Consolas, Monaco, monospace;
+}
+.secret-eye {
+  margin-left: 6px;
+  cursor: pointer;
+  vertical-align: middle;
+  color: var(--el-text-color-secondary, #909399);
 }
 .sub-list {
   display: flex;

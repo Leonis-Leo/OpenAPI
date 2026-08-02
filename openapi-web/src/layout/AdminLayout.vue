@@ -9,35 +9,35 @@
         :collapse-transition="false"
         class="menu"
       >
-        <el-menu-item index="/dashboard">
+        <el-menu-item index="/dashboard" :title="'概览'">
           <el-icon><HomeFilled /></el-icon>
           <span>概览</span>
         </el-menu-item>
-        <el-menu-item index="/apps">
+        <el-menu-item index="/apps" :title="'应用管理'">
           <el-icon><Box /></el-icon>
           <span>应用管理</span>
         </el-menu-item>
-        <el-menu-item index="/interfaces">
+        <el-menu-item index="/interfaces" :title="'接口管理'">
           <el-icon><Connection /></el-icon>
           <span>接口管理</span>
         </el-menu-item>
-        <el-menu-item index="/subscribes">
+        <el-menu-item index="/subscribes" :title="'订阅审批'">
           <el-icon><DocumentChecked /></el-icon>
           <span>订阅审批</span>
         </el-menu-item>
-        <el-menu-item index="/stats">
+        <el-menu-item index="/stats" :title="'调用统计'">
           <el-icon><TrendCharts /></el-icon>
           <span>调用统计</span>
         </el-menu-item>
-        <el-menu-item index="/users">
+        <el-menu-item index="/users" :title="'用户管理'">
           <el-icon><User /></el-icon>
           <span>用户管理</span>
         </el-menu-item>
-        <el-menu-item index="/ratelimit">
+        <el-menu-item index="/ratelimit" :title="'限流配置'">
           <el-icon><Timer /></el-icon>
           <span>限流配置</span>
         </el-menu-item>
-        <el-menu-item index="/logs">
+        <el-menu-item index="/logs" :title="'API 日志'">
           <el-icon><Document /></el-icon>
           <span>API 日志</span>
         </el-menu-item>
@@ -51,6 +51,10 @@
             <Fold v-else />
           </el-icon>
           <span class="header-title">OpenAPI 开放平台管理后台</span>
+          <el-breadcrumb class="breadcrumb" separator="/">
+            <el-breadcrumb-item>首页</el-breadcrumb-item>
+            <el-breadcrumb-item v-if="route.meta.title">{{ route.meta.title }}</el-breadcrumb-item>
+          </el-breadcrumb>
         </div>
         <div class="header-right">
           <el-switch
@@ -175,6 +179,11 @@ function handleCommand(command: string) {
 }
 .header-title {
   font-weight: 600;
+}
+.breadcrumb {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--el-border-color, #eee);
 }
 .header-right {
   display: flex;

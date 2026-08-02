@@ -1,26 +1,34 @@
 <template>
   <div class="login-page">
-    <el-card class="login-card">
-      <h2 class="title">OpenAPI 开放平台</h2>
-      <p class="subtitle">管理后台</p>
-      <el-form :model="form" label-position="top">
-        <el-form-item label="账号">
-          <el-input v-model="form.userAccount" placeholder="请输入账号" />
-        </el-form-item>
-        <el-form-item label="密码">
-          <el-input
-            v-model="form.userPassword"
-            type="password"
-            placeholder="请输入密码"
-            show-password
-            @keyup.enter="handleLogin"
-          />
-        </el-form-item>
-        <el-button type="primary" class="submit" :loading="loading" @click="handleLogin">
-          登 录
-        </el-button>
-      </el-form>
-    </el-card>
+    <div class="login-bg"></div>
+    <div class="login-wrap">
+      <div class="brand">
+        <div class="brand-logo">OP</div>
+        <h1>OpenAPI 开放平台</h1>
+        <p>接口开放 · 订阅审批 · 调用统计 · 限流防护</p>
+      </div>
+      <el-card class="login-card">
+        <h2 class="title">管理后台登录</h2>
+        <el-form :model="form" label-position="top">
+          <el-form-item label="账号">
+            <el-input v-model="form.userAccount" placeholder="请输入账号" size="large" />
+          </el-form-item>
+          <el-form-item label="密码">
+            <el-input
+              v-model="form.userPassword"
+              type="password"
+              placeholder="请输入密码"
+              show-password
+              size="large"
+              @keyup.enter="handleLogin"
+            />
+          </el-form-item>
+          <el-button type="primary" class="submit" size="large" :loading="loading" @click="handleLogin">
+            登 录
+          </el-button>
+        </el-form>
+      </el-card>
+    </div>
   </div>
 </template>
 
@@ -61,22 +69,67 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--el-bg-color-page, #f0f2f5);
+  background: #eef2f7;
+  position: relative;
+  overflow: hidden;
+}
+.login-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #304156 0%, #409eff 55%, #79bbff 100%);
+  opacity: 0.92;
+}
+.login-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.18), transparent 40%);
+}
+.login-wrap {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 48px;
+}
+.brand {
+  color: #fff;
+  max-width: 320px;
+}
+.brand-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #409eff;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.brand h1 {
+  margin: 0 0 10px;
+  font-size: 30px;
+}
+.brand p {
+  margin: 0;
+  opacity: 0.85;
+  font-size: 14px;
 }
 .login-card {
-  width: 380px;
-  padding: 12px 8px;
+  width: 400px;
+  padding: 20px 12px;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
 }
 .title {
   text-align: center;
-  margin: 0 0 4px;
-}
-.subtitle {
-  text-align: center;
-  color: #909399;
   margin: 0 0 24px;
 }
 .submit {
   width: 100%;
+  margin-top: 8px;
 }
 </style>

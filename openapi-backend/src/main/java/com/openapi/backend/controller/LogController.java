@@ -31,6 +31,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/v1/log")
@@ -50,11 +52,25 @@ public class LogController {
             @Parameter(example = "1") @RequestParam(defaultValue = "1") int current,
             @Parameter(example = "10") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "搜索：路径 / IP") @RequestParam(required = false) String keyword,
+            @Parameter(description = "状态码") @RequestParam(required = false) Integer statusCode,
+            @Parameter(description = "开始时间 yyyy-MM-dd HH:mm:ss") @RequestParam(required = false) String startTime,
+            @Parameter(description = "结束时间 yyyy-MM-dd HH:mm:ss") @RequestParam(required = false) String endTime,
             HttpServletRequest request) {
         requireAdmin(request);
         LambdaQueryWrapper<InvokeLog> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w.like(InvokeLog::getPath, keyword).or().like(InvokeLog::getIp, keyword));
+        }
+        if (statusCode != null) {
+            wrapper.eq(InvokeLog::getStatusCode, statusCode);
+        }
+        if (StringUtils.hasText(startTime)) {
+            wrapper.ge(InvokeLog::getCreateTime,
+                    LocalDateTime.parse(startTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        }
+        if (StringUtils.hasText(endTime)) {
+            wrapper.le(InvokeLog::getCreateTime,
+                    LocalDateTime.parse(endTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         }
         wrapper.orderByDesc(InvokeLog::getId);
         Page<InvokeLog> page = invokeLogMapper.selectPage(new Page<>(current, size), wrapper);

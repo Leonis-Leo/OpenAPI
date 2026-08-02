@@ -45,6 +45,8 @@ export interface SubscribeInfo {
   interfaceUrl: string
   appId: number
   appName: string
+  userId?: number
+  userAccount?: string
   status: number
   createTime: string
 }
@@ -239,7 +241,14 @@ export interface ApiLogPage {
   total: number
 }
 
-export const listApiLogs = (params: { current: number; size: number; keyword?: string }) =>
+export const listApiLogs = (params: {
+  current: number
+  size: number
+  keyword?: string
+  statusCode?: number
+  startTime?: string
+  endTime?: string
+}) =>
   request.get<unknown, ApiLogPage>('/log/list', { params })
 
 export const getApiLog = (id: number) =>
