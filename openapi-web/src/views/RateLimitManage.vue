@@ -14,14 +14,14 @@
     </div>
         <el-table
           ref="appTableRef"
-          :data="appList"
+          :data="pagedAppList"
           border
           stripe
           @row-click="(row: AppRateLimitConfig) => appTableRef?.toggleRowSelection(row)"
           @selection-change="(rows: AppRateLimitConfig[]) => (appSelected = rows)"
         >
           <el-table-column type="selection" width="50" />
-          <el-table-column type="index" label="#" width="60" />
+          <el-table-column type="index" label="#" width="60" :index="appIndex" />
           <el-table-column prop="appName" label="应用名称" />
           <el-table-column prop="accessKey" label="AccessKey" min-width="200" show-overflow-tooltip />
           <el-table-column label="配置状态" width="100">
@@ -46,6 +46,14 @@
             </template>
           </el-table-column>
         </el-table>
+        <el-pagination
+          class="pagination"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="appList.length"
+          :page-sizes="[10, 20, 50, 100]"
+          v-model:current-page="appPage"
+          v-model:page-size="pageSize"
+        />
       </el-tab-pane>
       <el-tab-pane label="按接口限流" name="interface">
             <div class="action-bar">
@@ -55,14 +63,14 @@
     </div>
         <el-table
           ref="interfaceTableRef"
-          :data="interfaceList"
+          :data="pagedInterfaceList"
           border
           stripe
           @row-click="(row: RateLimitConfig) => interfaceTableRef?.toggleRowSelection(row)"
           @selection-change="(rows: RateLimitConfig[]) => (interfaceSelected = rows)"
         >
           <el-table-column type="selection" width="50" />
-          <el-table-column type="index" label="#" width="60" />
+          <el-table-column type="index" label="#" width="60" :index="interfaceIndex" />
           <el-table-column prop="interfaceName" label="接口名称" />
           <el-table-column prop="method" label="方式" width="80">
             <template #default="{ row }">
@@ -92,13 +100,21 @@
             </template>
           </el-table-column>
         </el-table>
+        <el-pagination
+          class="pagination"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="interfaceList.length"
+          :page-sizes="[10, 20, 50, 100]"
+          v-model:current-page="interfacePage"
+          v-model:page-size="pageSize"
+        />
       </el-tab-pane>
     </el-tabs>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import {
@@ -119,11 +135,40 @@ const appSelected = ref<AppRateLimitConfig[]>([])
 const interfaceSelected = ref<RateLimitConfig[]>([])
 const appTableRef = ref<TableInstance>()
 const interfaceTableRef = ref<TableInstance>()
+const appPage = ref(1)
+const interfacePage = ref(1)
+const pageSize = ref(10)
 
 const appRow = computed(() => (appSelected.value.length === 1 ? appSelected.value[0] : null))
 const interfaceRow = computed(() =>
   interfaceSelected.value.length === 1 ? interfaceSelected.value[0] : null
 )
+const appIndex = (i: number) => (appPage.value - 1) * pageSize.value + i + 1
+const interfaceIndex = (i: number) => (interfacePage.value - 1) * pageSize.value + i + 1
+
+const pagedAppList = computed(() => {
+  const start = (appPage.value - 1) * pageSize.value
+  return appList.value.slice(start, start + pageSize.value)
+})
+
+const pagedInterfaceList = computed(() => {
+  const start = (interfacePage.value - 1) * pageSize.value
+  return interfaceList.value.slice(start, start + pageSize.value)
+})
+
+watch(appList, () => {
+  const max = Math.max(1, Math.ceil(appList.value.length / pageSize.value))
+  if (appPage.value > max) {
+    appPage.value = max
+  }
+})
+
+watch(interfaceList, () => {
+  const max = Math.max(1, Math.ceil(interfaceList.value.length / pageSize.value))
+  if (interfacePage.value > max) {
+    interfacePage.value = max
+  }
+})
 
 async function load() {
   appList.value = await listAppRateLimitConfigs()
@@ -188,5 +233,9 @@ onMounted(load)
 .batch-tip {
   color: #909399;
   font-size: 13px;
+}
+.pagination {
+  margin-top: 12px;
+  justify-content: flex-end;
 }
 </style>
