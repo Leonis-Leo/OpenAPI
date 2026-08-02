@@ -125,7 +125,7 @@ async function load() {
     keyword: keyword.value.trim() || undefined
   })
   logs.value = page.records
-  total.value = page.total
+  total.value = Number(page.total)
 }
 
 function reload() {
