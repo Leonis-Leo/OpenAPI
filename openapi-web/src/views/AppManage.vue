@@ -76,7 +76,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailVisible" :title="`应用详情 - ${detailRow?.appName ?? ''}`" width="520px">
+    <el-dialog v-model="detailVisible" :title="`应用详情 - ${detailRow?.appName ?? ''}`" width="640px">
       <el-descriptions :column="1" border>
         <el-descriptions-item label="应用名称">{{ detailRow?.appName }}</el-descriptions-item>
         <el-descriptions-item label="AccessKey">{{ detailRow?.accessKey }}</el-descriptions-item>
@@ -86,6 +86,20 @@
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ detailRow?.createTime }}</el-descriptions-item>
       </el-descriptions>
+      <h4>已订阅接口</h4>
+      <el-table v-if="appSubscribes.length" :data="appSubscribes" border stripe size="small">
+        <el-table-column prop="interfaceName" label="接口名称" />
+        <el-table-column prop="interfaceUrl" label="路径" min-width="160" />
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="subscribeType(row.status)" size="small">
+              {{ subscribeText(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="申请时间" width="170" />
+      </el-table>
+      <el-empty v-else description="暂无订阅" :image-size="60" />
     </el-dialog>
   </div>
 </template>
@@ -102,6 +116,8 @@ import {
   resetAppSecret,
   updateAppStatus,
   deleteApp,
+  mySubscribes,
+  type SubscribeInfo,
   type AppInfo
 } from '@/api'
 
@@ -114,6 +130,7 @@ const selected = ref<AppInfo[]>([])
 const tableRef = ref<TableInstance>()
 const detailVisible = ref(false)
 const detailRow = ref<AppInfo | null>(null)
+const appSubscribes = ref<SubscribeInfo[]>([])
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const appName = ref('')
@@ -241,7 +258,22 @@ function handleRowClick(row: AppInfo) {
 
 function openDetail(row: AppInfo) {
   detailRow.value = row
+  appSubscribes.value = []
   detailVisible.value = true
+  loadSubscribes(row.id)
+}
+
+async function loadSubscribes(appId: number) {
+  const subscribes = await mySubscribes()
+  appSubscribes.value = subscribes.filter((s) => s.appId === appId)
+}
+
+function subscribeType(status: number) {
+  return status === 1 ? 'success' : status === 2 ? 'danger' : 'warning'
+}
+
+function subscribeText(status: number) {
+  return status === 1 ? '已订阅' : status === 2 ? '已拒绝' : '待审批'
 }
 
 
@@ -276,5 +308,10 @@ onMounted(load)
 .pagination {
   margin-top: 12px;
   justify-content: flex-end;
+}
+.sub-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 </style>
