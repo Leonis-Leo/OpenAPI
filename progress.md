@@ -2,6 +2,17 @@
 
 ## Session: 2026-08-02
 
+### 首页概览重设计（数据大盘）— 2026-08-02 晚间
+- **Status:** complete（实现与验证；浏览器 E2E 按用户要求跳过）
+- 流程：brainstorming → spec（docs/superpowers/specs/2026-08-02-homepage-overview-redesign-design.md）→ writing-plans（docs/superpowers/plans/2026-08-02-homepage-overview-redesign.md）→ 执行
+- 执行方式：子代理驱动尝试失败（环境问题，子代理只返回空闲问候），切换 executing-plans 内联执行，7 个任务全部完成
+- 交付：
+  - 数据模型 dashboard-model.ts + 零依赖单元测试（node --test，5/5，commit a233030）
+  - 组件 StatCard / TrendChart / RankList(TOP10) / RecentLogs / QuickStart（src/components/dashboard/）
+  - DashboardView 容器重写：角色感知（admin 全量大盘 / 用户个人视图）、模块级加载/错误/空态、暗色自适应、响应式
+- 验证：node --test 5/5 通过；npm run build（vue-tsc + vite）零错误
+- 已知 Minor（deferred）：roundRate 未被组件复用；loadCards 无错误态 UI
+
 ### Phase 2 收尾：BCrypt 密码加盐
 - **Status:** complete
 - **Started:** 2026-08-02 20:00
