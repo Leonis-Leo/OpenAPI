@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "01-项目文档/项目规划.md",
+                "file": "01-项目文档/CI自动化测试.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "项目规划"
+              "title": "CI自动化测试"
             }
           }
         ]
@@ -188,16 +188,16 @@
   },
   "active": "b44f932cc350e23c",
   "lastOpenFiles": [
+    "02-技术笔记/MySQL 笔记.md",
+    "02-技术笔记/RabbitMQ 笔记.md",
+    "01-项目文档/项目规划.md",
     "00-项目总览.md",
     "05-接口文档/接口文档.md",
     "04-模板/问题记录模板.md",
     "03-问题记录/MySQL8-PublicKeyRetrieval.md",
     "01-项目文档/签名鉴权原理.md",
-    "01-项目文档/项目规划.md",
     "01-项目文档/CI自动化测试.md",
     "01-项目文档/架构设计.md",
-    "02-技术笔记/MySQL 笔记.md",
-    "02-技术笔记/RabbitMQ 笔记.md",
     "02-技术笔记/Redis 笔记.md",
     "未命名.base",
     "05-接口文档/openapi.json",

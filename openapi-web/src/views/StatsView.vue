@@ -29,50 +29,62 @@
     </el-row>
     <el-card class="chart-card">
       <template #header>近 7 天调用趋势</template>
-      <div ref="chartRef" class="chart"></div>
+      <el-empty v-if="!daily.length" description="暂无调用数据，调用接口后即可查看趋势" />
+      <div v-else ref="chartRef" class="chart"></div>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import * as echarts from 'echarts'
-import { statsOverview, statsDaily, type StatsOverview } from '@/api'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { init, use, type ECharts } from 'echarts/core'
+import { LineChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import { statsOverview, statsDaily, type DailyStat, type StatsOverview } from '@/api'
+
+use([LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
 
 const overview = ref<StatsOverview>({ total: 0, success: 0, fail: 0, successRate: 0 })
+const daily = ref<DailyStat[]>([])
 const chartRef = ref<HTMLDivElement>()
-let chart: echarts.ECharts | null = null
+let chart: ECharts | null = null
+
+const onResize = () => chart?.resize()
 
 onMounted(async () => {
   overview.value = await statsOverview()
-  const daily = await statsDaily(7)
+  daily.value = await statsDaily(7)
+  await nextTick()
   if (chartRef.value) {
-    chart = echarts.init(chartRef.value)
+    chart = init(chartRef.value)
     chart.setOption({
       tooltip: { trigger: 'axis' },
       legend: { data: ['调用量', '成功量'] },
       grid: { left: 40, right: 20, top: 40, bottom: 30 },
-      xAxis: { type: 'category', data: daily.map((d) => d.day) },
+      xAxis: { type: 'category', data: daily.value.map((d) => d.day) },
       yAxis: { type: 'value', minInterval: 1 },
       series: [
         {
           name: '调用量',
           type: 'line',
           smooth: true,
-          data: daily.map((d) => d.total)
+          data: daily.value.map((d) => d.total)
         },
         {
           name: '成功量',
           type: 'line',
           smooth: true,
-          data: daily.map((d) => d.ok)
+          data: daily.value.map((d) => d.ok)
         }
       ]
     })
+    window.addEventListener('resize', onResize)
   }
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize)
   chart?.dispose()
 })
 </script>

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import type { AxiosResponse } from 'axios'
 
 interface ApiResponse<T> {
   code: number
@@ -36,7 +37,7 @@ request.interceptors.response.use(
       }
       return Promise.reject(new Error(res.message))
     }
-    return res.data
+    return res.data as AxiosResponse
   },
   (error) => {
     if (error.response?.status === 401) {

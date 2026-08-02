@@ -54,7 +54,7 @@
         <template #default="{ row }">
           <el-button size="small" @click="copy(row.accessKey, 'AccessKey')">复制AK</el-button>
           <el-button size="small" @click="copy(row.secretKey, 'SecretKey')">复制SK</el-button>
-          <el-dropdown trigger="click" @command="(cmd) => handleCommand(cmd, row)">
+          <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd, row)">
             <el-button size="small" type="primary" plain>
               更多<el-icon><arrow-down /></el-icon>
             </el-button>

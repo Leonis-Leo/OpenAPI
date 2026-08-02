@@ -34,7 +34,7 @@
           :data="pagedPending"
           border
           stripe
-          @selection-change="(rows) => (selectedPending = rows)"
+          @selection-change="(rows: SubscribeInfo[]) => (selectedPending = rows)"
         >
           <el-table-column type="selection" width="50" />
           <el-table-column prop="id" label="ID" width="70" />
@@ -73,7 +73,7 @@
           :data="pagedMine"
           border
           stripe
-          @selection-change="(rows) => (selectedMine = rows)"
+          @selection-change="(rows: SubscribeInfo[]) => (selectedMine = rows)"
         >
           <el-table-column type="selection" width="50" />
           <el-table-column prop="id" label="ID" width="70" />
@@ -116,7 +116,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import { listSubscribes, mySubscribes, approve, unsubscribe, type SubscribeInfo } from '@/api'
 
