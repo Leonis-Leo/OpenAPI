@@ -30,3 +30,7 @@ replay_pid*
 
 # Redis 持久化文件
 *.rdb
+
+# Erlang / 进程
+erl_crash.dump
+*.pid
