@@ -1,7 +1,20 @@
 <template>
   <div>
-    <h2>接口管理</h2>
-    <el-table :data="interfaces" border stripe>
+    <div class="toolbar">
+      <h2>接口管理</h2>
+      <div class="toolbar-right">
+        <el-input
+          v-model="keyword"
+          placeholder="搜索名称 / 路径"
+          clearable
+          style="width: 220px"
+          @input="currentPage = 1"
+        />
+        <el-button v-if="isAdmin" type="primary" @click="openCreateForm">新增接口</el-button>
+      </div>
+    </div>
+
+    <el-table :data="pagedInterfaces" border stripe>
       <el-table-column prop="id" label="ID" width="70" />
       <el-table-column prop="name" label="名称" />
       <el-table-column prop="description" label="描述" min-width="160" />
@@ -55,9 +68,45 @@
           >
             {{ row.status === 1 ? '下线' : '上线' }}
           </el-button>
+          <el-button v-if="isAdmin" size="small" @click="openEditForm(row)">编辑</el-button>
+          <el-button v-if="isAdmin" size="small" type="danger" plain @click="handleDeleteInterface(row)">
+            删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
+
+    <el-pagination
+      class="pagination"
+      layout="total, prev, pager, next"
+      :total="filteredInterfaces.length"
+      :page-size="pageSize"
+      v-model:current-page="currentPage"
+    />
+
+    <el-dialog v-model="formVisible" :title="editingId ? '编辑接口' : '新增接口'" width="560px">
+      <el-form label-width="90px">
+        <el-form-item label="名称"><el-input v-model="interfaceForm.name" /></el-form-item>
+        <el-form-item label="描述"><el-input v-model="interfaceForm.description" /></el-form-item>
+        <el-form-item label="方式">
+          <el-select v-model="interfaceForm.method" style="width: 120px">
+            <el-option label="GET" value="GET" />
+            <el-option label="POST" value="POST" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="路径"><el-input v-model="interfaceForm.url" placeholder="/api/xxx" /></el-form-item>
+        <el-form-item label="请求参数">
+          <el-input v-model="interfaceForm.requestParams" type="textarea" :rows="3" placeholder='JSON，如 {"key":"说明"}' />
+        </el-form-item>
+        <el-form-item label="响应示例">
+          <el-input v-model="interfaceForm.responseExample" type="textarea" :rows="3" placeholder="JSON 响应示例" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="formVisible = false">取消</el-button>
+        <el-button type="primary" :loading="savingForm" @click="handleSaveForm">保存</el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="detailVisible" :title="`接口详情 - ${debugInterface?.name ?? ''}`" width="720px">
       <el-tabs v-model="detailTab">
@@ -121,6 +170,10 @@ import {
   listInterfaces,
   listAllInterfaces,
   interfaceDetail,
+  createInterface,
+  updateInterface,
+  deleteInterface,
+  type InterfaceForm,
   onlineInterface,
   offlineInterface,
   subscribe,
@@ -133,6 +186,9 @@ import { hmacSha256Hex, buildSignContent, type SignParams } from '@/utils/sign'
 const userStore = useUserStore()
 const isAdmin = userStore.user?.userRole === 'admin'
 const interfaces = ref<InterfaceInfo[]>([])
+const keyword = ref('')
+const currentPage = ref(1)
+const pageSize = 10
 const apps = ref<AppInfo[]>([])
 const subscribeMap = ref<Record<number, number>>({})
 const subscribeIdMap = ref<Record<number, number>>({})
@@ -149,6 +205,81 @@ const debugParams = ref<Record<string, string>>({})
 const debugResult = ref('')
 const debugLoading = ref(false)
 const debugParamKeys = computed(() => Object.keys(debugParams.value))
+
+const filteredInterfaces = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  if (!kw) return interfaces.value
+  return interfaces.value.filter(
+    (i) => i.name.toLowerCase().includes(kw) || i.url.toLowerCase().includes(kw)
+  )
+})
+
+const pagedInterfaces = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredInterfaces.value.slice(start, start + pageSize)
+})
+
+const formVisible = ref(false)
+const editingId = ref<number | null>(null)
+const savingForm = ref(false)
+const interfaceForm = ref<InterfaceForm>({
+  name: '',
+  description: '',
+  method: 'GET',
+  url: '',
+  requestParams: '',
+  responseExample: ''
+})
+
+function openCreateForm() {
+  editingId.value = null
+  interfaceForm.value = { name: '', description: '', method: 'GET', url: '', requestParams: '', responseExample: '' }
+  formVisible.value = true
+}
+
+function openEditForm(row: InterfaceInfo) {
+  editingId.value = row.id
+  interfaceForm.value = {
+    name: row.name,
+    description: row.description ?? '',
+    method: row.method,
+    url: row.url,
+    requestParams: row.requestParams ?? '',
+    responseExample: row.responseExample ?? ''
+  }
+  formVisible.value = true
+}
+
+async function handleSaveForm() {
+  if (!interfaceForm.value.name.trim() || !interfaceForm.value.url.trim()) {
+    ElMessage.warning('请填写名称和路径')
+    return
+  }
+  savingForm.value = true
+  try {
+    const data = { ...interfaceForm.value }
+    if (editingId.value) {
+      await updateInterface(editingId.value, data)
+      ElMessage.success('已保存')
+    } else {
+      await createInterface(data)
+      ElMessage.success('已创建（默认下线，可上线发布）')
+    }
+    formVisible.value = false
+    await load()
+  } finally {
+    savingForm.value = false
+  }
+}
+
+async function handleDeleteInterface(row: InterfaceInfo) {
+  await ElMessageBox.confirm(`确定删除接口「${row.name}」吗？`, '删除接口', {
+    type: 'warning'
+  })
+  await deleteInterface(row.id)
+  ElMessage.success('已删除')
+  await load()
+}
 
 async function load() {
   interfaces.value = isAdmin ? await listAllInterfaces() : await listInterfaces()
@@ -300,6 +431,20 @@ onMounted(load)
 </script>
 
 <style scoped>
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.toolbar-right {
+  display: flex;
+  gap: 8px;
+}
+.pagination {
+  margin-top: 12px;
+  justify-content: flex-end;
+}
 .json-block {
   background: #f5f7fa;
   border-radius: 4px;

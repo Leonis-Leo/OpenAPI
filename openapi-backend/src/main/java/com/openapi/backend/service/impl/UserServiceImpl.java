@@ -45,8 +45,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public List<User> listUsers() {
-        List<User> users = list();
+    public List<User> listUsers(String keyword) {
+        List<User> users = StringUtils.hasText(keyword)
+                ? lambdaQuery()
+                        .like(User::getUserAccount, keyword)
+                        .or()
+                        .like(User::getUserName, keyword)
+                        .list()
+                : list();
         users.forEach(user -> user.setUserPassword(null));
         return users;
     }

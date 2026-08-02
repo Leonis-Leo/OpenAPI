@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -115,6 +116,80 @@ public class InterfaceInfoController {
     public ApiResponse<Void> unsubscribe(@RequestParam Long id, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("openapi.userId");
         subscribeService.unsubscribe(userId, id);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/create")
+    @Operation(summary = "新增接口（管理员）")
+    public ApiResponse<InterfaceInfo> create(
+            @RequestParam String name,
+            @RequestParam String description,
+            @RequestParam String method,
+            @RequestParam String url,
+            @RequestParam(required = false) String requestParams,
+            @RequestParam(required = false) String responseExample,
+            HttpServletRequest request) {
+        requireAdmin(request);
+        InterfaceInfo info = new InterfaceInfo();
+        info.setName(name);
+        info.setDescription(description);
+        info.setMethod(method.toUpperCase());
+        info.setUrl(url);
+        info.setRequestParams(requestParams);
+        info.setResponseExample(responseExample);
+        info.setStatus(0);
+        info.setIsDelete(0);
+        interfaceInfoService.save(info);
+        return ApiResponse.ok(info);
+    }
+
+    @PostMapping("/update")
+    @Operation(summary = "编辑接口（管理员）")
+    public ApiResponse<Void> update(
+            @RequestParam Long id,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) String method,
+            @RequestParam(required = false) String url,
+            @RequestParam(required = false) String requestParams,
+            @RequestParam(required = false) String responseExample,
+            HttpServletRequest request) {
+        requireAdmin(request);
+        InterfaceInfo info = interfaceInfoService.getById(id);
+        if (info == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "接口不存在");
+        }
+        if (StringUtils.hasText(name)) {
+            info.setName(name);
+        }
+        if (StringUtils.hasText(description)) {
+            info.setDescription(description);
+        }
+        if (StringUtils.hasText(method)) {
+            info.setMethod(method.toUpperCase());
+        }
+        if (StringUtils.hasText(url)) {
+            info.setUrl(url);
+        }
+        if (requestParams != null) {
+            info.setRequestParams(requestParams);
+        }
+        if (responseExample != null) {
+            info.setResponseExample(responseExample);
+        }
+        interfaceInfoService.updateById(info);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/delete")
+    @Operation(summary = "删除接口（管理员）")
+    public ApiResponse<Void> delete(@RequestParam Long id, HttpServletRequest request) {
+        requireAdmin(request);
+        InterfaceInfo info = interfaceInfoService.getById(id);
+        if (info == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "接口不存在");
+        }
+        interfaceInfoService.removeById(id);
         return ApiResponse.ok();
     }
 

@@ -1,9 +1,17 @@
 <template>
   <div>
-    <h2>订阅审批</h2>
+    <div class="toolbar">
+      <h2>订阅审批</h2>
+      <el-input
+        v-model="keyword"
+        placeholder="搜索接口 / 应用"
+        clearable
+        style="width: 220px"
+      />
+    </div>
     <el-tabs v-model="activeTab">
       <el-tab-pane v-if="isAdmin" label="待审批" name="pending">
-        <el-table :data="pendingList" border stripe>
+        <el-table :data="pagedPending" border stripe>
           <el-table-column prop="id" label="ID" width="70" />
           <el-table-column prop="interfaceName" label="接口" />
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
@@ -16,9 +24,16 @@
             </template>
           </el-table-column>
         </el-table>
+        <el-pagination
+          class="pagination"
+          layout="total, prev, pager, next"
+          :total="filteredPending.length"
+          :page-size="pageSize"
+          v-model:current-page="pendingPage"
+        />
       </el-tab-pane>
       <el-tab-pane label="我的订阅" name="mine">
-        <el-table :data="myList" border stripe>
+        <el-table :data="pagedMine" border stripe>
           <el-table-column prop="id" label="ID" width="70" />
           <el-table-column prop="interfaceName" label="接口" />
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
@@ -45,13 +60,20 @@
             </template>
           </el-table-column>
         </el-table>
+        <el-pagination
+          class="pagination"
+          layout="total, prev, pager, next"
+          :total="filteredMine.length"
+          :page-size="pageSize"
+          v-model:current-page="minePage"
+        />
       </el-tab-pane>
     </el-tabs>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import { listSubscribes, mySubscribes, approve, unsubscribe, type SubscribeInfo } from '@/api'
@@ -61,6 +83,31 @@ const isAdmin = userStore.user?.userRole === 'admin'
 const activeTab = ref('pending')
 const pendingList = ref<SubscribeInfo[]>([])
 const myList = ref<SubscribeInfo[]>([])
+const keyword = ref('')
+const pendingPage = ref(1)
+const minePage = ref(1)
+const pageSize = 10
+
+function matchKw(item: SubscribeInfo): boolean {
+  const kw = keyword.value.trim().toLowerCase()
+  if (!kw) return true
+  return (
+    item.interfaceName.toLowerCase().includes(kw) ||
+    item.appName.toLowerCase().includes(kw) ||
+    item.interfaceUrl.toLowerCase().includes(kw)
+  )
+}
+
+const filteredPending = computed(() => pendingList.value.filter(matchKw))
+const pagedPending = computed(() => {
+  const start = (pendingPage.value - 1) * pageSize
+  return filteredPending.value.slice(start, start + pageSize)
+})
+const filteredMine = computed(() => myList.value.filter(matchKw))
+const pagedMine = computed(() => {
+  const start = (minePage.value - 1) * pageSize
+  return filteredMine.value.slice(start, start + pageSize)
+})
 
 async function load() {
   if (isAdmin) {
@@ -94,3 +141,16 @@ function statusType(status: number) {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.pagination {
+  margin-top: 12px;
+  justify-content: flex-end;
+}
+</style>

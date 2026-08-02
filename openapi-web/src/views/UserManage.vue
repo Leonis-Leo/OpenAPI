@@ -1,7 +1,16 @@
 <template>
   <div>
-    <h2>用户管理</h2>
-    <el-table :data="users" border stripe>
+    <div class="toolbar">
+      <h2>用户管理</h2>
+      <el-input
+        v-model="keyword"
+        placeholder="搜索账号 / 昵称"
+        clearable
+        style="width: 220px"
+        @input="currentPage = 1"
+      />
+    </div>
+    <el-table :data="pagedUsers" border stripe>
       <el-table-column prop="id" label="ID" width="70" />
       <el-table-column prop="userAccount" label="账号" />
       <el-table-column prop="userName" label="昵称" />
@@ -36,17 +45,42 @@
         </template>
       </el-table-column>
     </el-table>
+    <el-pagination
+      class="pagination"
+      layout="total, prev, pager, next"
+      :total="filteredUsers.length"
+      :page-size="pageSize"
+      v-model:current-page="currentPage"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import { listUsers, updateUserRole, updateUserStatus, type UserInfo } from '@/api'
 
 const userStore = useUserStore()
 const users = ref<UserInfo[]>([])
+const keyword = ref('')
+const currentPage = ref(1)
+const pageSize = 10
+
+const filteredUsers = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  if (!kw) return users.value
+  return users.value.filter(
+    (u) =>
+      u.userAccount.toLowerCase().includes(kw) ||
+      (u.userName ?? '').toLowerCase().includes(kw)
+  )
+})
+
+const pagedUsers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredUsers.value.slice(start, start + pageSize)
+})
 
 async function load() {
   users.value = await listUsers()
@@ -66,3 +100,16 @@ async function toggleStatus(row: UserInfo) {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.pagination {
+  margin-top: 12px;
+  justify-content: flex-end;
+}
+</style>

@@ -58,9 +58,11 @@ public class UserController {
 
     @GetMapping("/list")
     @Operation(summary = "用户列表（管理员）")
-    public ApiResponse<List<User>> listUsers(HttpServletRequest request) {
+    public ApiResponse<List<User>> listUsers(
+            @Parameter(description = "搜索关键字（账号/昵称）") @RequestParam(required = false) String keyword,
+            HttpServletRequest request) {
         requireAdmin(request);
-        return ApiResponse.ok(userService.listUsers());
+        return ApiResponse.ok(userService.listUsers(keyword));
     }
 
     @PostMapping("/update-role")

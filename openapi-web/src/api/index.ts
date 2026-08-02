@@ -58,6 +58,18 @@ export const createApp = (appName: string, userId: number) =>
 export const listApps = (userId: number) =>
   request.get<unknown, AppInfo[]>('/app/list', { params: { userId } })
 
+export const updateAppName = (id: number, appName: string) =>
+  request.post<unknown, void>('/app/update', null, { params: { id, appName } })
+
+export const resetAppSecret = (id: number) =>
+  request.post<unknown, AppInfo>('/app/reset-secret', null, { params: { id } })
+
+export const updateAppStatus = (id: number, enabled: boolean) =>
+  request.post<unknown, void>('/app/update-status', null, { params: { id, enabled } })
+
+export const deleteApp = (id: number) =>
+  request.post<unknown, void>('/app/delete', null, { params: { id } })
+
 export const listInterfaces = () =>
   request.get<unknown, InterfaceInfo[]>('/interface/list')
 
@@ -88,6 +100,24 @@ export const approve = (id: number, approved: boolean) =>
 export const unsubscribe = (id: number) =>
   request.post<unknown, void>('/interface/unsubscribe', null, { params: { id } })
 
+export interface InterfaceForm {
+  name: string
+  description: string
+  method: string
+  url: string
+  requestParams?: string
+  responseExample?: string
+}
+
+export const createInterface = (data: InterfaceForm) =>
+  request.post<unknown, InterfaceInfo>('/interface/create', null, { params: data })
+
+export const updateInterface = (id: number, data: Partial<InterfaceForm>) =>
+  request.post<unknown, void>('/interface/update', null, { params: { id, ...data } })
+
+export const deleteInterface = (id: number) =>
+  request.post<unknown, void>('/interface/delete', null, { params: { id } })
+
 export interface StatsOverview {
   total: number
   success: number
@@ -116,8 +146,8 @@ export interface UserInfo {
   createTime: string
 }
 
-export const listUsers = () =>
-  request.get<unknown, UserInfo[]>('/user/list')
+export const listUsers = (keyword?: string) =>
+  request.get<unknown, UserInfo[]>('/user/list', { params: { keyword } })
 
 export const updateUserRole = (id: number, role: string) =>
   request.post<unknown, void>('/user/update-role', null, { params: { id, role } })
