@@ -58,14 +58,20 @@
     </div>
 
     <el-table
+      ref="tableRef"
       :data="pagedInterfaces"
       border
       stripe
+      @row-click="handleRowClick"
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="50" />
       <el-table-column type="index" label="#" width="60" :index="indexMethod" />
-      <el-table-column prop="name" label="名称" />
+      <el-table-column label="名称">
+        <template #default="{ row }">
+          <el-link type="primary" @click="openDetail(row)">{{ row.name }}</el-link>
+        </template>
+      </el-table-column>
       <el-table-column prop="description" label="描述" min-width="160" />
       <el-table-column prop="method" label="方式" width="90">
         <template #default="{ row }">
@@ -179,6 +185,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import {
   listApps,
@@ -213,6 +220,7 @@ const currentInterface = ref<InterfaceInfo | null>(null)
 const selectedAppId = ref<number | null>(null)
 const subscribing = ref(false)
 const selected = ref<InterfaceInfo[]>([])
+const tableRef = ref<TableInstance>()
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize + i + 1
@@ -462,6 +470,10 @@ async function handleDeleteInterface(row: InterfaceInfo | null) {
 
 function handleSelectionChange(rows: InterfaceInfo[]) {
   selected.value = rows
+}
+
+function handleRowClick(row: InterfaceInfo) {
+  tableRef.value?.toggleRowSelection(row)
 }
 
 async function batchStatus(status: number) {

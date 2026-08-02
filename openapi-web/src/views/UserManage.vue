@@ -66,14 +66,20 @@
     </div>
 
     <el-table
+      ref="tableRef"
       :data="pagedUsers"
       border
       stripe
+      @row-click="handleRowClick"
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="50" />
       <el-table-column type="index" label="#" width="60" :index="indexMethod" />
-      <el-table-column prop="userAccount" label="账号" />
+      <el-table-column label="账号">
+        <template #default="{ row }">
+          <el-link type="primary" @click="openDetail(row)">{{ row.userAccount }}</el-link>
+        </template>
+      </el-table-column>
       <el-table-column prop="userName" label="昵称" />
       <el-table-column prop="userRole" label="角色" width="100">
         <template #default="{ row }">
@@ -123,12 +129,27 @@
         <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="detailVisible" :title="`用户详情 - ${detailRow?.userAccount ?? ''}`" width="520px">
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="账号">{{ detailRow?.userAccount }}</el-descriptions-item>
+        <el-descriptions-item label="昵称">{{ detailRow?.userName }}</el-descriptions-item>
+        <el-descriptions-item label="角色">
+          {{ detailRow?.userRole === 'admin' ? '管理员' : '普通用户' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="状态">
+          {{ detailRow?.status === 1 ? '启用' : '禁用' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ detailRow?.createTime }}</el-descriptions-item>
+      </el-descriptions>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import {
   listUsers,
@@ -146,6 +167,9 @@ const keyword = ref('')
 const currentPage = ref(1)
 const pageSize = 10
 const selected = ref<UserInfo[]>([])
+const tableRef = ref<TableInstance>()
+const detailVisible = ref(false)
+const detailRow = ref<UserInfo | null>(null)
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const saving = ref(false)
@@ -260,6 +284,15 @@ async function toggleStatus(enabled: boolean) {
 
 function handleSelectionChange(rows: UserInfo[]) {
   selected.value = rows
+}
+
+function handleRowClick(row: UserInfo) {
+  tableRef.value?.toggleRowSelection(row)
+}
+
+function openDetail(row: UserInfo) {
+  detailRow.value = row
+  detailVisible.value = true
 }
 
 async function batchToggle(enabled: boolean) {

@@ -15,9 +15,11 @@
           <span v-if="appRow" class="batch-tip">已选 {{ appRow.appName }}</span>
         </div>
         <el-table
+          ref="appTableRef"
           :data="appList"
           border
           stripe
+          @row-click="(row: AppRateLimitConfig) => appTableRef?.toggleRowSelection(row)"
           @selection-change="(rows: AppRateLimitConfig[]) => (appSelected = rows)"
         >
           <el-table-column type="selection" width="50" />
@@ -58,9 +60,11 @@
           <span v-if="interfaceRow" class="batch-tip">已选 {{ interfaceRow.interfaceName }}</span>
         </div>
         <el-table
+          ref="interfaceTableRef"
           :data="interfaceList"
           border
           stripe
+          @row-click="(row: RateLimitConfig) => interfaceTableRef?.toggleRowSelection(row)"
           @selection-change="(rows: RateLimitConfig[]) => (interfaceSelected = rows)"
         >
           <el-table-column type="selection" width="50" />
@@ -102,6 +106,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { TableInstance } from 'element-plus'
 import {
   listRateLimitConfigs,
   saveRateLimitConfig,
@@ -118,6 +123,8 @@ const appList = ref<AppRateLimitConfig[]>([])
 const interfaceList = ref<RateLimitConfig[]>([])
 const appSelected = ref<AppRateLimitConfig[]>([])
 const interfaceSelected = ref<RateLimitConfig[]>([])
+const appTableRef = ref<TableInstance>()
+const interfaceTableRef = ref<TableInstance>()
 
 const appRow = computed(() => (appSelected.value.length === 1 ? appSelected.value[0] : null))
 const interfaceRow = computed(() =>

@@ -30,14 +30,20 @@
     </div>
 
     <el-table
+      ref="tableRef"
       :data="pagedApps"
       border
       stripe
+      @row-click="handleRowClick"
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="50" />
       <el-table-column type="index" label="#" width="60" :index="indexMethod" />
-      <el-table-column prop="appName" label="应用名称" min-width="120" />
+      <el-table-column label="应用名称" min-width="120">
+        <template #default="{ row }">
+          <el-link type="primary" @click="openDetail(row)">{{ row.appName }}</el-link>
+        </template>
+      </el-table-column>
       <el-table-column prop="accessKey" label="AccessKey" min-width="220" show-overflow-tooltip />
       <el-table-column label="SecretKey" min-width="260" show-overflow-tooltip>
         <template #default="{ row }">
@@ -73,12 +79,25 @@
         <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="detailVisible" :title="`应用详情 - ${detailRow?.appName ?? ''}`" width="520px">
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="应用名称">{{ detailRow?.appName }}</el-descriptions-item>
+        <el-descriptions-item label="AccessKey">{{ detailRow?.accessKey }}</el-descriptions-item>
+        <el-descriptions-item label="SecretKey">{{ detailRow?.secretKey }}</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          {{ detailRow?.status === 1 ? '启用' : '禁用' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ detailRow?.createTime }}</el-descriptions-item>
+      </el-descriptions>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import {
   listApps,
@@ -96,6 +115,9 @@ const keyword = ref('')
 const currentPage = ref(1)
 const pageSize = 10
 const selected = ref<AppInfo[]>([])
+const tableRef = ref<TableInstance>()
+const detailVisible = ref(false)
+const detailRow = ref<AppInfo | null>(null)
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const appName = ref('')
@@ -208,6 +230,15 @@ async function handleDelete(row: AppInfo | null) {
 
 function handleSelectionChange(rows: AppInfo[]) {
   selected.value = rows
+}
+
+function handleRowClick(row: AppInfo) {
+  tableRef.value?.toggleRowSelection(row)
+}
+
+function openDetail(row: AppInfo) {
+  detailRow.value = row
+  detailVisible.value = true
 }
 
 async function batchToggle(enabled: boolean) {

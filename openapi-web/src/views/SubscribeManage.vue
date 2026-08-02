@@ -38,14 +38,20 @@
           <span v-if="selectedPending.length" class="batch-tip">已选 {{ selectedPending.length }} 项</span>
         </div>
         <el-table
+          ref="pendingTableRef"
           :data="pagedPending"
           border
           stripe
+          @row-click="(row: SubscribeInfo) => pendingTableRef?.toggleRowSelection(row)"
           @selection-change="(rows: SubscribeInfo[]) => (selectedPending = rows)"
         >
           <el-table-column type="selection" width="50" />
           <el-table-column type="index" label="#" width="60" :index="pendingIndex" />
-          <el-table-column prop="interfaceName" label="接口" />
+          <el-table-column label="接口">
+            <template #default="{ row }">
+              <el-link type="primary" @click="openDetail(row)">{{ row.interfaceName }}</el-link>
+            </template>
+          </el-table-column>
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
           <el-table-column prop="appName" label="申请应用" />
           <el-table-column prop="createTime" label="申请时间" width="180" />
@@ -82,14 +88,20 @@
           <span v-if="selectedMine.length" class="batch-tip">已选 {{ selectedMine.length }} 项</span>
         </div>
         <el-table
+          ref="mineTableRef"
           :data="pagedMine"
           border
           stripe
+          @row-click="(row: SubscribeInfo) => mineTableRef?.toggleRowSelection(row)"
           @selection-change="(rows: SubscribeInfo[]) => (selectedMine = rows)"
         >
           <el-table-column type="selection" width="50" />
           <el-table-column type="index" label="#" width="60" :index="mineIndex" />
-          <el-table-column prop="interfaceName" label="接口" />
+          <el-table-column label="接口">
+            <template #default="{ row }">
+              <el-link type="primary" @click="openDetail(row)">{{ row.interfaceName }}</el-link>
+            </template>
+          </el-table-column>
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
           <el-table-column prop="appName" label="应用" />
           <el-table-column prop="status" label="状态" width="100">
@@ -110,12 +122,23 @@
         />
       </el-tab-pane>
     </el-tabs>
+
+    <el-dialog v-model="detailVisible" :title="`订阅详情 - ${detailRow?.interfaceName ?? ''}`" width="520px">
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="接口">{{ detailRow?.interfaceName }}</el-descriptions-item>
+        <el-descriptions-item label="路径">{{ detailRow?.interfaceUrl }}</el-descriptions-item>
+        <el-descriptions-item label="应用">{{ detailRow?.appName }}</el-descriptions-item>
+        <el-descriptions-item label="状态">{{ statusText(detailRow?.status ?? 0) }}</el-descriptions-item>
+        <el-descriptions-item label="申请时间">{{ detailRow?.createTime }}</el-descriptions-item>
+      </el-descriptions>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import { listSubscribes, mySubscribes, approve, unsubscribe, type SubscribeInfo } from '@/api'
 
@@ -130,6 +153,10 @@ const minePage = ref(1)
 const pageSize = 10
 const selectedPending = ref<SubscribeInfo[]>([])
 const selectedMine = ref<SubscribeInfo[]>([])
+const pendingTableRef = ref<TableInstance>()
+const mineTableRef = ref<TableInstance>()
+const detailVisible = ref(false)
+const detailRow = ref<SubscribeInfo | null>(null)
 
 const pendingRow = computed(() => (selectedPending.value.length === 1 ? selectedPending.value[0] : null))
 const mineRow = computed(() => (selectedMine.value.length === 1 ? selectedMine.value[0] : null))
@@ -221,6 +248,11 @@ function statusText(status: number) {
 
 function statusType(status: number) {
   return status === 1 ? 'success' : status === 2 ? 'danger' : 'warning'
+}
+
+function openDetail(row: SubscribeInfo) {
+  detailRow.value = row
+  detailVisible.value = true
 }
 
 onMounted(load)

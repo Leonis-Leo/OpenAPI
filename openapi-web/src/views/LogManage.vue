@@ -29,15 +29,21 @@
     </div>
 
     <el-table
+      ref="tableRef"
       :data="logs"
       border
       stripe
+      @row-click="handleRowClick"
       @selection-change="(rows: ApiLog[]) => (selected = rows)"
     >
       <el-table-column type="selection" width="50" />
       <el-table-column type="index" label="#" width="60" :index="indexMethod" />
       <el-table-column prop="createTime" label="时间" width="160" />
-      <el-table-column prop="interfaceName" label="接口" width="120" />
+      <el-table-column label="接口" width="140">
+        <template #default="{ row }">
+          <el-link type="primary" @click="openDetail(row)">{{ row.interfaceName }}</el-link>
+        </template>
+      </el-table-column>
       <el-table-column prop="method" label="方式" width="80">
         <template #default="{ row }">
           <el-tag :type="row.method === 'GET' ? 'success' : 'warning'">{{ row.method }}</el-tag>
@@ -88,6 +94,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { TableInstance } from 'element-plus'
 import { listApiLogs, getApiLog, deleteApiLog, deleteApiLogs, type ApiLog } from '@/api'
 
 const logs = ref<ApiLog[]>([])
@@ -96,6 +103,7 @@ const currentPage = ref(1)
 const pageSize = 10
 const keyword = ref('')
 const selected = ref<ApiLog[]>([])
+const tableRef = ref<TableInstance>()
 const detailVisible = ref(false)
 const detail = ref<ApiLog | null>(null)
 
@@ -115,6 +123,10 @@ async function load() {
 function reload() {
   currentPage.value = 1
   load()
+}
+
+function handleRowClick(row: ApiLog) {
+  tableRef.value?.toggleRowSelection(row)
 }
 
 async function openDetail(row: ApiLog | null) {
