@@ -14,7 +14,26 @@
       </div>
     </div>
 
-    <el-table :data="pagedApps" border stripe>
+    <div class="batch-bar">
+      <el-button size="small" :disabled="selectedApps.length === 0" @click="batchToggle(true)">
+        批量启用
+      </el-button>
+      <el-button size="small" :disabled="selectedApps.length === 0" @click="batchToggle(false)">
+        批量禁用
+      </el-button>
+      <el-button size="small" type="danger" :disabled="selectedApps.length === 0" @click="batchDelete">
+        批量删除
+      </el-button>
+      <span v-if="selectedApps.length" class="batch-tip">已选 {{ selectedApps.length }} 项</span>
+    </div>
+
+    <el-table
+      :data="pagedApps"
+      border
+      stripe
+      @selection-change="handleSelectionChange"
+    >
+      <el-table-column type="selection" width="50" />
       <el-table-column prop="id" label="ID" width="60" />
       <el-table-column prop="appName" label="应用名称" min-width="120" />
       <el-table-column prop="accessKey" label="AccessKey" min-width="220" show-overflow-tooltip />
@@ -100,6 +119,7 @@ const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const appName = ref('')
 const saving = ref(false)
+const selectedApps = ref<AppInfo[]>([])
 
 const filteredApps = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
@@ -188,6 +208,25 @@ async function handleCommand(cmd: string, row: AppInfo) {
   }
 }
 
+function handleSelectionChange(rows: AppInfo[]) {
+  selectedApps.value = rows
+}
+
+async function batchToggle(enabled: boolean) {
+  await Promise.all(selectedApps.value.map((a) => updateAppStatus(a.id, enabled)))
+  ElMessage.success(enabled ? '已批量启用' : '已批量禁用')
+  await load()
+}
+
+async function batchDelete() {
+  await ElMessageBox.confirm(`确定删除选中的 ${selectedApps.value.length} 个应用吗？`, '批量删除', {
+    type: 'warning'
+  })
+  await Promise.all(selectedApps.value.map((a) => deleteApp(a.id)))
+  ElMessage.success('已批量删除')
+  await load()
+}
+
 onMounted(load)
 </script>
 
@@ -201,6 +240,16 @@ onMounted(load)
 .toolbar-right {
   display: flex;
   gap: 8px;
+}
+.batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.batch-tip {
+  color: #909399;
+  font-size: 13px;
 }
 .pagination {
   margin-top: 12px;

@@ -14,7 +14,31 @@
       </div>
     </div>
 
-    <el-table :data="pagedInterfaces" border stripe>
+    <div v-if="isAdmin" class="batch-bar">
+      <el-button size="small" :disabled="selectedInterfaces.length === 0" @click="batchStatus(1)">
+        批量上线
+      </el-button>
+      <el-button size="small" :disabled="selectedInterfaces.length === 0" @click="batchStatus(0)">
+        批量下线
+      </el-button>
+      <el-button
+        size="small"
+        type="danger"
+        :disabled="selectedInterfaces.length === 0"
+        @click="batchDelete"
+      >
+        批量删除
+      </el-button>
+      <span v-if="selectedInterfaces.length" class="batch-tip">已选 {{ selectedInterfaces.length }} 项</span>
+    </div>
+
+    <el-table
+      :data="pagedInterfaces"
+      border
+      stripe
+      @selection-change="handleSelectionChange"
+    >
+      <el-table-column type="selection" width="50" />
       <el-table-column prop="id" label="ID" width="70" />
       <el-table-column prop="name" label="名称" />
       <el-table-column prop="description" label="描述" min-width="160" />
@@ -230,6 +254,7 @@ const interfaceForm = ref<InterfaceForm>({
   requestParams: '',
   responseExample: ''
 })
+const selectedInterfaces = ref<InterfaceInfo[]>([])
 
 function openCreateForm() {
   editingId.value = null
@@ -278,6 +303,28 @@ async function handleDeleteInterface(row: InterfaceInfo) {
   })
   await deleteInterface(row.id)
   ElMessage.success('已删除')
+  await load()
+}
+
+function handleSelectionChange(rows: InterfaceInfo[]) {
+  selectedInterfaces.value = rows
+}
+
+async function batchStatus(status: number) {
+  const ops = selectedInterfaces.value.map((i) =>
+    status === 1 ? onlineInterface(i.id) : offlineInterface(i.id)
+  )
+  await Promise.all(ops)
+  ElMessage.success(status === 1 ? '已批量上线' : '已批量下线')
+  await load()
+}
+
+async function batchDelete() {
+  await ElMessageBox.confirm(`确定删除选中的 ${selectedInterfaces.value.length} 个接口吗？`, '批量删除', {
+    type: 'warning'
+  })
+  await Promise.all(selectedInterfaces.value.map((i) => deleteInterface(i.id)))
+  ElMessage.success('已批量删除')
   await load()
 }
 
@@ -440,6 +487,16 @@ onMounted(load)
 .toolbar-right {
   display: flex;
   gap: 8px;
+}
+.batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.batch-tip {
+  color: #909399;
+  font-size: 13px;
 }
 .pagination {
   margin-top: 12px;

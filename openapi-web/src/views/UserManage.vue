@@ -10,7 +10,22 @@
         @input="currentPage = 1"
       />
     </div>
-    <el-table :data="pagedUsers" border stripe>
+    <div class="batch-bar">
+      <el-button size="small" :disabled="selectedUsers.length === 0" @click="batchToggle(true)">
+        批量启用
+      </el-button>
+      <el-button size="small" :disabled="selectedUsers.length === 0" @click="batchToggle(false)">
+        批量禁用
+      </el-button>
+      <span v-if="selectedUsers.length" class="batch-tip">已选 {{ selectedUsers.length }} 项</span>
+    </div>
+    <el-table
+      :data="pagedUsers"
+      border
+      stripe
+      @selection-change="handleSelectionChange"
+    >
+      <el-table-column type="selection" width="50" />
       <el-table-column prop="id" label="ID" width="70" />
       <el-table-column prop="userAccount" label="账号" />
       <el-table-column prop="userName" label="昵称" />
@@ -66,6 +81,7 @@ const users = ref<UserInfo[]>([])
 const keyword = ref('')
 const currentPage = ref(1)
 const pageSize = 10
+const selectedUsers = ref<UserInfo[]>([])
 
 const filteredUsers = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
@@ -98,6 +114,22 @@ async function toggleStatus(row: UserInfo) {
   await load()
 }
 
+function handleSelectionChange(rows: UserInfo[]) {
+  selectedUsers.value = rows
+}
+
+async function batchToggle(enabled: boolean) {
+  const self = userStore.user?.id
+  const targets = selectedUsers.value.filter((u) => u.id !== self)
+  if (targets.length === 0) {
+    ElMessage.warning('不能操作当前账号')
+    return
+  }
+  await Promise.all(targets.map((u) => updateUserStatus(u.id, enabled)))
+  ElMessage.success(enabled ? '已批量启用' : '已批量禁用')
+  await load()
+}
+
 onMounted(load)
 </script>
 
@@ -107,6 +139,16 @@ onMounted(load)
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+.batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.batch-tip {
+  color: #909399;
+  font-size: 13px;
 }
 .pagination {
   margin-top: 12px;
