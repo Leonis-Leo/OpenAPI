@@ -85,9 +85,13 @@ async function loadChart() {
   }
   chart.setOption({
     tooltip: { trigger: 'axis' },
-    legend: { data: ['调用量', '成功量'] },
-    grid: { left: 40, right: 20, top: 40, bottom: 30 },
-    xAxis: { type: 'category', data: daily.value.map((d) => d.day) },
+    legend: { data: ['调用量', '成功量'], top: 0, right: 10 },
+    grid: { left: 40, right: 20, top: 40, bottom: 40 },
+    xAxis: {
+      type: 'category',
+      data: daily.value.map((d) => d.day),
+      axisLabel: { margin: 12 }
+    },
     yAxis: { type: 'value', minInterval: 1 },
     series: [
       {
