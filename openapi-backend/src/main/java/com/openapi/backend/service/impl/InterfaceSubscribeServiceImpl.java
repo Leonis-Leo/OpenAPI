@@ -82,6 +82,15 @@ public class InterfaceSubscribeServiceImpl extends ServiceImpl<InterfaceSubscrib
     }
 
     @Override
+    public void unsubscribe(Long userId, Long subscribeId) {
+        InterfaceSubscribe subscribe = getById(subscribeId);
+        if (subscribe == null || !subscribe.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "订阅记录不存在或不属于当前用户");
+        }
+        baseMapper.physicalDeleteById(subscribeId);
+    }
+
+    @Override
     public boolean hasApprovedSubscription(Long appId, Long interfaceId) {
         long count = lambdaQuery()
                 .eq(InterfaceSubscribe::getAppId, appId)

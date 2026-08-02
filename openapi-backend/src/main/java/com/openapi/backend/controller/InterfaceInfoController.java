@@ -110,6 +110,14 @@ public class InterfaceInfoController {
         return ApiResponse.ok();
     }
 
+    @PostMapping("/unsubscribe")
+    @Operation(summary = "取消订阅")
+    public ApiResponse<Void> unsubscribe(@RequestParam Long id, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("openapi.userId");
+        subscribeService.unsubscribe(userId, id);
+        return ApiResponse.ok();
+    }
+
     private void requireAdmin(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("openapi.userId");
         User user = userService.getById(userId);

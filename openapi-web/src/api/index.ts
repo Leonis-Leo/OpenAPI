@@ -79,3 +79,6 @@ export const listSubscribes = (status?: number) =>
 
 export const approve = (id: number, approved: boolean) =>
   request.post<unknown, void>('/interface/approve', null, { params: { id, approved } })
+
+export const unsubscribe = (id: number) =>
+  request.post<unknown, void>('/interface/unsubscribe', null, { params: { id } })

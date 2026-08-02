@@ -16,5 +16,7 @@ public interface InterfaceSubscribeService extends IService<InterfaceSubscribe> 
 
     void approve(Long subscribeId, boolean approved);
 
+    void unsubscribe(Long userId, Long subscribeId);
+
     boolean hasApprovedSubscription(Long appId, Long interfaceId);
 }

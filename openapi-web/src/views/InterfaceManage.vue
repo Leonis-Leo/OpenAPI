@@ -38,6 +38,15 @@
             {{ subscribeMap[row.id] === 1 ? '已订阅' : subscribeMap[row.id] === 0 ? '已申请' : '订阅' }}
           </el-button>
           <el-button
+            v-if="subscribeMap[row.id] === 1"
+            size="small"
+            type="danger"
+            plain
+            @click="handleUnsubscribe(row)"
+          >
+            取消订阅
+          </el-button>
+          <el-button
             v-if="isAdmin"
             size="small"
             :type="row.status === 1 ? 'danger' : 'success'"
@@ -81,6 +90,7 @@ import {
   offlineInterface,
   subscribe,
   mySubscribes,
+  unsubscribe,
   type InterfaceInfo
 } from '@/api'
 
@@ -89,6 +99,7 @@ const isAdmin = userStore.user?.userRole === 'admin'
 const interfaces = ref<InterfaceInfo[]>([])
 const apps = ref<AppInfo[]>([])
 const subscribeMap = ref<Record<number, number>>({})
+const subscribeIdMap = ref<Record<number, number>>({})
 const subscribeVisible = ref(false)
 const currentInterface = ref<InterfaceInfo | null>(null)
 const selectedAppId = ref<number | null>(null)
@@ -98,10 +109,13 @@ async function load() {
   interfaces.value = isAdmin ? await listAllInterfaces() : await listInterfaces()
   const subscribes = await mySubscribes()
   const map: Record<number, number> = {}
+  const idMap: Record<number, number> = {}
   subscribes.forEach((s) => {
     map[s.interfaceId] = s.status
+    idMap[s.interfaceId] = s.id
   })
   subscribeMap.value = map
+  subscribeIdMap.value = idMap
   if (userStore.user) {
     apps.value = await listApps(userStore.user.id)
   }
@@ -136,6 +150,19 @@ async function toggleStatus(row: InterfaceInfo) {
     await onlineInterface(row.id)
     ElMessage.success('已上线')
   }
+  await load()
+}
+
+async function handleUnsubscribe(row: InterfaceInfo) {
+  const subscribeId = subscribeIdMap.value[row.id]
+  if (!subscribeId) {
+    return
+  }
+  await ElMessageBox.confirm(`确定取消订阅「${row.name}」吗？`, '取消订阅', {
+    type: 'warning'
+  })
+  await unsubscribe(subscribeId)
+  ElMessage.success('已取消订阅')
   await load()
 }
 

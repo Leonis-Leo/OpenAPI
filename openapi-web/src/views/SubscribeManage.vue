@@ -31,6 +31,19 @@
             </template>
           </el-table-column>
           <el-table-column prop="createTime" label="申请时间" width="180" />
+          <el-table-column label="操作" width="120">
+            <template #default="{ row }">
+              <el-button
+                v-if="row.status === 1"
+                type="danger"
+                size="small"
+                plain
+                @click="handleUnsubscribe(row)"
+              >
+                取消订阅
+              </el-button>
+            </template>
+          </el-table-column>
         </el-table>
       </el-tab-pane>
     </el-tabs>
@@ -41,7 +54,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
-import { listSubscribes, mySubscribes, approve, type SubscribeInfo } from '@/api'
+import { listSubscribes, mySubscribes, approve, unsubscribe, type SubscribeInfo } from '@/api'
 
 const userStore = useUserStore()
 const isAdmin = userStore.user?.userRole === 'admin'
@@ -59,6 +72,15 @@ async function load() {
 async function handleApprove(row: SubscribeInfo, approved: boolean) {
   await approve(row.id, approved)
   ElMessage.success(approved ? '已通过' : '已拒绝')
+  await load()
+}
+
+async function handleUnsubscribe(row: SubscribeInfo) {
+  await ElMessageBox.confirm(`确定取消订阅「${row.interfaceName}」吗？`, '取消订阅', {
+    type: 'warning'
+  })
+  await unsubscribe(row.id)
+  ElMessage.success('已取消订阅')
   await load()
 }
 
