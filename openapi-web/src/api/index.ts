@@ -214,3 +214,39 @@ export const saveAppRateLimitConfig = (data: {
 
 export const deleteAppRateLimitConfig = (appId: number) =>
   request.post<unknown, void>('/ratelimit/app/delete', null, { params: { appId } })
+
+export interface ApiLog {
+  id: number
+  interfaceId: number
+  interfaceName: string
+  appId: number
+  appName: string
+  userId: number
+  userAccount: string
+  ip: string
+  method: string
+  path: string
+  requestParams?: string
+  responseBody?: string
+  statusCode: number
+  success: number
+  costMs: number
+  createTime: string
+}
+
+export interface ApiLogPage {
+  records: ApiLog[]
+  total: number
+}
+
+export const listApiLogs = (params: { current: number; size: number; keyword?: string }) =>
+  request.get<unknown, ApiLogPage>('/log/list', { params })
+
+export const getApiLog = (id: number) =>
+  request.get<unknown, ApiLog>(`/log/${id}`)
+
+export const deleteApiLog = (id: number) =>
+  request.post<unknown, void>('/log/delete', null, { params: { id } })
+
+export const deleteApiLogs = (ids: number[]) =>
+  request.post<unknown, void>('/log/delete-batch', null, { params: { ids: ids.join(',') } })

@@ -24,6 +24,9 @@
         <el-menu-item index="/ratelimit">
           <span>限流配置</span>
         </el-menu-item>
+        <el-menu-item index="/logs">
+          <span>API 日志</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

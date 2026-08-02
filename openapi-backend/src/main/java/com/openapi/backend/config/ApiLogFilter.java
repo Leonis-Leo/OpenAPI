@@ -7,22 +7,29 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
+import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 将表单 POST 请求包装为可重复读取的请求，供签名拦截器读取请求体参与签名计算。
+ * API 日志过滤器：缓存请求体与响应体，供签名拦截器采集出入参。
  */
 @Component
-public class RequestCachingFilter extends OncePerRequestFilter {
+public class ApiLogFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        if (isFormPost(request)) {
-            request.setCharacterEncoding(StandardCharsets.UTF_8.name());
-            filterChain.doFilter(new ContentCachingRequestWrapper(request), response);
+        if (request.getRequestURI().startsWith("/api/")) {
+            HttpServletRequest wrappedRequest = request;
+            if (isFormPost(request)) {
+                request.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                wrappedRequest = new ContentCachingRequestWrapper(request);
+            }
+            ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(response);
+            filterChain.doFilter(wrappedRequest, responseWrapper);
+            responseWrapper.copyBodyToResponse();
         } else {
             filterChain.doFilter(request, response);
         }

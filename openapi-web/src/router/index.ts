@@ -56,6 +56,12 @@ const router = createRouter({
           name: 'ratelimit',
           component: () => import('@/views/RateLimitManage.vue'),
           meta: { title: '限流配置' }
+        },
+        {
+          path: 'logs',
+          name: 'logs',
+          component: () => import('@/views/LogManage.vue'),
+          meta: { title: 'API 日志' }
         }
       ]
     },

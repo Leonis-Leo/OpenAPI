@@ -30,6 +30,18 @@ public class InvokeLog implements Serializable {
 
     private Long userId;
 
+    private String ip;
+
+    private String method;
+
+    private String path;
+
+    private String requestParams;
+
+    private String responseBody;
+
+    private Integer statusCode;
+
     /** 是否成功：0 失败 1 成功 */
     private Integer success;
 

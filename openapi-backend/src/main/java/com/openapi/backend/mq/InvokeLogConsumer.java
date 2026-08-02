@@ -24,6 +24,12 @@ public class InvokeLogConsumer {
         log.setInterfaceId(message.getInterfaceId());
         log.setAppId(message.getAppId());
         log.setUserId(message.getUserId());
+        log.setIp(message.getIp());
+        log.setMethod(message.getMethod());
+        log.setPath(message.getPath());
+        log.setRequestParams(message.getRequestParams());
+        log.setResponseBody(message.getResponseBody());
+        log.setStatusCode(message.getStatusCode());
         log.setSuccess(message.isSuccess() ? 1 : 0);
         log.setCostMs(message.getCostMs());
         invokeLogMapper.insert(log);

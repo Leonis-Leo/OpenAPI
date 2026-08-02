@@ -21,9 +21,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.util.ContentCachingResponseWrapper;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -118,6 +120,12 @@ public class SignatureInterceptor implements HandlerInterceptor {
             message.setInterfaceId((Long) request.getAttribute("openapi.interfaceId"));
             message.setAppId(app.getId());
             message.setUserId(app.getUserId());
+            message.setIp(resolveClientIp(request));
+            message.setMethod(request.getMethod());
+            message.setPath(request.getRequestURI());
+            message.setRequestParams(buildRequestParams(request));
+            message.setResponseBody(readResponseBody(response));
+            message.setStatusCode(response.getStatus());
             message.setSuccess(response.getStatus() < 400);
             message.setCostMs(System.currentTimeMillis() - startTime);
             rabbitTemplate.convertAndSend(
@@ -127,6 +135,42 @@ public class SignatureInterceptor implements HandlerInterceptor {
         } catch (Exception e) {
             log.warn("发布调用日志消息失败", e);
         }
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (StringUtils.hasText(forwarded) && !"unknown".equalsIgnoreCase(forwarded)) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+
+    private String buildRequestParams(HttpServletRequest request) {
+        try {
+            Map<String, String> params = new HashMap<>();
+            request.getParameterMap().forEach((key, values) -> params.put(key, String.join(",", values)));
+            return truncate(objectMapper.writeValueAsString(params));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String readResponseBody(HttpServletResponse response) {
+        try {
+            if (response instanceof ContentCachingResponseWrapper wrapper) {
+                byte[] content = wrapper.getContentAsByteArray();
+                if (content.length > 0) {
+                    return truncate(new String(content, StandardCharsets.UTF_8));
+                }
+            }
+        } catch (Exception ignored) {
+            // 忽略读取失败
+        }
+        return "";
+    }
+
+    private static String truncate(String value) {
+        return value != null && value.length() > 2000 ? value.substring(0, 2000) : value;
     }
 
     private boolean reject(HttpServletResponse response, ErrorCode errorCode) throws IOException {

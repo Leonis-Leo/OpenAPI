@@ -20,6 +20,18 @@ public class InvokeLogMessage implements Serializable {
 
     private Long userId;
 
+    private String ip;
+
+    private String method;
+
+    private String path;
+
+    private String requestParams;
+
+    private String responseBody;
+
+    private Integer statusCode;
+
     private boolean success;
 
     private long costMs;
