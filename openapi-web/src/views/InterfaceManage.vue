@@ -128,8 +128,21 @@
                 <el-option v-for="app in apps" :key="app.id" :label="app.appName" :value="app.id" />
               </el-select>
             </el-form-item>
-            <el-form-item v-for="key in debugParamKeys" :key="key" :label="key">
-              <el-input v-model="debugParams[key]" :placeholder="paramDescription(key)" clearable />
+            <el-form-item label="请求参数">
+              <el-input
+                v-model="debugParamsJson"
+                type="textarea"
+                :rows="4"
+                placeholder='JSON 格式，如 {"name":"Alice"}；GET 拼接为查询参数，POST 作为表单参数'
+              />
+            </el-form-item>
+            <el-form-item label="请求头">
+              <el-input
+                v-model="debugHeadersJson"
+                type="textarea"
+                :rows="3"
+                placeholder='JSON 格式，如 {"X-Custom":"1"}；签名相关请求头会自动附加'
+              />
             </el-form-item>
             <el-form-item>
               <el-button type="primary" :loading="debugLoading" @click="handleDebug">
@@ -242,12 +255,12 @@ const detailVisible = ref(false)
 const detailTab = ref('info')
 const debugInterface = ref<InterfaceInfo | null>(null)
 const debugAppId = ref<number | null>(null)
-const debugParams = ref<Record<string, string>>({})
+const debugParamsJson = ref('')
+const debugHeadersJson = ref('')
 const debugStatus = ref<number | null>(null)
 const debugCostMs = ref<number | null>(null)
 const debugBody = ref('')
 const debugLoading = ref(false)
-const debugParamKeys = computed(() => Object.keys(debugParams.value))
 
 const debugBodyHtml = computed(() => {
   const body = debugBody.value
@@ -361,39 +374,18 @@ function prettyJson(value?: string): string {
   }
 }
 
-function paramDescription(key: string): string {
-  const raw = debugInterface.value?.requestParams
-  if (!raw) return '请输入参数值'
-  try {
-    const obj = JSON.parse(raw)
-    return String(obj[key] ?? '请输入参数值')
-  } catch {
-    return '请输入参数值'
-  }
-}
-
 async function openDetail(row: InterfaceInfo | null) {
   if (!row) return
   const detail = await interfaceDetail(row.id)
   debugInterface.value = detail
-  debugParams.value = {}
-  const keys = Object.keys(parseRequestParams(detail.requestParams))
-  keys.forEach((k) => (debugParams.value[k] = ''))
+  debugParamsJson.value = ''
+  debugHeadersJson.value = ''
   debugAppId.value = apps.value[0]?.id ?? null
   debugStatus.value = null
   debugCostMs.value = null
   debugBody.value = ''
   detailTab.value = 'info'
   detailVisible.value = true
-}
-
-function parseRequestParams(json?: string): Record<string, string> {
-  if (!json) return {}
-  try {
-    return JSON.parse(json)
-  } catch {
-    return {}
-  }
 }
 
 function clearDebug() {
@@ -431,11 +423,10 @@ async function handleDebug() {
     ElMessage.warning('请选择调试应用')
     return
   }
-  const params: SignParams = {}
-  Object.keys(debugParams.value).forEach((k) => {
-    const v = (debugParams.value[k] ?? '').trim()
-    if (v !== '') params[k] = v
-  })
+  const params = parseJsonObject(debugParamsJson.value, '请求参数')
+  if (!params) return
+  const customHeaders = parseJsonObject(debugHeadersJson.value, '请求头')
+  if (!customHeaders) return
   const timestamp = String(Date.now())
   const nonce = Math.random().toString(36).slice(2, 10)
   const signParams: SignParams = { ...params, timestamp, nonce }
@@ -445,7 +436,8 @@ async function handleDebug() {
     'X-Access-Key': app.accessKey,
     'X-Timestamp': timestamp,
     'X-Nonce': nonce,
-    'X-Signature': signature
+    'X-Signature': signature,
+    ...customHeaders
   }
   debugStatus.value = null
   debugCostMs.value = null
@@ -472,6 +464,27 @@ async function handleDebug() {
     debugBody.value = `请求失败: ${(e as Error).message}`
   } finally {
     debugLoading.value = false
+  }
+}
+
+function parseJsonObject(json: string, label: string): Record<string, string> | null {
+  const raw = json.trim()
+  if (!raw) return {}
+  try {
+    const obj = JSON.parse(raw)
+    if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+      ElMessage.error(`${label}需为 JSON 对象`)
+      return null
+    }
+    const flat: Record<string, string> = {}
+    Object.entries(obj).forEach(([key, value]) => {
+      if (value === null || value === undefined) return
+      flat[key] = typeof value === 'string' ? value : JSON.stringify(value)
+    })
+    return flat
+  } catch {
+    ElMessage.error(`${label}不是合法的 JSON`)
+    return null
   }
 }
 
