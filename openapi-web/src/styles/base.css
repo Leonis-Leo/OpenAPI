@@ -19,3 +19,8 @@ body {
 .el-table__cell {
   height: 48px;
 }
+
+/* 移动端表格横向滚动，避免列挤压 */
+.el-table__body-wrapper {
+  overflow-x: auto;
+}

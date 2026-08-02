@@ -125,6 +125,21 @@
         <el-table-column prop="createTime" label="创建时间" width="170" />
       </el-table>
       <el-empty v-else description="暂无应用" :image-size="60" />
+      <h4>订阅记录</h4>
+      <el-table v-if="detailSubscribes.length" :data="detailSubscribes" border stripe size="small">
+        <el-table-column prop="interfaceName" label="接口" />
+        <el-table-column prop="interfaceUrl" label="路径" min-width="160" />
+        <el-table-column prop="appName" label="应用" />
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="subscribeType(row.status)" size="small">
+              {{ subscribeText(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="申请时间" width="170" />
+      </el-table>
+      <el-empty v-else description="暂无订阅" :image-size="60" />
     </el-dialog>
 
     <el-dialog v-model="resetVisible" :title="`重置密码（${resetTargets.length} 人）`" width="420px">
@@ -154,12 +169,14 @@ import { useUserStore } from '@/store/user'
 import {
   listUsers,
   listApps,
+  listSubscribes,
   updateUserRole,
   updateUserStatus,
   createUser,
   updateUser,
   deleteUser,
   type AppInfo,
+  type SubscribeInfo,
   type UserInfo
 } from '@/api'
 
@@ -175,6 +192,7 @@ const tableRef = ref<TableInstance>()
 const detailVisible = ref(false)
 const detailRow = ref<UserInfo | null>(null)
 const detailApps = ref<AppInfo[]>([])
+const detailSubscribes = ref<SubscribeInfo[]>([])
 const resetVisible = ref(false)
 const resetTargets = ref<UserInfo[]>([])
 const resetPassword = ref('')
@@ -346,8 +364,10 @@ function handleRowClick(row: UserInfo) {
 function openDetail(row: UserInfo) {
   detailRow.value = row
   detailApps.value = []
+  detailSubscribes.value = []
   detailVisible.value = true
   loadApps(row.id)
+  loadSubscribes(row.id)
 }
 
 function openResetPassword() {
@@ -376,6 +396,19 @@ async function handleResetPassword() {
 
 async function loadApps(userId: number) {
   detailApps.value = await listApps(userId)
+}
+
+async function loadSubscribes(userId: number) {
+  const all = await listSubscribes()
+  detailSubscribes.value = all.filter((s) => s.userId === userId)
+}
+
+function subscribeType(status: number) {
+  return status === 1 ? 'success' : status === 2 ? 'danger' : 'warning'
+}
+
+function subscribeText(status: number) {
+  return status === 1 ? '已通过' : status === 2 ? '已拒绝' : '待审批'
 }
 
 

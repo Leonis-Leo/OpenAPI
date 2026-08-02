@@ -85,4 +85,10 @@ router.beforeEach((to) => {
   return true
 })
 
+router.afterEach((to) => {
+  document.title = to.meta.title
+    ? `${to.meta.title} - OpenAPI 开放平台`
+    : 'OpenAPI 开放平台'
+})
+
 export default router

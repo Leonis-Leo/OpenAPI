@@ -3,6 +3,12 @@
     <div class="toolbar">
       <h2>接口管理</h2>
       <div class="toolbar-right">
+        <el-radio-group v-model="filterStatus" size="default" @change="currentPage = 1">
+          <el-radio-button value="all">全部</el-radio-button>
+          <el-radio-button value="online">已上线</el-radio-button>
+          <el-radio-button value="subscribed">已订阅</el-radio-button>
+          <el-radio-button value="unsubscribed">未订阅</el-radio-button>
+        </el-radio-group>
         <el-input
           v-model="keywordInput"
           placeholder="搜索名称 / 路径"
@@ -117,6 +123,25 @@
             <el-button size="small" plain @click="copyText(debugInterface?.responseExample)">复制</el-button>
           </div>
           <pre class="json-block" v-html="highlightJson(prettyJson(debugInterface?.responseExample))"></pre>
+        </el-tab-pane>
+        <el-tab-pane label="调用示例" name="sample">
+          <el-form label-width="90px">
+            <el-form-item label="示例应用">
+              <el-select v-model="sampleAppId" placeholder="选择应用" style="width: 100%">
+                <el-option v-for="app in apps" :key="app.id" :label="app.appName" :value="app.id" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+          <div class="block-toolbar">
+            <span>Java (Hutool + HMAC-SHA256)</span>
+            <el-button size="small" plain @click="copyText(javaSample)">复制</el-button>
+          </div>
+          <pre class="json-block">{{ javaSample || '-' }}</pre>
+          <div class="block-toolbar">
+            <span>curl</span>
+            <el-button size="small" plain @click="copyText(curlSample)">复制</el-button>
+          </div>
+          <pre class="json-block">{{ curlSample || '-' }}</pre>
         </el-tab-pane>
         <el-tab-pane label="在线调试" name="debug">
           <div class="debug-header">
@@ -242,6 +267,7 @@ const interfaces = ref<InterfaceInfo[]>([])
 const loading = ref(false)
 const keyword = ref('')
 const keywordInput = ref('')
+const filterStatus = ref<'all' | 'online' | 'subscribed' | 'unsubscribed'>('all')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const apps = ref<AppInfo[]>([])
@@ -271,6 +297,7 @@ const detailVisible = ref(false)
 const detailTab = ref('info')
 const debugInterface = ref<InterfaceInfo | null>(null)
 const debugAppId = ref<number | null>(null)
+const sampleAppId = ref<number | null>(null)
 const debugParamsJson = ref('')
 const debugHeadersJson = ref('')
 const debugStatus = ref<number | null>(null)
@@ -283,6 +310,78 @@ const debugBodyHtml = computed(() => {
   if (!body) return ''
   const json = prettyJson(body)
   return highlightJson(json)
+})
+
+const javaSample = computed(() => {
+  const info = debugInterface.value
+  const app = apps.value.find((a) => a.id === sampleAppId.value)
+  if (!info || !app) return ''
+  const paramLines = sampleParamKeys(info.requestParams)
+    .map((k) => `        params.put("${k}", "");`)
+    .join('\n')
+  return `// 依赖：hutool-all 5.8.x（或使用 JDK 自带 HttpURLConnection）
+import cn.hutool.crypto.digest.HMac;
+import cn.hutool.crypto.digest.HmacAlgorithm;
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpUtil;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
+
+public class OpenApiDemo {
+    public static void main(String[] args) {
+        String accessKey = "${app.accessKey}";
+        String secretKey = "${app.secretKey}";
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String nonce = String.valueOf((int) (Math.random() * 1000000));
+
+        // 请求参数（按 key 排序后拼接参与签名）
+        Map<String, String> params = new TreeMap<>();
+${paramLines || '        // params.put("name", "Alice");'}
+
+        params.put("timestamp", timestamp);
+        params.put("nonce", nonce);
+        StringBuilder content = new StringBuilder();
+        content.append("${info.method}").append("\\n");
+        content.append("${info.url}").append("\\n");
+        params.forEach((k, v) -> content.append(k).append("=").append(v).append("&"));
+        String sign = new HMac(HmacAlgorithm.HmacSHA256, secretKey.getBytes())
+                .digestHex(content.substring(0, content.length() - 1));
+
+        String url = "${info.url}" + (${info.method === 'GET'} ? "?" + HttpUtil.toParams(params) : "");
+        HttpRequest request = HttpRequest.get(url)
+                .header("X-Access-Key", accessKey)
+                .header("X-Timestamp", timestamp)
+                .header("X-Nonce", nonce)
+                .header("X-Signature", sign);
+        System.out.println(request.execute().body());
+    }
+}`
+})
+
+const curlSample = computed(() => {
+  const info = debugInterface.value
+  const app = apps.value.find((a) => a.id === sampleAppId.value)
+  if (!info || !app) return ''
+  const timestamp = String(Date.now())
+  const nonce = Math.random().toString(36).slice(2, 10)
+  const content = buildSignContent(info.method, info.url, { timestamp, nonce })
+  const parts = ['curl -X ' + info.method]
+  ;['X-Access-Key', 'X-Timestamp', 'X-Nonce', 'X-Signature'].forEach((k) => {
+    const v =
+      k === 'X-Signature'
+        ? '<计算后的签名>'
+        : k === 'X-Access-Key'
+          ? app.accessKey
+          : k === 'X-Timestamp'
+            ? timestamp
+            : nonce
+    parts.push(`-H '${k}: ${v}'`)
+  })
+  parts.push(`'${info.url}'`)
+  return `${parts.join(' \\\n  ')}
+
+# 签名算法：HMAC-SHA256("${info.method}\\n${info.url}\\nkey1=v1&key2=v2&nonce=${nonce}&timestamp=${timestamp}", secretKey)`
 })
 
 async function buildCurl(): Promise<string> {
@@ -342,10 +441,17 @@ async function copyText(value?: string) {
 
 const filteredInterfaces = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
-  if (!kw) return interfaces.value
-  return interfaces.value.filter(
-    (i) => i.name.toLowerCase().includes(kw) || i.url.toLowerCase().includes(kw)
-  )
+  return interfaces.value.filter((i) => {
+    const matchKw =
+      !kw || i.name.toLowerCase().includes(kw) || i.url.toLowerCase().includes(kw)
+    if (!matchKw) return false
+    if (filterStatus.value === 'online') return i.status === 1
+    if (filterStatus.value === 'subscribed') return subscribeMap.value[i.id] === 1
+    if (filterStatus.value === 'unsubscribed') {
+      return subscribeMap.value[i.id] === undefined || subscribeMap.value[i.id] === 2
+    }
+    return true
+  })
 })
 
 const pagedInterfaces = computed(() => {
@@ -482,6 +588,7 @@ async function openDetail(row: InterfaceInfo | null) {
   debugParamsJson.value = buildExampleParams(detail.requestParams)
   debugHeadersJson.value = ''
   debugAppId.value = apps.value[0]?.id ?? null
+  sampleAppId.value = apps.value[0]?.id ?? null
   debugStatus.value = null
   debugCostMs.value = null
   debugBody.value = ''
@@ -501,6 +608,17 @@ function buildExampleParams(requestParams?: string): string {
     return JSON.stringify(example, null, 2)
   } catch {
     return ''
+  }
+}
+
+function sampleParamKeys(requestParams?: string): string[] {
+  if (!requestParams) return []
+  try {
+    const obj = JSON.parse(requestParams)
+    if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) return []
+    return Object.keys(obj)
+  } catch {
+    return []
   }
 }
 

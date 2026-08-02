@@ -2,6 +2,7 @@
   <div>
     <div class="toolbar">
       <h2>调用统计</h2>
+      <el-button @click="reload">刷新</el-button>
     </div>
     <el-row :gutter="16">
       <el-col :span="6">
@@ -62,7 +63,7 @@
           <el-table :data="topInterfaces" border stripe size="small" v-loading="rankLoading">
             <el-table-column type="index" label="#" width="50" />
             <el-table-column prop="interfaceName" label="接口" min-width="140" />
-            <el-table-column prop="total" label="调用量" width="90" />
+            <el-table-column prop="total" label="调用量" width="90" sortable />
             <el-table-column label="成功率" width="90">
               <template #default="{ row }">
                 <el-tag :type="row.total ? 'success' : 'info'" size="small">
@@ -80,7 +81,7 @@
           <el-table :data="topApps" border stripe size="small" v-loading="rankLoading">
             <el-table-column type="index" label="#" width="50" />
             <el-table-column prop="appName" label="应用" min-width="140" />
-            <el-table-column prop="total" label="调用量" width="90" />
+            <el-table-column prop="total" label="调用量" width="90" sortable />
             <el-table-column label="成功率" width="90">
               <template #default="{ row }">
                 <el-tag :type="row.total ? 'success' : 'info'" size="small">
@@ -161,9 +162,7 @@ async function loadChart() {
   })
 }
 
-onMounted(async () => {
-  overview.value = await statsOverview()
-  await loadChart()
+async function loadRanks() {
   rankLoading.value = true
   try {
     ;[topInterfaces.value, topApps.value] = await Promise.all([
@@ -173,6 +172,15 @@ onMounted(async () => {
   } finally {
     rankLoading.value = false
   }
+}
+
+async function reload() {
+  overview.value = await statsOverview()
+  await Promise.all([loadChart(), loadRanks()])
+}
+
+onMounted(async () => {
+  await reload()
 })
 
 onBeforeUnmount(() => {

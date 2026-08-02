@@ -58,7 +58,7 @@
     >
       <el-table-column type="selection" width="50" />
       <el-table-column type="index" label="#" width="60" :index="indexMethod" />
-      <el-table-column prop="createTime" label="时间" width="160" />
+      <el-table-column prop="createTime" label="时间" width="160" sortable />
       <el-table-column label="接口" width="140">
         <template #default="{ row }">
           <el-link type="primary" @click="openDetail(row)">{{ row.interfaceName }}</el-link>
@@ -73,14 +73,14 @@
       <el-table-column prop="appName" label="应用" width="120" />
       <el-table-column prop="userAccount" label="用户" width="120" />
       <el-table-column prop="ip" label="IP" width="130" />
-      <el-table-column prop="statusCode" label="状态码" width="90">
+      <el-table-column prop="statusCode" label="状态码" width="90" sortable>
         <template #default="{ row }">
           <el-tag :type="row.statusCode < 400 ? 'success' : 'danger'" size="small">
             {{ row.statusCode }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="costMs" label="耗时(ms)" width="90" />
+      <el-table-column prop="costMs" label="耗时(ms)" width="90" sortable />
     </el-table>
 
     <el-pagination

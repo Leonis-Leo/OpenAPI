@@ -56,6 +56,9 @@ export const login = (params: LoginParams) =>
 
 export const logout = () => request.post<unknown, void>('/user/logout')
 
+export const register = (params: { userAccount: string; userPassword: string; userName?: string }) =>
+  request.post<unknown, UserInfo>('/user/register', null, { params })
+
 export const createApp = (appName: string, userId: number) =>
   request.post<unknown, AppInfo>('/app/create', null, { params: { appName, userId } })
 

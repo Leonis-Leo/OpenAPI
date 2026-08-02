@@ -8,10 +8,13 @@
         <p>接口开放 · 订阅审批 · 调用统计 · 限流防护</p>
       </div>
       <el-card class="login-card">
-        <h2 class="title">管理后台登录</h2>
+        <h2 class="title">{{ mode === 'login' ? '管理后台登录' : '注册账号' }}</h2>
         <el-form :model="form" label-position="top">
           <el-form-item label="账号">
             <el-input v-model="form.userAccount" placeholder="请输入账号" size="large" />
+          </el-form-item>
+          <el-form-item v-if="mode === 'register'" label="昵称">
+            <el-input v-model="form.userName" placeholder="请输入昵称（选填）" size="large" />
           </el-form-item>
           <el-form-item label="密码">
             <el-input
@@ -23,9 +26,24 @@
               @keyup.enter="handleLogin"
             />
           </el-form-item>
+          <el-form-item v-if="mode === 'register'" label="确认密码">
+            <el-input
+              v-model="form.confirmPassword"
+              type="password"
+              placeholder="请再次输入密码"
+              show-password
+              size="large"
+              @keyup.enter="handleLogin"
+            />
+          </el-form-item>
           <el-button type="primary" class="submit" size="large" :loading="loading" @click="handleLogin">
-            登 录
+            {{ mode === 'login' ? '登 录' : '注 册' }}
           </el-button>
+          <div class="switch-mode">
+            <el-link type="primary" @click="switchMode">
+              {{ mode === 'login' ? '没有账号？去注册' : '已有账号？去登录' }}
+            </el-link>
+          </div>
         </el-form>
       </el-card>
     </div>
@@ -37,16 +55,24 @@ import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
+import { register as registerApi } from '@/api'
 
 const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
+const mode = ref<'login' | 'register'>('login')
 const form = reactive({
   userAccount: '',
-  userPassword: ''
+  userPassword: '',
+  userName: '',
+  confirmPassword: ''
 })
 
 async function handleLogin() {
+  if (mode.value === 'register') {
+    await handleRegister()
+    return
+  }
   if (!form.userAccount.trim() || !form.userPassword) {
     ElMessage.warning('请输入账号和密码')
     return
@@ -60,6 +86,38 @@ async function handleLogin() {
   } finally {
     loading.value = false
   }
+}
+
+async function handleRegister() {
+  if (!form.userAccount.trim() || !form.userPassword) {
+    ElMessage.warning('请输入账号和密码')
+    return
+  }
+  if (form.userPassword !== form.confirmPassword) {
+    ElMessage.warning('两次输入的密码不一致')
+    return
+  }
+  loading.value = true
+  try {
+    await registerApi({
+      userAccount: form.userAccount.trim(),
+      userPassword: form.userPassword,
+      userName: form.userName.trim() || undefined
+    })
+    ElMessage.success('注册成功，正在登录…')
+    await userStore.login(form.userAccount.trim(), form.userPassword)
+    router.push('/')
+  } catch {
+    // 错误提示已在请求拦截器处理
+  } finally {
+    loading.value = false
+  }
+}
+
+function switchMode() {
+  mode.value = mode.value === 'login' ? 'register' : 'login'
+  form.userPassword = ''
+  form.confirmPassword = ''
 }
 </script>
 
@@ -134,5 +192,9 @@ async function handleLogin() {
 .submit {
   width: 100%;
   margin-top: 8px;
+}
+.switch-mode {
+  margin-top: 12px;
+  text-align: center;
 }
 </style>

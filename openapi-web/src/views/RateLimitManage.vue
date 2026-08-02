@@ -16,6 +16,13 @@
     />
     <el-tabs v-model="activeTab">
       <el-tab-pane label="按应用限流" name="app">
+        <el-input
+          v-model="appKeyword"
+          placeholder="搜索应用名称 / AccessKey"
+          clearable
+          style="width: 260px; margin-bottom: 12px"
+          @input="appPage = 1"
+        />
             <div class="action-bar">
       <el-button size="small" type="primary" :disabled="appSelected.length === 0" @click="handleSaveApp">保存配置</el-button>
       <el-button size="small" type="success" plain :disabled="appSelected.length === 0" @click="handleEnableApp(true)">批量启用</el-button>
@@ -62,7 +69,7 @@
         <el-pagination
           class="pagination"
           layout="total, sizes, prev, pager, next, jumper"
-          :total="appList.length"
+          :total="filteredAppCount"
           :page-sizes="[10, 20, 50, 100]"
           v-model:current-page="appPage"
           v-model:page-size="pageSize"
@@ -71,6 +78,13 @@
         />
       </el-tab-pane>
       <el-tab-pane label="按接口限流" name="interface">
+        <el-input
+          v-model="interfaceKeyword"
+          placeholder="搜索接口名称 / 路径"
+          clearable
+          style="width: 260px; margin-bottom: 12px"
+          @input="interfacePage = 1"
+        />
             <div class="action-bar">
       <el-button size="small" type="primary" :disabled="interfaceSelected.length === 0" @click="handleSaveInterface">保存配置</el-button>
       <el-button size="small" type="success" plain :disabled="interfaceSelected.length === 0" @click="handleEnableInterface(true)">批量启用</el-button>
@@ -122,7 +136,7 @@
         <el-pagination
           class="pagination"
           layout="total, sizes, prev, pager, next, jumper"
-          :total="interfaceList.length"
+          :total="filteredInterfaceCount"
           :page-sizes="[10, 20, 50, 100]"
           v-model:current-page="interfacePage"
           v-model:page-size="pageSize"
@@ -152,6 +166,8 @@ import {
 const activeTab = ref('app')
 const appList = ref<AppRateLimitConfig[]>([])
 const interfaceList = ref<RateLimitConfig[]>([])
+const appKeyword = ref('')
+const interfaceKeyword = ref('')
 const loading = ref(false)
 const appSelected = ref<AppRateLimitConfig[]>([])
 const interfaceSelected = ref<RateLimitConfig[]>([])
@@ -194,13 +210,49 @@ function clearInterfaceSelection() {
 }
 
 const pagedAppList = computed(() => {
+  const kw = appKeyword.value.trim().toLowerCase()
+  const filtered = !kw
+    ? appList.value
+    : appList.value.filter(
+        (r) =>
+          r.appName.toLowerCase().includes(kw) ||
+          (r.accessKey ?? '').toLowerCase().includes(kw)
+      )
   const start = (appPage.value - 1) * pageSize.value
-  return appList.value.slice(start, start + pageSize.value)
+  return filtered.slice(start, start + pageSize.value)
+})
+
+const filteredAppCount = computed(() => {
+  const kw = appKeyword.value.trim().toLowerCase()
+  if (!kw) return appList.value.length
+  return appList.value.filter(
+    (r) =>
+      r.appName.toLowerCase().includes(kw) ||
+      (r.accessKey ?? '').toLowerCase().includes(kw)
+  ).length
 })
 
 const pagedInterfaceList = computed(() => {
+  const kw = interfaceKeyword.value.trim().toLowerCase()
+  const filtered = !kw
+    ? interfaceList.value
+    : interfaceList.value.filter(
+        (r) =>
+          r.interfaceName.toLowerCase().includes(kw) ||
+          r.url.toLowerCase().includes(kw)
+      )
   const start = (interfacePage.value - 1) * pageSize.value
-  return interfaceList.value.slice(start, start + pageSize.value)
+  return filtered.slice(start, start + pageSize.value)
+})
+
+const filteredInterfaceCount = computed(() => {
+  const kw = interfaceKeyword.value.trim().toLowerCase()
+  if (!kw) return interfaceList.value.length
+  return interfaceList.value.filter(
+    (r) =>
+      r.interfaceName.toLowerCase().includes(kw) ||
+      r.url.toLowerCase().includes(kw)
+  ).length
 })
 
 watch(appList, () => {

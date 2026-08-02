@@ -35,7 +35,7 @@
           <p class="stat-value success">{{ stats.successRate }}%</p>
         </el-card>
       </el-col>
-      <el-col :xs="24" :sm="12" :md="8" :lg="4">
+      <el-col v-if="isAdmin" :xs="24" :sm="12" :md="8" :lg="4">
         <el-card class="stat-card clickable" shadow="hover" @click="router.push('/subscribes')">
           <p class="stat-label">待审批订阅</p>
           <p class="stat-value warning">{{ pendingCount }}</p>
@@ -68,6 +68,7 @@ import { listApps, listInterfaces, mySubscribes, listSubscribes, statsOverview, 
 
 const router = useRouter()
 const userStore = useUserStore()
+const isAdmin = userStore.user?.userRole === 'admin'
 const appCount = ref(0)
 const interfaceCount = ref(0)
 const subscribeCount = ref(0)
