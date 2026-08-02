@@ -126,8 +126,9 @@ CREATE TABLE IF NOT EXISTS `app_rate_limit_config`
   DEFAULT CHARSET = utf8mb4 COMMENT ='应用限流配置表';
 
 -- 演示数据
+-- admin 的 BCrypt 哈希（cost 10），明文密码仍为 admin
 INSERT INTO `user` (`id`, `user_account`, `user_password`, `user_name`, `user_role`)
-VALUES (1, 'admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', '管理员', 'admin');
+VALUES (1, 'admin', '$2b$10$4SPZdBW1mq9oyas7qVL62ukMG9JB8tJ6fBlwdn6h11UfI0mgfG6SK', '管理员', 'admin');
 
 INSERT INTO `app` (`id`, `app_name`, `access_key`, `secret_key`, `user_id`, `status`)
 VALUES (1, '演示应用', 'demo-access-key', 'demo-secret-key', 1, 1);
