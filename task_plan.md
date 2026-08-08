@@ -103,7 +103,7 @@ Phase 3
 - [x] 登录 Cookie 增加 SameSite 属性
 - [x] 增加应用权限边界和密钥暴露回归测试
 - [x] 完成 Maven、前端构建与相关测试
-- [ ] 提交 Git，并记录提交号
+- [x] 提交 Git，并记录提交号：`f69cdb4`
 
 - 更新阶段状态：pending → in_progress → complete
 - 2026-08-02 前端测试进展与发现见 findings.md；每次会话记录见 progress.md

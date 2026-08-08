@@ -12,6 +12,7 @@
 - 已增加禁用应用签名拒绝、SameSite=Lax Cookie，以及应用权限/密钥暴露回归测试。
 - 验证通过：`mvn test -q`、`npm.cmd run build`、`git diff --check`。
 - 构建保留既有 Vite bundle 体积警告，未新增编译错误。
+- Git 提交：`f69cdb4 fix: harden application ownership and secret exposure`。
 
 ### 首页概览重设计（数据大盘）— 2026-08-02 晚间
 - **Status:** complete（实现与验证；浏览器 E2E 按用户要求跳过）
