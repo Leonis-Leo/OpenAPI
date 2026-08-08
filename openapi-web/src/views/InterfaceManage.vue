@@ -157,11 +157,20 @@
               </el-select>
             </el-form-item>
             <el-form-item label="请求参数">
+              <div class="debug-param-head">
+                <el-radio-group v-model="debugBodyMode" size="small">
+                  <el-radio-button value="form">表单参数</el-radio-button>
+                  <el-radio-button value="json">JSON Body</el-radio-button>
+                </el-radio-group>
+                <el-select v-model="selectedHistoryId" clearable size="small" placeholder="请求历史" class="history-select" @change="loadHistoryItem">
+                  <el-option v-for="item in debugHistory" :key="item.id" :label="item.label" :value="item.id" />
+                </el-select>
+              </div>
               <el-input
                 v-model="debugParamsJson"
                 type="textarea"
                 :rows="4"
-                placeholder='JSON 格式，如 {"name":"Alice"}；GET 拼接为查询参数，POST 作为表单参数'
+                :placeholder="debugPlaceholder"
               />
             </el-form-item>
             <el-form-item label="请求头">
@@ -177,6 +186,7 @@
                 发送请求
               </el-button>
               <el-button v-if="debugBody || debugStatus !== null" @click="clearDebug">清空</el-button>
+              <el-button v-if="debugHistory.length" text type="danger" @click="clearHistory">清空历史</el-button>
             </el-form-item>
           </el-form>
           <div v-if="debugBody || debugStatus !== null" class="debug-result">
@@ -300,6 +310,19 @@ const debugAppId = ref<number | null>(null)
 const sampleAppId = ref<number | null>(null)
 const debugParamsJson = ref('')
 const debugHeadersJson = ref('')
+const debugBodyMode = ref<'form' | 'json'>('form')
+const selectedHistoryId = ref<string>()
+interface DebugHistoryItem {
+  id: string
+  label: string
+  mode: 'form' | 'json'
+  params: string
+  headers: string
+}
+const debugHistory = ref<DebugHistoryItem[]>([])
+const debugPlaceholder = computed(() => debugBodyMode.value === 'json'
+  ? 'JSON Body，例如 {"name":"Alice"}'
+  : 'JSON 格式，例如 {"name":"Alice"}；GET 拼接为查询参数，POST 作为表单参数')
 const debugStatus = ref<number | null>(null)
 const debugCostMs = ref<number | null>(null)
 const debugBody = ref('')
@@ -417,7 +440,13 @@ async function buildCurl(): Promise<string> {
     parts.push(`'${info.url}${qs ? '?' + qs : ''}'`)
   } else {
     parts.push(`'${info.url}'`)
-    if (qs) parts.push(`--data '${qs}'`)
+    if (debugBodyMode.value === 'json') {
+      parts.push(`-H 'Content-Type: application/json'`)
+      parts.push(`--data '${JSON.stringify(params)}'`)
+    } else if (qs) {
+      parts.push(`-H 'Content-Type: application/x-www-form-urlencoded'`)
+      parts.push(`--data '${qs}'`)
+    }
   }
   return parts.join(' \\\n  ')
 }
@@ -596,6 +625,8 @@ async function openDetail(row: InterfaceInfo | null) {
   debugStatus.value = null
   debugCostMs.value = null
   debugBody.value = ''
+  debugBodyMode.value = 'form'
+  loadHistory()
   detailTab.value = 'info'
   detailVisible.value = true
 }
@@ -630,6 +661,46 @@ function clearDebug() {
   debugStatus.value = null
   debugCostMs.value = null
   debugBody.value = ''
+}
+
+function historyKey() {
+  return `openapi-debug-history-${debugInterface.value?.id ?? 'unknown'}`
+}
+
+function loadHistory() {
+  try {
+    debugHistory.value = JSON.parse(localStorage.getItem(historyKey()) || '[]')
+  } catch {
+    debugHistory.value = []
+  }
+  selectedHistoryId.value = undefined
+}
+
+function loadHistoryItem(id?: string) {
+  const item = debugHistory.value.find((history) => history.id === id)
+  if (!item) return
+  debugBodyMode.value = item.mode
+  debugParamsJson.value = item.params
+  debugHeadersJson.value = item.headers
+}
+
+function saveHistory() {
+  const item: DebugHistoryItem = {
+    id: `${Date.now()}`,
+    label: `${debugBodyMode.value === 'json' ? 'JSON' : '表单'} · ${new Date().toLocaleTimeString()}`,
+    mode: debugBodyMode.value,
+    params: debugParamsJson.value,
+    headers: debugHeadersJson.value
+  }
+  debugHistory.value = [item, ...debugHistory.value].slice(0, 10)
+  localStorage.setItem(historyKey(), JSON.stringify(debugHistory.value))
+  selectedHistoryId.value = item.id
+}
+
+function clearHistory() {
+  debugHistory.value = []
+  selectedHistoryId.value = undefined
+  localStorage.removeItem(historyKey())
 }
 
 function highlightJson(text: string): string {
@@ -690,8 +761,11 @@ async function handleDebug() {
     } else {
       resp = await fetch(info.url, {
         method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: qs
+        headers: {
+          ...headers,
+          'Content-Type': debugBodyMode.value === 'json' ? 'application/json' : 'application/x-www-form-urlencoded'
+        },
+        body: debugBodyMode.value === 'json' ? JSON.stringify(params) : qs
       })
     }
     debugStatus.value = resp.status
@@ -701,6 +775,7 @@ async function handleDebug() {
     debugCostMs.value = Math.round(performance.now() - start)
     debugBody.value = `请求失败: ${(e as Error).message}`
   } finally {
+    saveHistory()
     debugLoading.value = false
   }
 }
@@ -855,6 +930,8 @@ onMounted(load)
   font-size: 12px;
   white-space: pre-wrap;
 }
+.debug-param-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; margin-bottom: 8px; }
+.history-select { width: 150px; }
 .block-toolbar {
   display: flex;
   align-items: center;
