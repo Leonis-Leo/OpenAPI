@@ -1,5 +1,7 @@
 package com.openapi.backend.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.openapi.backend.dto.AppResponse;
 import com.openapi.backend.entity.App;
 import com.openapi.backend.entity.User;
@@ -21,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 @RestController
@@ -48,6 +52,27 @@ public class AppController {
         return ApiResponse.ok(appService.listByUserId(currentUserId(request)).stream()
                 .map(app -> AppResponse.from(app, false))
                 .toList());
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "分页查询当前用户应用")
+    public ApiResponse<Map<String, Object>> page(
+            @RequestParam(defaultValue = "1") long current,
+            @RequestParam(defaultValue = "10") long size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status,
+            HttpServletRequest request) {
+        LambdaQueryWrapper<App> wrapper = new LambdaQueryWrapper<App>()
+                .eq(App::getUserId, currentUserId(request));
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(w -> w.like(App::getAppName, keyword).or().like(App::getAccessKey, keyword));
+        }
+        wrapper.eq(status != null, App::getStatus, status).orderByDesc(App::getId);
+        Page<App> page = appService.page(new Page<>(Math.max(1, current), Math.min(Math.max(1, size), 100)), wrapper);
+        Map<String, Object> result = new HashMap<>();
+        result.put("records", page.getRecords().stream().map(app -> AppResponse.from(app, false)).toList());
+        result.put("total", page.getTotal());
+        return ApiResponse.ok(result);
     }
 
     @GetMapping("/debug-list")

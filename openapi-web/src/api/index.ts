@@ -66,6 +66,14 @@ export const createApp = (appName: string) =>
 export const listApps = () =>
   request.get<unknown, AppInfo[]>('/app/list')
 
+export interface PageResult<T> {
+  records: T[]
+  total: number
+}
+
+export const pageApps = (params: { current: number; size: number; keyword?: string; status?: number }) =>
+  request.get<unknown, PageResult<AppInfo>>('/app/page', { params })
+
 export const listAppsForDebug = () =>
   request.get<unknown, AppInfo[]>('/app/debug-list')
 
@@ -89,6 +97,9 @@ export const deleteApp = (id: number) =>
 
 export const listInterfaces = () =>
   request.get<unknown, InterfaceInfo[]>('/interface/list')
+
+export const pageInterfaces = (params: { current: number; size: number; keyword?: string; status?: number }) =>
+  request.get<unknown, PageResult<InterfaceInfo>>('/interface/page', { params })
 
 export const interfaceDetail = (id: number) =>
   request.get<unknown, InterfaceInfo>(`/interface/${id}`)

@@ -10,6 +10,10 @@
           style="width: 240px"
           @input="onKeywordInput"
         />
+        <el-select v-model="statusFilter" clearable placeholder="状态" style="width: 110px" @change="onStatusChange">
+          <el-option label="启用" :value="1" />
+          <el-option label="禁用" :value="0" />
+        </el-select>
         <el-button type="primary" @click="openCreate">新建应用</el-button>
       </div>
     </div>
@@ -68,12 +72,12 @@
     <el-pagination
       class="pagination"
       layout="total, sizes, prev, pager, next, jumper"
-      :total="filteredApps.length"
+      :total="total"
       :page-sizes="[10, 20, 50, 100]"
       v-model:current-page="currentPage"
       v-model:page-size="pageSize"
-      @current-change="clearSelection"
-      @size-change="clearSelection"
+      @current-change="handlePageChange"
+      @size-change="handlePageChange"
     />
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '重命名应用' : '新建应用'" width="420px">
@@ -160,13 +164,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { CopyDocument, Hide, View } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 import {
-  listApps,
+  pageApps,
   createApp,
   updateAppName,
   resetAppSecret,
@@ -183,6 +187,8 @@ const apps = ref<AppInfo[]>([])
 const loading = ref(false)
 const keyword = ref('')
 const keywordInput = ref('')
+const statusFilter = ref<number>()
+const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const selected = ref<AppInfo[]>([])
@@ -207,34 +213,34 @@ function onKeywordInput() {
   keywordTimer = setTimeout(() => {
     keyword.value = keywordInput.value
     currentPage.value = 1
+    load()
   }, 300)
 }
 
-const filteredApps = computed(() => {
-  const kw = keyword.value.trim().toLowerCase()
-  if (!kw) return apps.value
-  return apps.value.filter(
-    (a) => a.appName.toLowerCase().includes(kw) || a.accessKey.toLowerCase().includes(kw)
-  )
-})
+const pagedApps = computed(() => apps.value)
 
-const pagedApps = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return filteredApps.value.slice(start, start + pageSize.value)
-})
+function onStatusChange() {
+  currentPage.value = 1
+  load()
+}
 
-watch(filteredApps, () => {
-  const max = Math.max(1, Math.ceil(filteredApps.value.length / pageSize.value))
-  if (currentPage.value > max) {
-    currentPage.value = max
-  }
-})
+function handlePageChange() {
+  clearSelection()
+  load()
+}
 
 async function load() {
   loading.value = true
   try {
     if (userStore.user) {
-      apps.value = await listApps()
+      const result = await pageApps({
+        current: currentPage.value,
+        size: pageSize.value,
+        keyword: keyword.value || undefined,
+        status: statusFilter.value
+      })
+      apps.value = result.records
+      total.value = result.total
     }
   } finally {
     loading.value = false

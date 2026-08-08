@@ -1,5 +1,7 @@
 package com.openapi.backend.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.openapi.backend.entity.InterfaceSubscribe;
 import com.openapi.backend.entity.InterfaceInfo;
 import com.openapi.backend.entity.User;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -46,6 +49,33 @@ public class InterfaceInfoController {
     public ApiResponse<List<InterfaceInfo>> listAll(HttpServletRequest request) {
         requireAdmin(request);
         return ApiResponse.ok(interfaceInfoService.listAll());
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "分页查询接口")
+    public ApiResponse<Map<String, Object>> page(
+            @RequestParam(defaultValue = "1") long current,
+            @RequestParam(defaultValue = "10") long size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status,
+            HttpServletRequest request) {
+        User currentUser = userService.getById((Long) request.getAttribute("openapi.userId"));
+        boolean admin = currentUser != null && "admin".equals(currentUser.getUserRole());
+        LambdaQueryWrapper<InterfaceInfo> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(w -> w.like(InterfaceInfo::getName, keyword).or().like(InterfaceInfo::getUrl, keyword));
+        }
+        if (admin && status != null) {
+            wrapper.eq(InterfaceInfo::getStatus, status);
+        } else if (!admin) {
+            wrapper.eq(InterfaceInfo::getStatus, 1);
+        }
+        wrapper.orderByDesc(InterfaceInfo::getId);
+        Page<InterfaceInfo> page = interfaceInfoService.page(new Page<>(Math.max(1, current), Math.min(Math.max(1, size), 100)), wrapper);
+        Map<String, Object> result = new HashMap<>();
+        result.put("records", page.getRecords());
+        result.put("total", page.getTotal());
+        return ApiResponse.ok(result);
     }
 
     @GetMapping("/{id}")

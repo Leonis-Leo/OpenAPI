@@ -3,7 +3,7 @@
     <div class="toolbar">
       <h2>接口管理</h2>
       <div class="toolbar-right">
-        <el-radio-group v-model="filterStatus" size="default" @change="currentPage = 1">
+        <el-radio-group v-model="filterStatus" size="default" @change="onFilterChange">
           <el-radio-button value="all">全部</el-radio-button>
           <el-radio-button value="online">已上线</el-radio-button>
           <el-radio-button value="subscribed">已订阅</el-radio-button>
@@ -96,12 +96,12 @@
     <el-pagination
       class="pagination"
       layout="total, sizes, prev, pager, next, jumper"
-      :total="filteredInterfaces.length"
+      :total="total"
       :page-sizes="[10, 20, 50, 100]"
       v-model:current-page="currentPage"
       v-model:page-size="pageSize"
-      @current-change="clearSelection"
-      @size-change="clearSelection"
+      @current-change="handlePageChange"
+      @size-change="handlePageChange"
     />
 
     <el-dialog v-model="detailVisible" :title="`接口详情 - ${debugInterface?.name ?? ''}`" width="720px">
@@ -248,7 +248,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
@@ -257,6 +257,7 @@ import {
   type AppInfo,
   listInterfaces,
   listAllInterfaces,
+  pageInterfaces,
   interfaceDetail,
   createInterface,
   updateInterface,
@@ -278,6 +279,7 @@ const loading = ref(false)
 const keyword = ref('')
 const keywordInput = ref('')
 const filterStatus = ref<'all' | 'online' | 'subscribed' | 'unsubscribed'>('all')
+const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const apps = ref<AppInfo[]>([])
@@ -300,7 +302,18 @@ function onKeywordInput() {
   keywordTimer = setTimeout(() => {
     keyword.value = keywordInput.value
     currentPage.value = 1
+    load()
   }, 300)
+}
+
+function onFilterChange() {
+  currentPage.value = 1
+  load()
+}
+
+function handlePageChange() {
+  clearSelection()
+  load()
 }
 
 const detailVisible = ref(false)
@@ -473,6 +486,7 @@ async function copyText(value?: string) {
 }
 
 const filteredInterfaces = computed(() => {
+  if (filterStatus.value === 'all' || filterStatus.value === 'online') return interfaces.value
   const kw = keyword.value.trim().toLowerCase()
   return interfaces.value.filter((i) => {
     const matchKw =
@@ -488,15 +502,9 @@ const filteredInterfaces = computed(() => {
 })
 
 const pagedInterfaces = computed(() => {
+  if (filterStatus.value === 'all' || filterStatus.value === 'online') return filteredInterfaces.value
   const start = (currentPage.value - 1) * pageSize.value
   return filteredInterfaces.value.slice(start, start + pageSize.value)
-})
-
-watch(filteredInterfaces, () => {
-  const max = Math.max(1, Math.ceil(filteredInterfaces.value.length / pageSize.value))
-  if (currentPage.value > max) {
-    currentPage.value = max
-  }
 })
 
 const formVisible = ref(false)
@@ -514,7 +522,19 @@ const interfaceForm = ref<InterfaceForm>({
 async function load() {
   loading.value = true
   try {
-    interfaces.value = isAdmin ? await listAllInterfaces() : await listInterfaces()
+    if (filterStatus.value === 'all' || filterStatus.value === 'online') {
+      const result = await pageInterfaces({
+        current: currentPage.value,
+        size: pageSize.value,
+        keyword: keyword.value || undefined,
+        status: filterStatus.value === 'online' ? 1 : undefined
+      })
+      interfaces.value = result.records
+      total.value = result.total
+    } else {
+      interfaces.value = isAdmin ? await listAllInterfaces() : await listInterfaces()
+      total.value = filteredInterfaces.value.length
+    }
     const subscribes = await mySubscribes()
     const map: Record<number, number> = {}
     const idMap: Record<number, number> = {}
@@ -524,6 +544,11 @@ async function load() {
     })
     subscribeMap.value = map
     subscribeIdMap.value = idMap
+    if (filterStatus.value === 'subscribed' || filterStatus.value === 'unsubscribed') {
+      total.value = filteredInterfaces.value.length
+      const maxPage = Math.max(1, Math.ceil(total.value / pageSize.value))
+      if (currentPage.value > maxPage) currentPage.value = maxPage
+    }
     if (userStore.user) {
       apps.value = await listAppsForDebug()
     }
