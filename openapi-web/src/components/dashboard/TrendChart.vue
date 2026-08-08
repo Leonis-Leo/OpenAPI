@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { init, use, type ECharts } from 'echarts/core'
 import { LineChart } from 'echarts/charts'
 import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
@@ -10,6 +10,12 @@ use([LineChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer
 
 const props = defineProps<{ series: OverviewSeries; days: number; loading?: boolean }>()
 const emit = defineEmits<{ (e: 'changeDays', days: number): void }>()
+const hasData = computed(() => props.series.days.length > 0)
+const hasEnoughData = computed(() => props.series.days.length > 1)
+const latest = computed(() => {
+  const index = props.series.days.length - 1
+  return index >= 0 ? { total: props.series.total[index] ?? 0, ok: props.series.ok[index] ?? 0, fail: props.series.fail[index] ?? 0 } : null
+})
 
 const chartRef = ref<HTMLDivElement>()
 let chart: ECharts | null = null
@@ -25,7 +31,7 @@ function cssVar(name: string): string {
 }
 
 function render() {
-  if (!chart || !props.series.days.length) return
+  if (!chart || !hasEnoughData.value) return
   chart.setOption({
     color: [cssVar('--el-color-primary'), cssVar('--el-color-success'), cssVar('--el-color-danger')],
     tooltip: { trigger: 'axis' },
@@ -91,8 +97,16 @@ onBeforeUnmount(() => {
         </el-radio-group>
       </div>
     </template>
-    <div v-if="!series.days.length && !loading" class="chart-empty">
+    <div v-if="!hasData && !loading" class="chart-empty">
       <el-empty description="暂无调用数据，调用接口后即可查看趋势" :image-size="60" />
+    </div>
+    <div v-else-if="!hasEnoughData && !loading" class="chart-sparse">
+      <el-empty description="当前时间范围只有 1 天数据" :image-size="54" />
+      <div v-if="latest" class="sparse-summary">
+        <span><strong>{{ latest.total }}</strong> 总调用</span>
+        <span class="success"><strong>{{ latest.ok }}</strong> 成功</span>
+        <span class="danger"><strong>{{ latest.fail }}</strong> 失败</span>
+      </div>
     </div>
     <div v-else ref="chartRef" v-loading="loading" class="chart" :aria-label="`调用趋势图（近 ${days} 天，含调用量、成功量、失败量）`" />
   </el-card>
@@ -101,5 +115,10 @@ onBeforeUnmount(() => {
 <style scoped>
 .chart-header { display: flex; align-items: center; justify-content: space-between; }
 .chart-title { font-weight: 600; }
-.chart { height: 340px; }
+.chart { height: 280px; }
+.chart-empty, .chart-sparse { min-height: 280px; display: grid; place-items: center; align-content: center; }
+.sparse-summary { display: flex; gap: 24px; margin-top: -18px; color: var(--el-text-color-secondary); font-size: 13px; }
+.sparse-summary strong { color: var(--el-text-color-primary); font-size: 20px; margin-right: 4px; }
+.sparse-summary .success strong { color: var(--el-color-success); }
+.sparse-summary .danger strong { color: var(--el-color-danger); }
 </style>

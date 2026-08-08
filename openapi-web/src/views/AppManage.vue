@@ -50,6 +50,9 @@
             <View v-if="showSecretIds.has(row.id)" />
             <Hide v-else />
           </el-icon>
+          <el-button class="inline-copy" text circle size="small" @click.stop="copyText(row.secretKey)">
+            <el-icon><CopyDocument /></el-icon>
+          </el-button>
         </template>
       </el-table-column>
       <el-table-column prop="status" label="状态" width="80">
@@ -160,7 +163,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
-import { Hide, View } from '@element-plus/icons-vue'
+import { CopyDocument, Hide, View } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 import {
   listApps,

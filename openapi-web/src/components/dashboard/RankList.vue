@@ -34,6 +34,7 @@ function rate(row: TopStat): number {
           <span class="rank-index" :class="{ top: i < 3 }">{{ i + 1 }}</span>
           <span class="rank-name">{{ row.interfaceName ?? row.appName ?? '-' }}</span>
           <span class="rank-calls">{{ row.total }} 次</span>
+          <span class="rank-progress"><i :style="{ width: `${Math.min(100, row.total ? (row.total / Math.max(...rows.map((item) => item.total), 1)) * 100 : 0)}%` }" /></span>
           <el-tag :type="rate(row) >= 90 ? 'success' : row.total ? 'warning' : 'info'" size="small">
             {{ rate(row) }}%
           </el-tag>
@@ -77,6 +78,8 @@ function rate(row: TopStat): number {
 .rank-index.top { background: var(--el-color-primary); color: #fff; }
 .rank-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rank-calls { flex: none; color: var(--el-text-color-secondary); font-size: 13px; }
+.rank-progress { width: 72px; height: 5px; flex: none; overflow: hidden; border-radius: 99px; background: var(--el-fill-color); }
+.rank-progress i { display: block; height: 100%; border-radius: inherit; background: var(--el-color-primary); transition: width .25s ease; }
 .rank-skeleton { display: flex; flex-direction: column; gap: 8px; }
 .skel-row { height: 38px; border-radius: 6px; background: var(--el-fill-color); }
 </style>

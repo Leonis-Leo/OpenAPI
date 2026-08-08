@@ -48,6 +48,8 @@ body .toolbar h2 { margin: 0; color: var(--app-text); font-size: 24px; font-weig
 body .toolbar-right { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 body .action-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 40px; margin-bottom: 12px !important; padding: 10px 14px; border: 1px solid var(--app-border); border-radius: var(--app-radius); background: var(--app-surface); }
 body .action-bar .danger-right { margin-left: auto; }
+body .action-bar::before { content: '批量操作'; color: var(--app-muted); margin-right: 4px; font-size: 12px; font-weight: 600; }
+body .action-bar .batch-tip { order: -1; color: var(--app-primary); padding: 4px 8px; border-radius: 6px; background: #eff6ff; font-size: 12px; font-weight: 600; }
 body .pagination { display: flex; align-items: center; margin-top: 0 !important; padding: 16px 4px; }
 body .el-tabs__nav-wrap::after { background-color: var(--app-border); }
 body .el-tabs__item { color: var(--app-muted); font-weight: 500; }
@@ -79,6 +81,13 @@ body .el-button--large { height: 42px; border-radius: 10px; }
 body .el-input__wrapper, body .el-select__wrapper { box-shadow: 0 0 0 1px var(--app-border) inset; }
 body .el-input__wrapper:hover, body .el-select__wrapper:hover { box-shadow: 0 0 0 1px #93c5fd inset; }
 body .el-table { border-radius: 10px; overflow: hidden; }
+body .el-table .cell { line-height: 20px; }
+body .el-table td.el-table__cell { padding: 10px 0; }
+body .el-table th.el-table__cell { padding: 11px 0; }
+body .el-table td.el-table__cell:nth-child(4), body .el-table td.el-table__cell:nth-child(5) { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; }
+body .el-table .el-link { font-weight: 600; }
+body .el-table .el-tag { border-radius: 6px; font-weight: 600; }
+body .el-table__body tr { transition: background-color .16s ease; }
 body .stat-card { border: 1px solid var(--app-border); background: var(--app-surface); }
 body .stat-card .card-head { color: var(--app-muted); }
 body .stat-card .stat-value { color: var(--app-text); font-size: 30px; }
@@ -87,6 +96,20 @@ body .stat-card .stat-value.fail { color: #dc2626; }
 body .chart-card, body .rank-row .el-card { border: 1px solid var(--app-border); }
 body .chart-header { color: var(--app-text); font-weight: 600; }
 body .tip { color: var(--app-muted); }
+body .page-head, body .page-heading { margin-bottom: 14px; }
+body .chart-card .el-card__header, body .rank-card .el-card__header, body .logs-card .el-card__header { padding: 16px 20px; }
+body .chart-card .el-card__body, body .rank-card .el-card__body, body .logs-card .el-card__body { padding: 16px 20px 20px; }
+body .el-empty { padding: 24px 0; }
+body .el-empty__description p { color: var(--app-muted); font-size: 13px; }
+body .secret-text, body .key-secret { font-family: "JetBrains Mono", Consolas, monospace; letter-spacing: .01em; }
+body .secret-eye { margin-left: 6px; color: var(--app-muted); cursor: pointer; transition: color .16s ease, transform .16s ease; }
+body .secret-eye:hover { color: var(--app-primary); transform: scale(1.08); }
+body .inline-copy { width: 26px; height: 26px; margin-left: 2px; padding: 0; color: var(--app-muted); }
+body .inline-copy:hover { color: var(--app-primary); background: #eff6ff; }
+body .key-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
+body .key-line > :first-child { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+body .el-table--small td.el-table__cell { padding: 7px 0; }
+body .el-pagination .el-pager li { border-radius: 6px; }
 @media (max-width: 760px) { body .toolbar { flex-direction: column; } body .toolbar-right { justify-content: flex-start; width: 100%; } body .toolbar-right > * { max-width: 100%; } }
 
 /* 详情弹窗长文本自动换行（如 AccessKey / SecretKey） */

@@ -53,7 +53,15 @@
           </el-radio-group>
         </div>
       </template>
-      <el-empty v-if="!daily.length" description="暂无调用数据，调用接口后即可查看趋势" />
+      <el-empty v-if="!daily.length" description="暂无调用数据，调用接口后即可查看趋势" :image-size="64" />
+      <div v-else-if="daily.length === 1" class="chart-sparse">
+        <el-empty description="当前时间范围只有 1 天数据" :image-size="54" />
+        <div class="sparse-summary">
+          <span><strong>{{ daily[0].total }}</strong> 总调用</span>
+          <span class="success"><strong>{{ daily[0].ok }}</strong> 成功</span>
+          <span class="danger"><strong>{{ Math.max(0, daily[0].total - daily[0].ok) }}</strong> 失败</span>
+        </div>
+      </div>
       <div v-else ref="chartRef" class="chart"></div>
     </el-card>
     <el-row :gutter="16" class="rank-row">
@@ -135,6 +143,7 @@ async function loadChart() {
     chart = init(chartRef.value)
     window.addEventListener('resize', onResize)
   }
+  chart.clear()
   chart.setOption({
     tooltip: { trigger: 'axis' },
     legend: { data: ['调用量', '成功量'], top: 0, right: 10 },
@@ -236,9 +245,12 @@ onBeforeUnmount(() => {
   align-items: center;
   margin-bottom: 12px;
 }
-.chart {
-  height: 360px;
-}
+.chart { height: 280px; }
+.chart-sparse { min-height: 280px; display: grid; place-items: center; align-content: center; }
+.sparse-summary { display: flex; gap: 24px; margin-top: -18px; color: var(--el-text-color-secondary); font-size: 13px; }
+.sparse-summary strong { color: var(--el-text-color-primary); font-size: 20px; margin-right: 4px; }
+.sparse-summary .success strong { color: var(--el-color-success); }
+.sparse-summary .danger strong { color: var(--el-color-danger); }
 .chart-header {
   display: flex;
   align-items: center;
