@@ -56,7 +56,26 @@ body .el-tabs__active-bar { background-color: var(--app-primary); }
 body .el-dialog, body .el-drawer { border-radius: 14px; }
 body .el-dialog__header, body .el-drawer__header { margin-bottom: 0; padding: 22px 24px 16px; }
 body .el-dialog__body { padding: 8px 24px 24px; }
-body .el-button { font-weight: 500; }
+/* Modern action buttons: clear hierarchy without the default washed-out Element look. */
+body .el-button { height: 36px; padding: 0 14px; border-radius: 9px; font-weight: 600; letter-spacing: -.01em; transition: border-color .18s ease, background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease; }
+body .el-button:not(.is-disabled):hover { transform: translateY(-1px); }
+body .el-button:not(.is-disabled):active { transform: translateY(0); }
+body .el-button--primary { color: #fff; background: #2563eb; border-color: #2563eb; box-shadow: 0 4px 10px rgba(37, 99, 235, .16); }
+body .el-button--primary:not(.is-disabled):hover { color: #fff; background: #1d4ed8; border-color: #1d4ed8; box-shadow: 0 6px 14px rgba(37, 99, 235, .22); }
+body .el-button--primary.is-plain { color: #2563eb; background: #eff6ff; border-color: #dbeafe; box-shadow: none; }
+body .el-button--primary.is-plain:not(.is-disabled):hover { color: #1d4ed8; background: #dbeafe; border-color: #bfdbfe; }
+body .el-button--success { color: #047857; background: #ecfdf5; border-color: #bbf7d0; box-shadow: none; }
+body .el-button--success:not(.is-disabled):hover { color: #065f46; background: #d1fae5; border-color: #86efac; }
+body .el-button--warning { color: #b45309; background: #fffbeb; border-color: #fde68a; box-shadow: none; }
+body .el-button--warning:not(.is-disabled):hover { color: #92400e; background: #fef3c7; border-color: #fcd34d; }
+body .el-button--danger { color: #be123c; background: #fff1f2; border-color: #fecdd3; box-shadow: none; }
+body .el-button--danger:not(.is-disabled):hover { color: #9f1239; background: #ffe4e6; border-color: #fda4af; }
+body .el-button--info { color: #475569; background: #f8fafc; border-color: #e2e8f0; box-shadow: none; }
+body .el-button.is-plain:not(.is-disabled):hover { box-shadow: none; }
+body .el-button.is-disabled, body .el-button.is-disabled:hover { transform: none; opacity: .46; box-shadow: none; }
+body .action-bar .el-button { min-width: 76px; }
+body .el-button--small { height: 32px; padding: 0 12px; border-radius: 8px; font-size: 12px; }
+body .el-button--large { height: 42px; border-radius: 10px; }
 body .el-input__wrapper, body .el-select__wrapper { box-shadow: 0 0 0 1px var(--app-border) inset; }
 body .el-input__wrapper:hover, body .el-select__wrapper:hover { box-shadow: 0 0 0 1px #93c5fd inset; }
 body .el-table { border-radius: 10px; overflow: hidden; }
