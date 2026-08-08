@@ -78,8 +78,10 @@ public class InterfaceSubscribeServiceImpl extends ServiceImpl<InterfaceSubscrib
 
     @Override
     public Page<Map<String, Object>> pageByUser(Long userId, long current, long size) {
-        Page<InterfaceSubscribe> source = page(new Page<>(Math.max(1, current), Math.min(Math.max(1, size), 100)),
-                lambdaQuery().eq(InterfaceSubscribe::getUserId, userId).orderByDesc(InterfaceSubscribe::getId));
+        LambdaQueryWrapper<InterfaceSubscribe> query = new LambdaQueryWrapper<InterfaceSubscribe>()
+                .eq(InterfaceSubscribe::getUserId, userId)
+                .orderByDesc(InterfaceSubscribe::getId);
+        Page<InterfaceSubscribe> source = page(new Page<>(Math.max(1, current), Math.min(Math.max(1, size), 100)), query);
         return enrichPage(source);
     }
 
