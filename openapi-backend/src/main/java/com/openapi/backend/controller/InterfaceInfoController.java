@@ -121,6 +121,16 @@ public class InterfaceInfoController {
         return ApiResponse.ok(subscribeService.listByUser(userId));
     }
 
+    @GetMapping("/my-subscribes/page")
+    @Operation(summary = "我的订阅分页列表")
+    public ApiResponse<Map<String, Object>> mySubscribesPage(
+            @RequestParam(defaultValue = "1") long current,
+            @RequestParam(defaultValue = "10") long size,
+            HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("openapi.userId");
+        return pageResponse(subscribeService.pageByUser(userId, current, size));
+    }
+
     @GetMapping("/subscribes")
     @Operation(summary = "订阅审批列表（管理员）")
     public ApiResponse<List<Map<String, Object>>> subscribes(
@@ -129,6 +139,17 @@ public class InterfaceInfoController {
             HttpServletRequest request) {
         requireAdmin(request);
         return ApiResponse.ok(subscribeService.listByStatus(status));
+    }
+
+    @GetMapping("/subscribes/page")
+    @Operation(summary = "订阅审批分页列表（管理员）")
+    public ApiResponse<Map<String, Object>> subscribesPage(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") long current,
+            @RequestParam(defaultValue = "10") long size,
+            HttpServletRequest request) {
+        requireAdmin(request);
+        return pageResponse(subscribeService.pageByStatus(status, current, size));
     }
 
     @PostMapping("/approve")
@@ -237,5 +258,12 @@ public class InterfaceInfoController {
         if (user == null || !"admin".equals(user.getUserRole())) {
             throw new BusinessException(ErrorCode.NO_AUTH, "仅管理员可操作");
         }
+    }
+
+    private ApiResponse<Map<String, Object>> pageResponse(Page<Map<String, Object>> page) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("records", page.getRecords());
+        result.put("total", page.getTotal());
+        return ApiResponse.ok(result);
     }
 }

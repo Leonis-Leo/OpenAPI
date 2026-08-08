@@ -1,6 +1,8 @@
 package com.openapi.backend.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.openapi.backend.entity.App;
 import com.openapi.backend.entity.InterfaceInfo;
 import com.openapi.backend.entity.InterfaceSubscribe;
@@ -75,6 +77,22 @@ public class InterfaceSubscribeServiceImpl extends ServiceImpl<InterfaceSubscrib
     }
 
     @Override
+    public Page<Map<String, Object>> pageByUser(Long userId, long current, long size) {
+        Page<InterfaceSubscribe> source = page(new Page<>(Math.max(1, current), Math.min(Math.max(1, size), 100)),
+                lambdaQuery().eq(InterfaceSubscribe::getUserId, userId).orderByDesc(InterfaceSubscribe::getId));
+        return enrichPage(source);
+    }
+
+    @Override
+    public Page<Map<String, Object>> pageByStatus(Integer status, long current, long size) {
+        LambdaQueryWrapper<InterfaceSubscribe> query = new LambdaQueryWrapper<InterfaceSubscribe>()
+                .orderByDesc(InterfaceSubscribe::getId);
+        if (status != null) query.eq(InterfaceSubscribe::getStatus, status);
+        Page<InterfaceSubscribe> source = page(new Page<>(Math.max(1, current), Math.min(Math.max(1, size), 100)), query);
+        return enrichPage(source);
+    }
+
+    @Override
     public void approve(Long subscribeId, boolean approved) {
         InterfaceSubscribe subscribe = getById(subscribeId);
         if (subscribe == null) {
@@ -121,5 +139,11 @@ public class InterfaceSubscribeServiceImpl extends ServiceImpl<InterfaceSubscrib
             map.put("userAccount", user == null ? "-" : user.getUserAccount());
             return map;
         }).toList();
+    }
+
+    private Page<Map<String, Object>> enrichPage(Page<InterfaceSubscribe> source) {
+        Page<Map<String, Object>> result = new Page<>(source.getCurrent(), source.getSize(), source.getTotal());
+        result.setRecords(listWithNames(source.getRecords()));
+        return result;
     }
 }

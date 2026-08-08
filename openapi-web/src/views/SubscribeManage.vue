@@ -7,7 +7,9 @@
         placeholder="搜索接口 / 应用"
         clearable
         style="width: 220px"
+        @input="resetSearch"
       />
+      <el-button type="primary" plain @click="exportCurrent">导出 CSV</el-button>
     </div>
     <el-tabs v-model="activeTab">
       <el-tab-pane v-if="isAdmin" label="全部订阅" name="all">
@@ -46,12 +48,12 @@
         <el-pagination
           class="pagination"
           layout="total, sizes, prev, pager, next, jumper"
-          :total="allList.length"
+          :total="allTotal"
           :page-sizes="[10, 20, 50, 100]"
           v-model:current-page="allPage"
           v-model:page-size="pageSize"
-          @current-change="clearAllSelection"
-          @size-change="clearAllSelection"
+          @current-change="handleAllPageChange"
+          @size-change="handleAllPageChange"
         />
       </el-tab-pane>
       <el-tab-pane v-if="isAdmin" label="待审批" name="pending">
@@ -84,12 +86,12 @@
         <el-pagination
           class="pagination"
           layout="total, sizes, prev, pager, next, jumper"
-          :total="filteredPending.length"
+          :total="pendingTotal"
           :page-sizes="[10, 20, 50, 100]"
           v-model:current-page="pendingPage"
           v-model:page-size="pageSize"
-          @current-change="clearPendingSelection"
-          @size-change="clearPendingSelection"
+          @current-change="handlePendingPageChange"
+          @size-change="handlePendingPageChange"
         />
       </el-tab-pane>
       <el-tab-pane label="我的订阅" name="mine">
@@ -128,12 +130,12 @@
         <el-pagination
           class="pagination"
           layout="total, sizes, prev, pager, next, jumper"
-          :total="filteredMine.length"
+          :total="mineTotal"
           :page-sizes="[10, 20, 50, 100]"
           v-model:current-page="minePage"
           v-model:page-size="pageSize"
-          @current-change="clearMineSelection"
-          @size-change="clearMineSelection"
+          @current-change="handleMinePageChange"
+          @size-change="handleMinePageChange"
         />
       </el-tab-pane>
     </el-tabs>
@@ -152,13 +154,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import {
-  listSubscribes,
-  mySubscribes,
+  pageSubscribes,
+  pageMySubscribes,
   approve,
   unsubscribe,
   deleteSubscribeRecord,
@@ -177,6 +179,9 @@ const pendingPage = ref(1)
 const minePage = ref(1)
 const allPage = ref(1)
 const pageSize = ref(10)
+const allTotal = ref(0)
+const pendingTotal = ref(0)
+const mineTotal = ref(0)
 const selectedPending = ref<SubscribeInfo[]>([])
 const selectedMine = ref<SubscribeInfo[]>([])
 const selectedAll = ref<SubscribeInfo[]>([])
@@ -207,6 +212,21 @@ function clearAllSelection() {
   allTableRef.value?.clearSelection()
 }
 
+function handleAllPageChange() {
+  clearAllSelection()
+  load()
+}
+
+function handlePendingPageChange() {
+  clearPendingSelection()
+  load()
+}
+
+function handleMinePageChange() {
+  clearMineSelection()
+  load()
+}
+
 function matchKw(item: SubscribeInfo): boolean {
   const kw = keyword.value.trim().toLowerCase()
   if (!kw) return true
@@ -218,53 +238,59 @@ function matchKw(item: SubscribeInfo): boolean {
 }
 
 const filteredPending = computed(() => pendingList.value.filter(matchKw))
-const pagedPending = computed(() => {
-  const start = (pendingPage.value - 1) * pageSize.value
-  return filteredPending.value.slice(start, start + pageSize.value)
-})
+const pagedPending = computed(() => filteredPending.value)
 const filteredMine = computed(() => myList.value.filter(matchKw))
-const pagedMine = computed(() => {
-  const start = (minePage.value - 1) * pageSize.value
-  return filteredMine.value.slice(start, start + pageSize.value)
-})
+const pagedMine = computed(() => filteredMine.value)
 const filteredAll = computed(() => allList.value.filter(matchKw))
-const pagedAll = computed(() => {
-  const start = (allPage.value - 1) * pageSize.value
-  return filteredAll.value.slice(start, start + pageSize.value)
-})
+const pagedAll = computed(() => filteredAll.value)
 
-watch(filteredPending, () => {
-  const max = Math.max(1, Math.ceil(filteredPending.value.length / pageSize.value))
-  if (pendingPage.value > max) {
-    pendingPage.value = max
-  }
-})
-
-watch(filteredMine, () => {
-  const max = Math.max(1, Math.ceil(filteredMine.value.length / pageSize.value))
-  if (minePage.value > max) {
-    minePage.value = max
-  }
-})
-
-watch(filteredAll, () => {
-  const max = Math.max(1, Math.ceil(filteredAll.value.length / pageSize.value))
-  if (allPage.value > max) {
-    allPage.value = max
-  }
-})
+function resetSearch() {
+  pendingPage.value = 1
+  minePage.value = 1
+  allPage.value = 1
+}
 
 async function load() {
   loading.value = true
   try {
     if (isAdmin) {
-      pendingList.value = await listSubscribes(0)
-      allList.value = await listSubscribes()
+      const [pending, all] = await Promise.all([
+        pageSubscribes({ current: pendingPage.value, size: pageSize.value, status: 0 }),
+        pageSubscribes({ current: allPage.value, size: pageSize.value })
+      ])
+      pendingList.value = pending.records
+      pendingTotal.value = pending.total
+      allList.value = all.records
+      allTotal.value = all.total
     }
-    myList.value = await mySubscribes()
+    const mine = await pageMySubscribes({ current: minePage.value, size: pageSize.value })
+    myList.value = mine.records
+    mineTotal.value = mine.total
   } finally {
     loading.value = false
   }
+}
+
+function exportCurrent() {
+  const records = activeTab.value === 'all' ? allList.value : activeTab.value === 'pending' ? pendingList.value : myList.value
+  const header = ['接口', '路径', '应用', '申请人', '状态', '申请时间']
+  const rows = records.map((item) => [
+    item.interfaceName,
+    item.interfaceUrl,
+    item.appName,
+    item.userAccount ?? '',
+    statusText(item.status),
+    item.createTime
+  ])
+  const escape = (value: string) => `"${String(value).replace(/"/g, '""')}"`
+  const csv = '\uFEFF' + [header, ...rows].map((row) => row.map(escape).join(',')).join('\r\n')
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `subscriptions-${activeTab.value}-${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success('CSV 已导出当前页数据')
 }
 
 async function handleDeleteAll() {

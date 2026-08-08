@@ -119,8 +119,14 @@ export const subscribe = (interfaceId: number, appId: number) =>
 export const mySubscribes = () =>
   request.get<unknown, SubscribeInfo[]>('/interface/my-subscribes')
 
+export const pageMySubscribes = (params: { current: number; size: number }) =>
+  request.get<unknown, PageResult<SubscribeInfo>>('/interface/my-subscribes/page', { params })
+
 export const listSubscribes = (status?: number) =>
   request.get<unknown, SubscribeInfo[]>('/interface/subscribes', { params: { status } })
+
+export const pageSubscribes = (params: { current: number; size: number; status?: number }) =>
+  request.get<unknown, PageResult<SubscribeInfo>>('/interface/subscribes/page', { params })
 
 export const approve = (id: number, approved: boolean) =>
   request.post<unknown, void>('/interface/approve', null, { params: { id, approved } })
