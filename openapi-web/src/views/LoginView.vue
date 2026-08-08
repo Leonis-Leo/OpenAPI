@@ -127,28 +127,30 @@ function switchMode() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--el-bg-color-page, #eef2f7);
+  background: #f7f9fc;
   position: relative;
   overflow: hidden;
 }
 .login-bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #304156 0%, #409eff 55%, #79bbff 100%);
-  opacity: 0.92;
+  background: #172b4d;
+  opacity: 1;
+  clip-path: polygon(0 0, 57% 0, 47% 100%, 0 100%);
 }
 .login-bg::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.18), transparent 40%);
+  background: radial-gradient(circle at 28% 36%, rgba(37, 99, 235, .45), transparent 30%), linear-gradient(135deg, transparent 45%, rgba(255,255,255,.04) 45%, transparent 46%);
 }
 .login-wrap {
   position: relative;
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 48px;
+  gap: 96px;
+  width: min(960px, calc(100% - 40px));
 }
 .brand {
   color: #fff;
@@ -161,8 +163,8 @@ function switchMode() {
   width: 56px;
   height: 56px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #409eff;
+  background: #2563eb;
+  color: #fff;
   font-size: 24px;
   font-weight: 700;
   display: flex;
@@ -172,7 +174,8 @@ function switchMode() {
 }
 .brand h1 {
   margin: 0 0 10px;
-  font-size: 30px;
+  font-size: 32px;
+  letter-spacing: -.03em;
 }
 .brand p {
   margin: 0;
@@ -181,9 +184,10 @@ function switchMode() {
 }
 .login-card {
   width: 400px;
-  padding: 20px 12px;
+  padding: 24px 20px;
   border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, .12);
 }
 .title {
   text-align: center;
@@ -196,5 +200,11 @@ function switchMode() {
 .switch-mode {
   margin-top: 12px;
   text-align: center;
+}
+@media (max-width: 760px) {
+  .login-bg { clip-path: polygon(0 0, 100% 0, 100% 38%, 0 52%); }
+  .login-wrap { flex-direction: column; gap: 24px; width: min(400px, calc(100% - 32px)); }
+  .brand { text-align: center; }.brand-logo { margin: 0 auto 12px; }.brand h1 { font-size: 24px; }.brand p { display: none; }
+  .login-card { width: 100%; box-sizing: border-box; }
 }
 </style>

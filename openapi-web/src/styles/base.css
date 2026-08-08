@@ -42,6 +42,34 @@ body {
 .dark { --app-bg: #0f172a; --app-surface: #172033; --app-text: #e2e8f0; --app-muted: #94a3b8; --app-border: #263449; --nav-bg: #0b1324; }
 .dark .el-table { --el-table-header-bg-color: #1d293d; --el-table-tr-bg-color: var(--app-surface); --el-table-row-hover-bg-color: #22314a; }
 
+/* Shared SaaS page primitives: existing views can adopt the same rhythm without changing business logic. */
+body .toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; min-height: 42px; margin-bottom: 18px !important; padding: 0 0 18px; border-bottom: 1px solid var(--app-border); }
+body .toolbar h2 { margin: 0; color: var(--app-text); font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+body .toolbar-right { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+body .action-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 40px; margin-bottom: 12px !important; padding: 10px 14px; border: 1px solid var(--app-border); border-radius: var(--app-radius); background: var(--app-surface); }
+body .action-bar .danger-right { margin-left: auto; }
+body .pagination { display: flex; align-items: center; margin-top: 0 !important; padding: 16px 4px; }
+body .el-tabs__nav-wrap::after { background-color: var(--app-border); }
+body .el-tabs__item { color: var(--app-muted); font-weight: 500; }
+body .el-tabs__item.is-active { color: var(--app-primary); font-weight: 600; }
+body .el-tabs__active-bar { background-color: var(--app-primary); }
+body .el-dialog, body .el-drawer { border-radius: 14px; }
+body .el-dialog__header, body .el-drawer__header { margin-bottom: 0; padding: 22px 24px 16px; }
+body .el-dialog__body { padding: 8px 24px 24px; }
+body .el-button { font-weight: 500; }
+body .el-input__wrapper, body .el-select__wrapper { box-shadow: 0 0 0 1px var(--app-border) inset; }
+body .el-input__wrapper:hover, body .el-select__wrapper:hover { box-shadow: 0 0 0 1px #93c5fd inset; }
+body .el-table { border-radius: 10px; overflow: hidden; }
+body .stat-card { border: 1px solid var(--app-border); background: var(--app-surface); }
+body .stat-card .card-head { color: var(--app-muted); }
+body .stat-card .stat-value { color: var(--app-text); font-size: 30px; }
+body .stat-card .stat-value.success { color: #059669; }
+body .stat-card .stat-value.fail { color: #dc2626; }
+body .chart-card, body .rank-row .el-card { border: 1px solid var(--app-border); }
+body .chart-header { color: var(--app-text); font-weight: 600; }
+body .tip { color: var(--app-muted); }
+@media (max-width: 760px) { body .toolbar { flex-direction: column; } body .toolbar-right { justify-content: flex-start; width: 100%; } body .toolbar-right > * { max-width: 100%; } }
+
 /* 详情弹窗长文本自动换行（如 AccessKey / SecretKey） */
 .el-descriptions__content {
   word-break: break-all;
