@@ -150,6 +150,7 @@
               {{ debugInterface?.method }}
             </el-tag>
             <span class="debug-url">{{ debugInterface?.url }}</span>
+            <el-button class="debug-header-send" type="primary" :loading="debugLoading" @click="handleDebug">发送请求</el-button>
           </div>
           <el-form label-width="90px" class="debug-form">
             <el-form-item label="调试应用">
@@ -988,10 +989,9 @@ onMounted(load)
   min-height: 560px;
 }
 .debug-pane {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 18px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 .debug-param-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; margin-bottom: 8px; }
 .history-select { width: 150px; }
@@ -1003,12 +1003,10 @@ onMounted(load)
   font-weight: 600;
 }
 .debug-header {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 0;
-  padding: 12px 16px;
   padding: 8px 12px;
   background: var(--el-fill-color-light, #f5f7fa);
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
@@ -1020,8 +1018,11 @@ onMounted(load)
   color: var(--el-text-color-regular, #606266);
   word-break: break-all;
 }
+.debug-header-send {
+  margin-left: auto;
+  min-width: 96px;
+}
 .debug-result {
-  grid-column: 2;
   margin-top: 0;
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
   border-radius: 10px;
@@ -1057,11 +1058,28 @@ onMounted(load)
   color: var(--el-text-color-regular, #303133);
 }
 .debug-form {
-  grid-column: 1;
-  padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 20px;
+  padding: 18px 20px 4px;
   border: 1px solid #e6ebf2;
   border-radius: 10px;
   background: #fbfcfe;
+}
+:global(.debug-form > .el-form-item:nth-child(1)),
+:global(.debug-form > .el-form-item:nth-child(4)) {
+  grid-column: 1 / -1;
+}
+:global(.debug-form > .el-form-item:nth-child(2) .el-textarea__inner),
+:global(.debug-form > .el-form-item:nth-child(3) .el-textarea__inner) {
+  min-height: 150px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
+  line-height: 1.6;
+}
+:global(.debug-form > .el-form-item:nth-child(4) .el-button--primary) {
+  display: none;
 }
 :global(.interface-detail-dialog.el-dialog) {
   max-width: calc(100vw - 48px);
@@ -1087,10 +1105,15 @@ onMounted(load)
 }
 @media (max-width: 860px) {
   .debug-pane {
+    display: flex;
+  }
+  .debug-form {
     grid-template-columns: 1fr;
   }
-  .debug-form,
-  .debug-result {
+  :global(.debug-form > .el-form-item:nth-child(1)),
+  :global(.debug-form > .el-form-item:nth-child(2)),
+  :global(.debug-form > .el-form-item:nth-child(3)),
+  :global(.debug-form > .el-form-item:nth-child(4)) {
     grid-column: 1;
   }
   :global(.interface-detail-dialog.el-dialog) {
