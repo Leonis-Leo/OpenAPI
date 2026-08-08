@@ -1,7 +1,17 @@
 <template>
-  <div>
-    <div class="toolbar">
-      <h2>API 日志</h2>
+  <div class="logs-page">
+    <div class="page-heading">
+      <div><h1 class="page-title">API 日志</h1><p class="page-subtitle">追踪接口调用状态，快速定位异常请求和性能瓶颈</p></div>
+      <el-button plain @click="exportCsv"><el-icon><Download /></el-icon>导出 CSV</el-button>
+    </div>
+    <div class="summary-grid">
+      <el-card shadow="never" class="summary-card"><div class="summary-label">总调用量</div><div class="summary-value">{{ total }}</div><div class="summary-foot"><span class="summary-icon blue"><DataLine /></span>当前筛选范围</div></el-card>
+      <el-card shadow="never" class="summary-card"><div class="summary-label">成功率</div><div class="summary-value">{{ successRate }}<small>%</small></div><div class="summary-foot positive"><span class="summary-icon green"><CircleCheckFilled /></span>请求成功</div></el-card>
+      <el-card shadow="never" class="summary-card"><div class="summary-label">平均耗时</div><div class="summary-value">{{ averageCost }}<small>ms</small></div><div class="summary-foot"><span class="summary-icon amber"><Timer /></span>当前页平均值</div></el-card>
+      <el-card shadow="never" class="summary-card"><div class="summary-label">异常请求</div><div class="summary-value danger-number">{{ errorCount }}</div><div class="summary-foot negative"><span class="summary-icon red"><WarningFilled /></span>需要关注</div></el-card>
+    </div>
+    <div class="filter-card content-card">
+      <div class="filter-label">筛选条件</div>
       <div class="toolbar-right">
         <el-select v-model="statusType" placeholder="结果" clearable style="width: 110px" @change="reload">
           <el-option label="成功" value="success" />
@@ -31,11 +41,12 @@
           @clear="reload"
         />
         <el-button @click="reload">搜索</el-button>
-        <el-button plain @click="exportCsv">导出 CSV</el-button>
+        <el-button type="primary" @click="reload"><el-icon><Search /></el-icon>查询</el-button>
       </div>
     </div>
 
-            <div class="action-bar">
+    <div class="table-card content-card">
+      <div class="table-heading"><div><strong>调用记录</strong><span>共 {{ total }} 条记录</span></div><div class="action-bar">
       <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
         查看详情
       </el-button>
@@ -45,7 +56,7 @@
       <el-divider direction="vertical" />
       <el-button size="small" type="danger" plain @click="handleClear">清空日志</el-button>
       <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
-    </div>
+      </div></div>
 
     <el-table
       ref="tableRef"
@@ -93,8 +104,9 @@
       @size-change="handleSizeChange"
       @current-change="handlePageChange"
     />
+    </div>
 
-    <el-dialog v-model="detailVisible" :title="`日志详情 #${detail?.id ?? ''}`" width="720px">
+    <el-drawer v-model="detailVisible" :title="`日志详情 #${detail?.id ?? ''}`" size="560px">
       <el-descriptions :column="3" border>
         <el-descriptions-item label="接口">{{ detail?.interfaceName }}</el-descriptions-item>
         <el-descriptions-item label="应用">{{ detail?.appName }}</el-descriptions-item>
@@ -115,7 +127,7 @@
         <el-button size="small" plain @click="copyText(detail?.responseBody)">复制</el-button>
       </div>
       <pre class="json-block" v-html="highlightJson(prettyJson(detail?.responseBody))"></pre>
-    </el-dialog>
+    </el-drawer>
   </div>
 </template>
 
@@ -123,6 +135,7 @@
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
+import { CircleCheckFilled, DataLine, Download, Search, Timer, WarningFilled } from '@element-plus/icons-vue'
 import {
   listApiLogs,
   getApiLog,
@@ -147,6 +160,12 @@ const detailVisible = ref(false)
 const detail = ref<ApiLog | null>(null)
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
+const successRate = computed(() => {
+  if (!logs.value.length) return '0.0'
+  return ((logs.value.filter((item) => item.statusCode < 400).length / logs.value.length) * 100).toFixed(1)
+})
+const averageCost = computed(() => logs.value.length ? Math.round(logs.value.reduce((sum, item) => sum + Number(item.costMs || 0), 0) / logs.value.length) : 0)
+const errorCount = computed(() => logs.value.filter((item) => item.statusCode >= 400).length)
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
 
 async function load() {
@@ -318,64 +337,13 @@ onActivated(() => {
 </script>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.toolbar-right {
-  display: flex;
-  gap: 8px;
-}
-.action-bar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.danger-right {
-  margin-left: auto;
-}
-.batch-tip {
-  color: #909399;
-  font-size: 13px;
-}
-.pagination {
-  margin-top: 12px;
-  justify-content: flex-end;
-}
-.json-block {
-  background: var(--el-fill-color-light, #f5f7fa);
-  color: var(--el-text-color-regular, #303133);
-  border-radius: 4px;
-  padding: 12px;
-  max-height: 240px;
-  overflow: auto;
-  font-size: 12px;
-  white-space: pre-wrap;
-}
-.json-block :deep(.json-key) {
-  color: var(--el-color-primary, #409eff);
-}
-.json-block :deep(.json-string) {
-  color: var(--el-color-success, #67c23a);
-}
-.json-block :deep(.json-number) {
-  color: var(--el-color-warning, #e6a23c);
-}
-.json-block :deep(.json-boolean) {
-  color: var(--el-color-danger, #f56c6c);
-}
-.json-block :deep(.json-null) {
-  color: var(--el-text-color-placeholder, #c0c4cc);
-}
-.block-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 12px 0 4px;
-  font-weight: 600;
-}
+.logs-page { max-width: 1600px; margin: 0 auto; }
+.page-heading,.table-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 24px 0 18px; }
+.summary-card { min-height: 128px; }.summary-label { color: var(--app-muted); font-size: 13px; }.summary-value { margin: 8px 0 12px; color: var(--app-text); font-size: 28px; font-weight: 700; letter-spacing: -.03em; }.summary-value small { margin-left: 3px; color: var(--app-muted); font-size: 13px; font-weight: 500; }.danger-number { color: #dc2626; }.summary-foot { display: flex; align-items: center; gap: 7px; color: var(--app-muted); font-size: 11px; }.summary-foot.positive { color: #059669; }.summary-foot.negative { color: #dc2626; }.summary-icon { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; }.summary-icon.blue { background: #dbeafe; color: #2563eb; }.summary-icon.green { background: #d1fae5; color: #059669; }.summary-icon.amber { background: #fef3c7; color: #d97706; }.summary-icon.red { background: #fee2e2; color: #dc2626; }
+.filter-card { display: flex; align-items: center; gap: 18px; padding: 16px; margin-bottom: 16px; }.filter-label { flex: 0 0 auto; color: var(--app-text); font-size: 13px; font-weight: 600; }.toolbar-right { display: flex; flex: 1; flex-wrap: wrap; gap: 8px; }.toolbar-right :deep(.el-date-editor) { width: 330px; }.toolbar-right :deep(.el-input) { width: 220px; }
+.table-card { overflow: hidden; }.table-heading { padding: 18px 20px; border-bottom: 1px solid var(--app-border); }.table-heading strong { color: var(--app-text); font-size: 15px; }.table-heading span { margin-left: 10px; color: var(--app-muted); font-size: 12px; }.action-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }.danger-right { margin-left: 4px; }.batch-tip { color: var(--app-muted); font-size: 12px; }.table-card :deep(.el-table) { border: 0; }.table-card :deep(.el-table__inner-wrapper::before) { display: none; }.table-card :deep(.el-table th:first-child),.table-card :deep(.el-table td:first-child) { padding-left: 20px; }.pagination { justify-content: flex-end; padding: 18px 20px; }
+.json-block { max-height: 260px; overflow: auto; padding: 14px; border: 1px solid var(--app-border); border-radius: 8px; background: #f8fafc; color: #334155; font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; line-height: 1.65; white-space: pre-wrap; }.json-block :deep(.json-key) { color: #2563eb; }.json-block :deep(.json-string) { color: #059669; }.json-block :deep(.json-number) { color: #d97706; }.json-block :deep(.json-boolean) { color: #db2777; }.json-block :deep(.json-null) { color: #94a3b8; }.block-toolbar { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 6px; color: var(--app-text); font-size: 13px; font-weight: 600; }
+@media (max-width: 1100px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.filter-card { align-items: flex-start; flex-direction: column; gap: 10px; }.toolbar-right :deep(.el-date-editor),.toolbar-right :deep(.el-input) { width: min(100%, 260px); } }
+@media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; }.page-heading { align-items: flex-start; flex-direction: column; }.table-heading { align-items: flex-start; flex-direction: column; }.action-bar { width: 100%; }.danger-right { margin-left: auto; } }
 </style>

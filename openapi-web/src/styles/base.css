@@ -6,9 +6,41 @@ body,
   margin: 0;
   padding: 0;
 }
-body {
-  background: var(--el-bg-color-page, #f0f2f5);
+:root {
+  --app-bg: #f7f9fc;
+  --app-surface: #ffffff;
+  --app-text: #172033;
+  --app-muted: #64748b;
+  --app-border: #e7edf4;
+  --app-primary: #2563eb;
+  --nav-bg: #172b4d;
+  --app-radius: 12px;
+  --el-color-primary: #2563eb;
+  --el-border-radius-base: 8px;
 }
+body {
+  color: var(--app-text);
+  background: var(--app-bg);
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.page-title {
+  margin: 0;
+  color: var(--app-text);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.page-subtitle { margin: 6px 0 0; color: var(--app-muted); font-size: 13px; }
+.content-card { border: 1px solid var(--app-border); border-radius: var(--app-radius); background: var(--app-surface); box-shadow: 0 4px 18px rgba(30, 64, 175, .04); }
+.el-card { --el-card-border-color: var(--app-border); border-radius: var(--app-radius); box-shadow: 0 4px 18px rgba(30, 64, 175, .04); }
+.el-button--primary { --el-button-bg-color: var(--app-primary); --el-button-border-color: var(--app-primary); }
+.el-table { --el-table-border-color: var(--app-border); --el-table-header-bg-color: #f8fafc; --el-table-row-hover-bg-color: #f8fbff; color: var(--app-text); }
+.el-table th.el-table__cell { color: #64748b; font-size: 12px; font-weight: 600; }
+.el-table td.el-table__cell, .el-table th.el-table__cell { border-bottom-color: var(--app-border); }
+.el-pagination { --el-pagination-button-bg-color: var(--app-surface); }
+.dark { --app-bg: #0f172a; --app-surface: #172033; --app-text: #e2e8f0; --app-muted: #94a3b8; --app-border: #263449; --nav-bg: #0b1324; }
+.dark .el-table { --el-table-header-bg-color: #1d293d; --el-table-tr-bg-color: var(--app-surface); --el-table-row-hover-bg-color: #22314a; }
 
 /* 详情弹窗长文本自动换行（如 AccessKey / SecretKey） */
 .el-descriptions__content {
