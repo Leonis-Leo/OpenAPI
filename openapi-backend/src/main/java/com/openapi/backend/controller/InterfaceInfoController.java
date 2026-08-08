@@ -27,12 +27,14 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/v1/interface")
 @RequiredArgsConstructor
 @Tag(name = "接口管理")
 public class InterfaceInfoController {
+    private static final Set<String> SUPPORTED_METHODS = Set.of("GET", "POST", "PUT", "PATCH", "DELETE");
 
     private final InterfaceInfoService interfaceInfoService;
     private final InterfaceSubscribeService subscribeService;
@@ -192,7 +194,7 @@ public class InterfaceInfoController {
         InterfaceInfo info = new InterfaceInfo();
         info.setName(name);
         info.setDescription(description);
-        info.setMethod(method.toUpperCase());
+        info.setMethod(normalizeMethod(method));
         info.setUrl(url);
         info.setRequestParams(requestParams);
         info.setResponseExample(responseExample);
@@ -225,7 +227,7 @@ public class InterfaceInfoController {
             info.setDescription(description);
         }
         if (StringUtils.hasText(method)) {
-            info.setMethod(method.toUpperCase());
+            info.setMethod(normalizeMethod(method));
         }
         if (StringUtils.hasText(url)) {
             info.setUrl(url);
@@ -238,6 +240,14 @@ public class InterfaceInfoController {
         }
         interfaceInfoService.updateById(info);
         return ApiResponse.ok();
+    }
+
+    private String normalizeMethod(String method) {
+        String normalized = method == null ? "" : method.trim().toUpperCase();
+        if (!SUPPORTED_METHODS.contains(normalized)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "仅支持 GET、POST、PUT、PATCH、DELETE 请求方法");
+        }
+        return normalized;
     }
 
     @PostMapping("/delete")

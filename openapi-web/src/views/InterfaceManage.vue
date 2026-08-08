@@ -70,7 +70,7 @@
       <el-table-column prop="description" label="描述" min-width="160" />
       <el-table-column prop="method" label="方式" width="90">
         <template #default="{ row }">
-          <el-tag :type="row.method === 'GET' ? 'success' : 'warning'">
+          <el-tag :type="methodTagType(row.method)">
             {{ row.method }}
           </el-tag>
         </template>
@@ -104,10 +104,10 @@
       @size-change="handlePageChange"
     />
 
-    <el-dialog v-model="detailVisible" :title="`接口详情 - ${debugInterface?.name ?? ''}`" width="720px">
-      <el-tabs v-model="detailTab">
+    <el-dialog v-model="detailVisible" class="interface-detail-dialog" :title="`接口详情 - ${debugInterface?.name ?? ''}`" width="1120px" top="6vh">
+      <el-tabs v-model="detailTab" class="interface-detail-tabs">
         <el-tab-pane label="接口信息" name="info">
-          <el-descriptions :column="2" border>
+          <el-descriptions class="interface-summary" :column="2" border>
             <el-descriptions-item label="名称">{{ debugInterface?.name }}</el-descriptions-item>
             <el-descriptions-item label="方式">{{ debugInterface?.method }}</el-descriptions-item>
             <el-descriptions-item label="路径" :span="2">{{ debugInterface?.url }}</el-descriptions-item>
@@ -117,12 +117,12 @@
             <span>请求参数说明</span>
             <el-button size="small" plain @click="copyText(debugInterface?.requestParams)">复制</el-button>
           </div>
-          <pre class="json-block" v-html="highlightJson(prettyJson(debugInterface?.requestParams))"></pre>
+          <pre class="json-block code-panel" v-html="highlightJson(prettyJson(debugInterface?.requestParams))"></pre>
           <div class="block-toolbar">
             <span>响应示例</span>
             <el-button size="small" plain @click="copyText(debugInterface?.responseExample)">复制</el-button>
           </div>
-          <pre class="json-block" v-html="highlightJson(prettyJson(debugInterface?.responseExample))"></pre>
+          <pre class="json-block code-panel" v-html="highlightJson(prettyJson(debugInterface?.responseExample))"></pre>
         </el-tab-pane>
         <el-tab-pane label="调用示例" name="sample">
           <el-form label-width="90px">
@@ -136,16 +136,17 @@
             <span>Java (Hutool + HMAC-SHA256)</span>
             <el-button size="small" plain @click="copyText(javaSample)">复制</el-button>
           </div>
-          <pre class="json-block">{{ javaSample || '-' }}</pre>
+          <pre class="json-block code-panel">{{ javaSample || '-' }}</pre>
           <div class="block-toolbar">
             <span>curl</span>
             <el-button size="small" plain @click="copyText(curlSample)">复制</el-button>
           </div>
-          <pre class="json-block">{{ curlSample || '-' }}</pre>
+          <pre class="json-block code-panel">{{ curlSample || '-' }}</pre>
         </el-tab-pane>
         <el-tab-pane label="在线调试" name="debug">
+          <div class="debug-pane">
           <div class="debug-header">
-            <el-tag :type="debugInterface?.method === 'GET' ? 'success' : 'warning'" size="small">
+            <el-tag :type="methodTagType(debugInterface?.method)" size="small">
               {{ debugInterface?.method }}
             </el-tag>
             <span class="debug-url">{{ debugInterface?.url }}</span>
@@ -200,6 +201,7 @@
             </div>
             <pre class="debug-body" v-html="debugBodyHtml"></pre>
           </div>
+          </div>
         </el-tab-pane>
       </el-tabs>
     </el-dialog>
@@ -229,6 +231,9 @@
           <el-select v-model="interfaceForm.method" style="width: 120px">
             <el-option label="GET" value="GET" />
             <el-option label="POST" value="POST" />
+            <el-option label="PUT" value="PUT" />
+            <el-option label="PATCH" value="PATCH" />
+            <el-option label="DELETE" value="DELETE" />
           </el-select>
         </el-form-item>
         <el-form-item label="路径"><el-input v-model="interfaceForm.url" placeholder="/api/xxx" /></el-form-item>
@@ -341,6 +346,17 @@ const debugCostMs = ref<number | null>(null)
 const debugBody = ref('')
 const debugLoading = ref(false)
 
+function methodTagType(method?: string) {
+  if (method === 'GET') return 'success'
+  if (method === 'DELETE') return 'danger'
+  if (method === 'PATCH') return 'warning'
+  return 'primary'
+}
+
+function usesQueryParams(method?: string) {
+  return method === 'GET' || method === 'DELETE'
+}
+
 const debugBodyHtml = computed(() => {
   const body = debugBody.value
   if (!body) return ''
@@ -355,12 +371,13 @@ const javaSample = computed(() => {
   const paramLines = sampleParamKeys(info.requestParams)
     .map((k) => `        params.put("${k}", "");`)
     .join('\n')
-  const isGet = info.method === 'GET'
-  const requestLine = isGet
+  const isQuery = usesQueryParams(info.method)
+  const hutoolMethod = info.method.toLowerCase()
+  const requestLine = isQuery
     ? `        String url = "${info.url}" + (params.isEmpty() ? "" : "?" + HttpUtil.toParams(params));
-        HttpRequest request = HttpRequest.get(url)`
+        HttpRequest request = HttpRequest.${hutoolMethod}(url)`
     : `        String url = "${info.url}";
-        HttpRequest request = HttpRequest.post(url)
+        HttpRequest request = HttpRequest.${hutoolMethod}(url)
                 .form(params)`
   return `// 依赖：hutool-all 5.8.x（或使用 JDK 自带 HttpURLConnection）
 import cn.hutool.crypto.digest.HMac;
@@ -449,7 +466,7 @@ async function buildCurl(): Promise<string> {
   })
   Object.entries(customHeaders).forEach(([k, v]) => parts.push(`-H '${k}: ${v}'`))
   const qs = new URLSearchParams(params).toString()
-  if (info.method === 'GET') {
+  if (usesQueryParams(info.method)) {
     parts.push(`'${info.url}${qs ? '?' + qs : ''}'`)
   } else {
     parts.push(`'${info.url}'`)
@@ -781,11 +798,11 @@ async function handleDebug() {
   try {
     let resp: Response
     const qs = new URLSearchParams(params).toString()
-    if (info.method === 'GET') {
-      resp = await fetch(info.url + (qs ? '?' + qs : ''), { headers })
+    if (usesQueryParams(info.method)) {
+      resp = await fetch(info.url + (qs ? '?' + qs : ''), { method: info.method, headers })
     } else {
       resp = await fetch(info.url, {
-        method: 'POST',
+        method: info.method,
         headers: {
           ...headers,
           'Content-Type': debugBodyMode.value === 'json' ? 'application/json' : 'application/x-www-form-urlencoded'
@@ -955,6 +972,27 @@ onMounted(load)
   font-size: 12px;
   white-space: pre-wrap;
 }
+.code-panel {
+  min-height: 92px;
+  margin: 0;
+  border: 1px solid #e6ebf2;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
+  line-height: 1.7;
+}
+.interface-summary {
+  margin-bottom: 22px;
+}
+.interface-detail-tabs {
+  min-height: 560px;
+}
+.debug-pane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
 .debug-param-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; margin-bottom: 8px; }
 .history-select { width: 150px; }
 .block-toolbar {
@@ -965,14 +1003,16 @@ onMounted(load)
   font-weight: 600;
 }
 .debug-header {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
+  padding: 12px 16px;
   padding: 8px 12px;
   background: var(--el-fill-color-light, #f5f7fa);
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 6px;
+  border-radius: 10px;
 }
 .debug-url {
   font-family: Consolas, Monaco, monospace;
@@ -981,9 +1021,10 @@ onMounted(load)
   word-break: break-all;
 }
 .debug-result {
-  margin-top: 4px;
+  grid-column: 2;
+  margin-top: 0;
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 6px;
+  border-radius: 10px;
   overflow: hidden;
 }
 .debug-result-head {
@@ -1014,6 +1055,50 @@ onMounted(load)
   word-break: break-all;
   background: var(--el-bg-color, #fff);
   color: var(--el-text-color-regular, #303133);
+}
+.debug-form {
+  grid-column: 1;
+  padding: 18px;
+  border: 1px solid #e6ebf2;
+  border-radius: 10px;
+  background: #fbfcfe;
+}
+:global(.interface-detail-dialog.el-dialog) {
+  max-width: calc(100vw - 48px);
+  border-radius: 16px;
+  overflow: hidden;
+}
+:global(.interface-detail-dialog .el-dialog__header) {
+  margin-right: 0;
+  padding: 22px 28px 16px;
+  border-bottom: 1px solid #edf1f5;
+}
+:global(.interface-detail-dialog .el-dialog__title) {
+  color: #172b4d;
+  font-size: 20px;
+  font-weight: 700;
+}
+:global(.interface-detail-dialog .el-dialog__body) {
+  padding: 18px 28px 28px;
+}
+:global(.interface-detail-dialog .el-tabs__item) {
+  height: 44px;
+  font-weight: 600;
+}
+@media (max-width: 860px) {
+  .debug-pane {
+    grid-template-columns: 1fr;
+  }
+  .debug-form,
+  .debug-result {
+    grid-column: 1;
+  }
+  :global(.interface-detail-dialog.el-dialog) {
+    max-width: calc(100vw - 24px);
+  }
+  :global(.interface-detail-dialog .el-dialog__body) {
+    padding: 12px 16px 20px;
+  }
 }
 .json-block :deep(.json-key),
 .debug-body :deep(.json-key) {
