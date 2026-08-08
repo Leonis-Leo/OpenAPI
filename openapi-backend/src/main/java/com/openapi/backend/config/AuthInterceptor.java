@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openapi.backend.common.JwtUtils;
 import com.openapi.backend.entity.User;
 import com.openapi.backend.service.UserService;
+import com.openapi.backend.service.JwtTokenBlacklistService;
 import com.openapi.common.model.ApiResponse;
 import com.openapi.common.model.enums.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,6 +28,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     private final JwtUtils jwtUtils;
     private final ObjectMapper objectMapper;
     private final UserService userService;
+    private final JwtTokenBlacklistService blacklistService;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
@@ -46,6 +48,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             return reject(response);
         }
         try {
+            if (blacklistService.isBlacklisted(token)) return reject(response);
             Long userId = jwtUtils.parseUserId(token);
             User user = userService.getById(userId);
             if (user == null || Integer.valueOf(0).equals(user.getStatus())) {

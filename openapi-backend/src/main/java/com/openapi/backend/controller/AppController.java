@@ -92,7 +92,9 @@ public class AppController {
 
     @PostMapping("/reset-secret")
     @Operation(summary = "重置 SecretKey")
-    public ApiResponse<AppResponse> resetSecret(@RequestParam Long id, HttpServletRequest request) {
+    public ApiResponse<AppResponse> resetSecret(@RequestParam Long id, @RequestParam String currentPassword, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("openapi.userId");
+        if (!userService.verifyPassword(userId, currentPassword)) throw new BusinessException(ErrorCode.NO_AUTH, "当前密码验证失败");
         App app = requireOwnedApp(id, request);
         app.setSecretKey("SK" + KeyGeneratorUtils.generateKey(32));
         appService.updateById(app);

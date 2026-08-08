@@ -78,8 +78,8 @@ export const revealAppSecret = (id: number) =>
 export const updateAppName = (id: number, appName: string) =>
   request.post<unknown, void>('/app/update', null, { params: { id, appName } })
 
-export const resetAppSecret = (id: number) =>
-  request.post<unknown, AppInfo>('/app/reset-secret', null, { params: { id } })
+export const resetAppSecret = (id: number, currentPassword: string) =>
+  request.post<unknown, AppInfo>('/app/reset-secret', null, { params: { id, currentPassword } })
 
 export const updateAppStatus = (id: number, enabled: boolean) =>
   request.post<unknown, void>('/app/update-status', null, { params: { id, enabled } })

@@ -294,12 +294,15 @@ async function handleResetSecret() {
     ? `确定重置选中的 ${rows.length} 个应用的 SecretKey 吗？旧密钥将失效`
     : `确定重置「${rows[0].appName}」的 SecretKey 吗？旧密钥将失效`
   await ElMessageBox.confirm(msg, '重置密钥', { type: 'warning' })
+  const { value: currentPassword } = await ElMessageBox.prompt('请输入当前登录密码以确认重置', '二次验证', {
+    inputType: 'password', inputPlaceholder: '当前登录密码', inputValidator: (v) => v ? true : '请输入密码'
+  })
   if (rows.length === 1) {
-    const app = await resetAppSecret(rows[0].id)
+    const app = await resetAppSecret(rows[0].id, currentPassword)
     keyInfo.value = app
     keyVisible.value = true
   } else {
-    const results = await Promise.allSettled(rows.map((a) => resetAppSecret(a.id)))
+    const results = await Promise.allSettled(rows.map((a) => resetAppSecret(a.id, currentPassword)))
     summarizeResults(results, rows.length, '重置密钥')
   }
   await load()

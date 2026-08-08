@@ -19,6 +19,15 @@ function redirectToLogin() {
   window.location.href = '/login'
 }
 
+request.interceptors.request.use((config) => {
+  const match = document.cookie.match(/(?:^|; )openapi_csrf=([^;]*)/)
+  const method = (config.method || 'get').toLowerCase()
+  if (match && !['get', 'head', 'options'].includes(method)) {
+    config.headers['X-CSRF-Token'] = decodeURIComponent(match[1])
+  }
+  return config
+})
+
 request.interceptors.response.use(
   (response) => {
     const res = response.data as ApiResponse<unknown>

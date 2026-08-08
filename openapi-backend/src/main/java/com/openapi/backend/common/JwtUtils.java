@@ -44,4 +44,9 @@ public class JwtUtils {
                 .getPayload();
         return Long.valueOf(claims.getSubject());
     }
+
+    public long remainingMillis(String token) {
+        Claims claims = Jwts.parser().verifyWith(key()).build().parseSignedClaims(token).getPayload();
+        return Math.max(0, claims.getExpiration().getTime() - System.currentTimeMillis());
+    }
 }

@@ -11,6 +11,8 @@ public interface UserService extends IService<User> {
 
     User login(String userAccount, String userPassword);
 
+    boolean verifyPassword(Long userId, String rawPassword);
+
     List<User> listUsers(String keyword);
 
     void updateRole(Long id, String role);

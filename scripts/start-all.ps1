@@ -5,9 +5,9 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
-$JavaExe = 'E:\Java\bin\java.exe'
+$JavaExe = 'C:\Program Files\Java\jdk-17\bin\java.exe'
 if (-not (Test-Path -LiteralPath $JavaExe)) {
-    $JavaExe = 'C:\Program Files\Java\jdk-17\bin\java.exe'
+    $JavaExe = 'E:\Java\bin\java.exe'
 }
 $MavenCmd = 'E:\Maven\bin\mvn.cmd'
 if (-not (Test-Path -LiteralPath $MavenCmd)) {

@@ -47,6 +47,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return user;
     }
 
+    @Override
+    public boolean verifyPassword(Long userId, String rawPassword) {
+        User user = getById(userId);
+        return user != null && StringUtils.hasText(rawPassword) && passwordMatches(user, rawPassword);
+    }
+
     private boolean passwordMatches(User user, String rawPassword) {
         String stored = user.getUserPassword();
         if (PasswordUtils.isLegacySha256(stored)) {
