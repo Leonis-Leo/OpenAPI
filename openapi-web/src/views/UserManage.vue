@@ -168,7 +168,7 @@ import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import {
   listUsers,
-  listApps,
+  listAppsForAdmin,
   listSubscribes,
   updateUserRole,
   updateUserStatus,
@@ -395,7 +395,7 @@ async function handleResetPassword() {
 }
 
 async function loadApps(userId: number) {
-  detailApps.value = await listApps(userId)
+  detailApps.value = await listAppsForAdmin(userId)
 }
 
 async function loadSubscribes(userId: number) {

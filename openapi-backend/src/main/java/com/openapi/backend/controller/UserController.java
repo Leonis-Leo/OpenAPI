@@ -10,9 +10,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.time.Duration;
 
 @RestController
 @RequestMapping("/v1/user")
@@ -32,6 +35,9 @@ public class UserController {
 
     private final UserService userService;
     private final JwtUtils jwtUtils;
+
+    @Value("${openapi.cookie.secure:false}")
+    private boolean cookieSecure;
 
     @PostMapping("/register")
     @Operation(summary = "用户注册")
@@ -53,11 +59,7 @@ public class UserController {
             HttpServletResponse response) {
         User user = userService.login(userAccount, userPassword);
         String token = jwtUtils.generateToken(user.getId());
-        Cookie cookie = new Cookie("openapi_token", token);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge((int) (24 * 60 * 60));
-        response.addCookie(cookie);
+        addAuthCookie(response, token, Duration.ofHours(24));
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
         result.put("user", user);
@@ -67,12 +69,19 @@ public class UserController {
     @PostMapping("/logout")
     @Operation(summary = "退出登录")
     public ApiResponse<Void> logout(HttpServletResponse response) {
-        Cookie cookie = new Cookie("openapi_token", null);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        addAuthCookie(response, "", Duration.ZERO);
         return ApiResponse.ok();
+    }
+
+    private void addAuthCookie(HttpServletResponse response, String token, Duration maxAge) {
+        ResponseCookie cookie = ResponseCookie.from("openapi_token", token)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(maxAge)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     @GetMapping("/list")

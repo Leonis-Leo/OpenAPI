@@ -243,7 +243,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import {
-  listApps,
+  listAppsForDebug,
   type AppInfo,
   listInterfaces,
   listAllInterfaces,
@@ -398,7 +398,7 @@ async function buildCurl(): Promise<string> {
   const nonce = Math.random().toString(36).slice(2, 10)
   const signParams: SignParams = { ...params, timestamp, nonce }
   const content = buildSignContent(info.method, info.url, signParams)
-  const signature = await hmacSha256Hex(content, app.secretKey)
+  const signature = await hmacSha256Hex(content, app.secretKey!)
   const parts = ['curl -X ' + info.method]
   ;['X-Access-Key', 'X-Timestamp', 'X-Nonce', 'X-Signature'].forEach((k) => {
     const v =
@@ -496,7 +496,7 @@ async function load() {
     subscribeMap.value = map
     subscribeIdMap.value = idMap
     if (userStore.user) {
-      apps.value = await listApps(userStore.user.id)
+      apps.value = await listAppsForDebug()
     }
   } finally {
     loading.value = false
@@ -669,7 +669,7 @@ async function handleDebug() {
   const nonce = Math.random().toString(36).slice(2, 10)
   const signParams: SignParams = { ...params, timestamp, nonce }
   const content = buildSignContent(info.method, info.url, signParams)
-  const signature = await hmacSha256Hex(content, app.secretKey)
+  const signature = await hmacSha256Hex(content, app.secretKey!)
   const headers: Record<string, string> = {
     'X-Access-Key': app.accessKey,
     'X-Timestamp': timestamp,

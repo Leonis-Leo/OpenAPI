@@ -21,7 +21,8 @@ export interface AppInfo {
   id: number
   appName: string
   accessKey: string
-  secretKey: string
+  secretKey?: string
+  secretKeyHint: string
   userId: number
   status: number
   createTime: string
@@ -59,11 +60,17 @@ export const logout = () => request.post<unknown, void>('/user/logout')
 export const register = (params: { userAccount: string; userPassword: string; userName?: string }) =>
   request.post<unknown, UserInfo>('/user/register', null, { params })
 
-export const createApp = (appName: string, userId: number) =>
-  request.post<unknown, AppInfo>('/app/create', null, { params: { appName, userId } })
+export const createApp = (appName: string) =>
+  request.post<unknown, AppInfo>('/app/create', null, { params: { appName } })
 
-export const listApps = (userId: number) =>
-  request.get<unknown, AppInfo[]>('/app/list', { params: { userId } })
+export const listApps = () =>
+  request.get<unknown, AppInfo[]>('/app/list')
+
+export const listAppsForDebug = () =>
+  request.get<unknown, AppInfo[]>('/app/debug-list')
+
+export const listAppsForAdmin = (userId: number) =>
+  request.get<unknown, AppInfo[]>('/app/admin-list', { params: { userId } })
 
 export const updateAppName = (id: number, appName: string) =>
   request.post<unknown, void>('/app/update', null, { params: { id, appName } })

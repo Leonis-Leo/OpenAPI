@@ -94,6 +94,17 @@ Phase 3
 
 ## Notes
 
+## 2026-08-08 P0 安全与质量改造
+
+- [x] 输出 P0/P1/P2 改造清单并同步 Obsidian 文档
+- [x] 修复应用创建/列表的 userId 越权边界
+- [x] 收敛 SecretKey 返回范围，列表仅返回脱敏值
+- [x] 禁用应用后拒绝签名调用
+- [x] 登录 Cookie 增加 SameSite 属性
+- [x] 增加应用权限边界和密钥暴露回归测试
+- [x] 完成 Maven、前端构建与相关测试
+- [ ] 提交 Git，并记录提交号
+
 - 更新阶段状态：pending → in_progress → complete
 - 2026-08-02 前端测试进展与发现见 findings.md；每次会话记录见 progress.md
 - 阶段状态变化时同步更新「Next Step」为单一下一步动作

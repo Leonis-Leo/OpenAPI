@@ -15,8 +15,7 @@
     </div>
 
             <div class="action-bar">
-      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="copySelected('ak')">复制AK</el-button>
-      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="copySelected('sk')">复制SK</el-button>
+      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="copySelected">复制AK</el-button>
       <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openRename(selectedRow)">重命名</el-button>
       <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="handleResetSecret">重置密钥</el-button>
       <el-button size="small" type="success" :disabled="selected.length === 0" @click="toggleOne(true)">启用</el-button>
@@ -45,7 +44,7 @@
       <el-table-column label="SecretKey" min-width="260" show-overflow-tooltip>
         <template #default="{ row }">
           <el-text type="info" size="small" class="secret-text" @click.stop="toggleSecret(row.id)">
-            {{ showSecretIds.has(row.id) ? row.secretKey : maskSecret(row.secretKey) }}
+            {{ row.secretKey ? (showSecretIds.has(row.id) ? row.secretKey : maskSecret(row.secretKey)) : row.secretKeyHint }}
           </el-text>
           <el-icon class="secret-eye" @click.stop="toggleSecret(row.id)">
             <View v-if="showSecretIds.has(row.id)" />
@@ -125,7 +124,7 @@
         <el-descriptions-item label="SecretKey">
           <span class="key-line">
             <span class="secret-text" @click="toggleSecret(detailRow!.id)">
-              {{ showSecretIds.has(detailRow!.id) ? detailRow?.secretKey : maskSecret(detailRow?.secretKey ?? '') }}
+              {{ detailRow?.secretKey ? (showSecretIds.has(detailRow!.id) ? detailRow.secretKey : maskSecret(detailRow.secretKey)) : detailRow?.secretKeyHint }}
             </span>
             <el-icon class="secret-eye" @click="toggleSecret(detailRow!.id)">
               <View v-if="showSecretIds.has(detailRow!.id)" />
@@ -231,20 +230,20 @@ async function load() {
   loading.value = true
   try {
     if (userStore.user) {
-      apps.value = await listApps(userStore.user.id)
+      apps.value = await listApps()
     }
   } finally {
     loading.value = false
   }
 }
 
-async function copySelected(type: 'ak' | 'sk') {
+async function copySelected() {
   const row = selectedRow.value
   if (!row) return
-  const text = type === 'ak' ? row.accessKey : row.secretKey
+  const text = row.accessKey
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success(`${type === 'ak' ? 'AccessKey' : 'SecretKey'} 已复制`)
+    ElMessage.success('AccessKey 已复制')
   } catch {
     ElMessage.error('复制失败')
   }
@@ -275,7 +274,7 @@ async function handleSave() {
       ElMessage.success('已保存')
     } else {
       if (userStore.user) {
-        const app = await createApp(appName.value.trim(), userStore.user.id)
+        const app = await createApp(appName.value.trim())
         keyInfo.value = app
         keyVisible.value = true
       }
@@ -315,7 +314,7 @@ async function copyText(text?: string) {
   }
 }
 
-function maskSecret(secret: string): string {
+function maskSecret(secret?: string): string {
   if (!secret) return ''
   if (secret.length <= 8) return '********'
   return secret.slice(0, 4) + '****' + secret.slice(-4)

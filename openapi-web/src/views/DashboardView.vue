@@ -34,7 +34,7 @@ const failed = reactive({ trend: false, ranks: false, logs: false })
 async function loadCards() {
   loading.cards = true
   try {
-    const apps = userStore.user ? await listApps(userStore.user.id) : []
+    const apps = userStore.user ? await listApps() : []
     const subscribes = await mySubscribes()
     const infos = await listInterfaces()
     let total = 0

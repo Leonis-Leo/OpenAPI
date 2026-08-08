@@ -65,7 +65,7 @@ public class SignatureInterceptor implements HandlerInterceptor {
         }
 
         App app = appMapper.selectOne(new LambdaQueryWrapper<App>().eq(App::getAccessKey, accessKey));
-        if (app == null) {
+        if (app == null || !Integer.valueOf(1).equals(app.getStatus())) {
             return reject(response, ErrorCode.INVALID_ACCESS_KEY);
         }
 

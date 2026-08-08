@@ -45,3 +45,6 @@ openapi:
     secret: openapi-platform-jwt-secret-key-0123456789abcdef0123456789abcdef
     # token 有效期（毫秒），默认 24 小时
     expire-millis: 86400000
+  cookie:
+    # Local HTTP keeps this false; production should set OPENAPI_COOKIE_SECURE=true.
+    secure: ${OPENAPI_COOKIE_SECURE:false}

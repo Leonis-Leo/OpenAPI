@@ -2,6 +2,17 @@
 
 ## Session: 2026-08-02
 
+## Session: 2026-08-08
+
+### P0 安全与质量改造
+
+- **Status:** complete
+- 已完成 P0/P1/P2 优先级清单，并新增 Obsidian 文档 `docs/01-项目文档/P0-安全与质量改造清单.md`。
+- 已修复应用创建/列表的 userId 越权，应用列表 SecretKey 脱敏，新增 debug-list/admin-list 的明确边界接口。
+- 已增加禁用应用签名拒绝、SameSite=Lax Cookie，以及应用权限/密钥暴露回归测试。
+- 验证通过：`mvn test -q`、`npm.cmd run build`、`git diff --check`。
+- 构建保留既有 Vite bundle 体积警告，未新增编译错误。
+
 ### 首页概览重设计（数据大盘）— 2026-08-02 晚间
 - **Status:** complete（实现与验证；浏览器 E2E 按用户要求跳过）
 - 流程：brainstorming → spec（docs/superpowers/specs/2026-08-02-homepage-overview-redesign-design.md）→ writing-plans（docs/superpowers/plans/2026-08-02-homepage-overview-redesign.md）→ 执行
