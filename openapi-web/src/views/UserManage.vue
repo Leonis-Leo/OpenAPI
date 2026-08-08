@@ -10,6 +10,7 @@
           style="width: 220px"
           @input="onKeywordInput"
         />
+        <el-button type="primary" plain @click="exportUsers">导出 CSV</el-button>
         <el-button type="primary" @click="openCreate">新增用户</el-button>
       </div>
     </div>
@@ -62,12 +63,12 @@
     <el-pagination
       class="pagination"
       layout="total, sizes, prev, pager, next, jumper"
-      :total="filteredUsers.length"
+      :total="total"
       :page-sizes="[10, 20, 50, 100]"
       v-model:current-page="currentPage"
       v-model:page-size="pageSize"
-      @current-change="clearSelection"
-      @size-change="clearSelection"
+      @current-change="handlePageChange"
+      @size-change="handlePageChange"
     />
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑用户' : '新增用户'" width="420px">
@@ -162,12 +163,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import {
-  listUsers,
+  pageUsers,
   listAppsForAdmin,
   listSubscribes,
   updateUserRole,
@@ -185,6 +186,7 @@ const users = ref<UserInfo[]>([])
 const loading = ref(false)
 const keyword = ref('')
 const keywordInput = ref('')
+const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const selected = ref<UserInfo[]>([])
@@ -216,38 +218,50 @@ function onKeywordInput() {
   keywordTimer = setTimeout(() => {
     keyword.value = keywordInput.value
     currentPage.value = 1
+    load()
   }, 300)
 }
 
-const filteredUsers = computed(() => {
-  const kw = keyword.value.trim().toLowerCase()
-  if (!kw) return users.value
-  return users.value.filter(
-    (u) =>
-      u.userAccount.toLowerCase().includes(kw) ||
-      (u.userName ?? '').toLowerCase().includes(kw)
-  )
-})
+const pagedUsers = computed(() => users.value)
 
-const pagedUsers = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return filteredUsers.value.slice(start, start + pageSize.value)
-})
-
-watch(filteredUsers, () => {
-  const max = Math.max(1, Math.ceil(filteredUsers.value.length / pageSize.value))
-  if (currentPage.value > max) {
-    currentPage.value = max
-  }
-})
+function handlePageChange() {
+  clearSelection()
+  load()
+}
 
 async function load() {
   loading.value = true
   try {
-    users.value = await listUsers()
+    const result = await pageUsers({
+      current: currentPage.value,
+      size: pageSize.value,
+      keyword: keyword.value || undefined
+    })
+    users.value = result.records
+    total.value = result.total
   } finally {
     loading.value = false
   }
+}
+
+function exportUsers() {
+  const header = ['账号', '昵称', '角色', '状态', '创建时间']
+  const rows = users.value.map((user) => [
+    user.userAccount,
+    user.userName ?? '',
+    user.userRole === 'admin' ? '管理员' : '普通用户',
+    user.status === 1 ? '启用' : '禁用',
+    user.createTime
+  ])
+  const escape = (value: string) => `"${String(value).replace(/"/g, '""')}"`
+  const csv = '\uFEFF' + [header, ...rows].map((row) => row.map(escape).join(',')).join('\r\n')
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `users-${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success('CSV 已导出当前页数据')
 }
 
 function openCreate() {

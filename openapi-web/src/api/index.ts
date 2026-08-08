@@ -195,6 +195,9 @@ export interface UserInfo {
 export const listUsers = (keyword?: string) =>
   request.get<unknown, UserInfo[]>('/user/list', { params: { keyword } })
 
+export const pageUsers = (params: { current: number; size: number; keyword?: string }) =>
+  request.get<unknown, PageResult<UserInfo>>('/user/page', { params })
+
 export const updateUserRole = (id: number, role: string) =>
   request.post<unknown, void>('/user/update-role', null, { params: { id, role } })
 

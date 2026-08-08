@@ -1,5 +1,7 @@
 package com.openapi.backend.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.openapi.backend.common.JwtUtils;
 import com.openapi.backend.entity.User;
 import com.openapi.backend.service.UserService;
@@ -110,6 +112,27 @@ public class UserController {
             HttpServletRequest request) {
         requireAdmin(request);
         return ApiResponse.ok(userService.listUsers(keyword));
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "用户分页列表（管理员）")
+    public ApiResponse<Map<String, Object>> pageUsers(
+            @RequestParam(defaultValue = "1") long current,
+            @RequestParam(defaultValue = "10") long size,
+            @RequestParam(required = false) String keyword,
+            HttpServletRequest request) {
+        requireAdmin(request);
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(w -> w.like(User::getUserAccount, keyword).or().like(User::getUserName, keyword));
+        }
+        wrapper.orderByDesc(User::getId);
+        Page<User> page = userService.page(new Page<>(Math.max(1, current), Math.min(Math.max(1, size), 100)), wrapper);
+        page.getRecords().forEach(user -> user.setUserPassword(null));
+        Map<String, Object> result = new HashMap<>();
+        result.put("records", page.getRecords());
+        result.put("total", page.getTotal());
+        return ApiResponse.ok(result);
     }
 
     @PostMapping("/update-role")
