@@ -72,6 +72,9 @@ export const listAppsForDebug = () =>
 export const listAppsForAdmin = (userId: number) =>
   request.get<unknown, AppInfo[]>('/app/admin-list', { params: { userId } })
 
+export const revealAppSecret = (id: number) =>
+  request.post<unknown, AppInfo>('/app/reveal-secret', null, { params: { id } })
+
 export const updateAppName = (id: number, appName: string) =>
   request.post<unknown, void>('/app/update', null, { params: { id, appName } })
 

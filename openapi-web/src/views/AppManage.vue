@@ -169,6 +169,7 @@ import {
   resetAppSecret,
   updateAppStatus,
   deleteApp,
+  revealAppSecret,
   mySubscribes,
   type SubscribeInfo,
   type AppInfo
@@ -320,11 +321,23 @@ function maskSecret(secret?: string): string {
   return secret.slice(0, 4) + '****' + secret.slice(-4)
 }
 
-function toggleSecret(id: number) {
+async function toggleSecret(id: number) {
   const next = new Set(showSecretIds.value)
   if (next.has(id)) {
     next.delete(id)
+    const row = apps.value.find((item) => item.id === id)
+    if (row) row.secretKey = undefined
   } else {
+    const row = apps.value.find((item) => item.id === id)
+    if (!row) return
+    if (!row.secretKey) {
+      try {
+        const revealed = await revealAppSecret(id)
+        row.secretKey = revealed.secretKey
+      } catch {
+        return
+      }
+    }
     next.add(id)
   }
   showSecretIds.value = next

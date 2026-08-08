@@ -66,6 +66,16 @@ class AppControllerTest {
     }
 
     @Test
+    void revealSecretReturnsFullSecretForOwner() {
+        App app = app(1L, 42L, "SKabcdefghijklmnopqrstuvwxyz123456");
+        when(appService.getById(1L)).thenReturn(app);
+
+        AppResponse response = controller.revealSecret(1L, request).getData();
+
+        assertEquals(app.getSecretKey(), response.getSecretKey());
+    }
+
+    @Test
     void updateRejectsApplicationOwnedByAnotherUser() {
         when(appService.getById(1L)).thenReturn(app(1L, 99L, "SKabcdefghijklmnopqrstuvwxyz123456"));
 

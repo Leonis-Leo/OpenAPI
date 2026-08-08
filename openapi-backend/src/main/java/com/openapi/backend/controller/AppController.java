@@ -70,6 +70,12 @@ public class AppController {
                 .toList());
     }
 
+    @PostMapping("/reveal-secret")
+    @Operation(summary = "查看应用 SecretKey")
+    public ApiResponse<AppResponse> revealSecret(@RequestParam Long id, HttpServletRequest request) {
+        return ApiResponse.ok(AppResponse.from(requireOwnedApp(id, request), true));
+    }
+
     @PostMapping("/update")
     @Operation(summary = "修改应用名称")
     public ApiResponse<Void> update(@RequestParam Long id,
