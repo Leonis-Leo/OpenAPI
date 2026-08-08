@@ -11,6 +11,12 @@ const router = createRouter({
       component: () => import('@/views/LoginView.vue')
     },
     {
+      path: '/network-error',
+      name: 'network-error',
+      component: () => import('@/views/NetworkErrorView.vue'),
+      meta: { title: '网络异常', public: true }
+    },
+    {
       path: '/',
       component: AdminLayout,
       redirect: '/dashboard',
@@ -75,7 +81,7 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const userStore = useUserStore()
-  if (to.path !== '/login' && !userStore.user) {
+  if (!to.meta.public && to.path !== '/login' && !userStore.user) {
     return '/login'
   }
   const adminRoutes = ['/stats', '/users', '/ratelimit', '/logs']

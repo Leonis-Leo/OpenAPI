@@ -41,6 +41,18 @@ request.interceptors.response.use(
     return res.data as AxiosResponse
   },
   (error) => {
+    const isNetworkError = !error.response && (
+      error.code === 'ERR_NETWORK' ||
+      error.code === 'ECONNABORTED' ||
+      error.message === 'Network Error' ||
+      error.message?.toLowerCase().includes('timeout')
+    )
+    if (isNetworkError) {
+      if (window.location.pathname !== '/network-error') {
+        window.location.assign('/network-error')
+      }
+      return Promise.reject(error)
+    }
     if (error.response?.status === 401) {
       redirectToLogin()
     }
