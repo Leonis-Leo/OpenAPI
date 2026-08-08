@@ -21,10 +21,10 @@
     </div>
 
             <div class="action-bar">
-      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
+      <el-button class="action-secondary" size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
         详情/调试
       </el-button>
-      <el-button size="small" type="primary" plain :disabled="selected.length === 0" @click="openSubscribe">
+      <el-button class="action-primary" size="small" type="primary" plain :disabled="selected.length === 0" @click="openSubscribe">
         订阅
       </el-button>
       <el-button
@@ -43,7 +43,7 @@
         <el-button size="small" type="warning" :disabled="selected.length === 0" @click="toggleStatus(0)">
           下线
         </el-button>
-        <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openEditForm(selectedRow)">编辑</el-button>
+        <el-button class="action-secondary" size="small" type="primary" plain :disabled="!selectedRow" @click="openEditForm(selectedRow)">编辑</el-button>
         <el-button class="danger-right" size="small" type="danger" plain :disabled="selected.length === 0" @click="handleDeleteInterface">
           删除
         </el-button>
