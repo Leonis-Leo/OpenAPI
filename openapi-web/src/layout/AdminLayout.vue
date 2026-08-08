@@ -45,6 +45,7 @@
           </el-breadcrumb>
         </div>
         <div class="topbar-right">
+          <button class="icon-button" aria-label="切换主题" @click="toggleTheme"><el-icon><Sunny v-if="isDark" /><Moon v-else /></el-icon></button>
           <span class="env-pill"><i></i> 本地开发环境</span>
           <button class="icon-button" aria-label="搜索"><el-icon><Search /></el-icon></button>
           <button class="icon-button" aria-label="通知"><el-icon><Bell /></el-icon><b class="notification-dot"></b></button>
@@ -73,7 +74,7 @@
 import { reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowDown, Bell, Box, Connection, Document, DocumentChecked, Expand, Fold, HomeFilled, Search, Timer, TrendCharts, User } from '@element-plus/icons-vue'
+import { ArrowDown, Bell, Box, Connection, Document, DocumentChecked, Expand, Fold, HomeFilled, Moon, Search, Sunny, Timer, TrendCharts, User } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 import { logout as logoutApi, selfUpdate } from '@/api'
 
@@ -81,11 +82,13 @@ const route = useRoute()
 const userStore = useUserStore()
 const isAdmin = userStore.user?.userRole === 'admin'
 const isCollapse = ref(localStorage.getItem('openapi-sidebar') === '1')
+const isDark = ref(document.documentElement.classList.contains('dark'))
 const profileVisible = ref(false)
 const savingProfile = ref(false)
 const profileForm = reactive({ userName: '', userPassword: '' })
 
 function toggleCollapse() { isCollapse.value = !isCollapse.value; localStorage.setItem('openapi-sidebar', isCollapse.value ? '1' : '0') }
+function toggleTheme() { isDark.value = !isDark.value; document.documentElement.classList.toggle('dark', isDark.value); localStorage.setItem('openapi-theme', isDark.value ? 'dark' : 'light') }
 async function handleCommand(command: string) {
   if (command === 'logout') { try { await logoutApi() } catch { /* local cleanup still applies */ } userStore.logout(); window.location.href = '/login' }
   if (command === 'profile') { profileForm.userName = userStore.user?.userName ?? ''; profileForm.userPassword = ''; profileVisible.value = true }
