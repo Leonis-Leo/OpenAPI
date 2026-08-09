@@ -52,14 +52,14 @@
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
           <el-table-column prop="appName" label="应用" />
           <el-table-column prop="userAccount" label="申请人" width="120" />
-          <el-table-column prop="status" label="状态" width="100">
+          <el-table-column prop="status" label="状态" width="100" sortable>
             <template #default="{ row }">
               <el-tag :type="statusType(row.status)" size="small">
                 {{ statusText(row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="createTime" label="申请时间" width="180" />
+          <el-table-column prop="createTime" label="申请时间" width="180" sortable />
         </el-table>
       </el-tab-pane>
       <el-tab-pane v-if="isAdmin" label="待审批" name="pending">
@@ -102,7 +102,7 @@
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
           <el-table-column prop="appName" label="申请应用" />
           <el-table-column v-if="isAdmin" prop="userAccount" label="申请人" width="120" />
-          <el-table-column prop="createTime" label="申请时间" width="180" />
+          <el-table-column prop="createTime" label="申请时间" width="180" sortable />
         </el-table>
       </el-tab-pane>
       <el-tab-pane label="我的订阅" name="mine">
@@ -144,14 +144,14 @@
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
           <el-table-column prop="appName" label="应用" />
           <el-table-column prop="userAccount" label="申请人" width="120" />
-          <el-table-column prop="status" label="状态" width="100">
+          <el-table-column prop="status" label="状态" width="100" sortable>
             <template #default="{ row }">
               <el-tag :type="statusType(row.status)" size="small">
                 {{ statusText(row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="createTime" label="申请时间" width="180" />
+          <el-table-column prop="createTime" label="申请时间" width="180" sortable />
         </el-table>
       </el-tab-pane>
     </el-tabs>

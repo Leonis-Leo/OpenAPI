@@ -64,14 +64,14 @@
         <el-table-column prop="total" label="调用量" width="90" sortable />
         <el-table-column prop="success" label="成功" width="80" />
         <el-table-column prop="fail" label="失败" width="80" />
-        <el-table-column label="成功率" width="90">
+        <el-table-column label="成功率" prop="successRate" width="90" sortable>
           <template #default="{ row }">
             <el-tag :type="row.successRate >= 90 ? 'success' : row.total ? 'warning' : 'info'" size="small">
               {{ row.successRate }}%
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="avgCostMs" label="平均耗时(ms)" width="110" />
+        <el-table-column prop="avgCostMs" label="平均耗时(ms)" width="110" sortable />
         <el-table-column label="操作" width="90">
           <template #default="{ row }">
             <el-button size="small" text type="primary" @click.stop="openDetailLogs(row)">查看日志</el-button>

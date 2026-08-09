@@ -120,11 +120,19 @@ public class UserController {
             @RequestParam(defaultValue = "1") long current,
             @RequestParam(defaultValue = "10") long size,
             @RequestParam(required = false) String keyword,
+            @Parameter(description = "角色：admin/user") @RequestParam(required = false) String role,
+            @Parameter(description = "状态：0 禁用 / 1 启用") @RequestParam(required = false) Integer status,
             HttpServletRequest request) {
         requireAdmin(request);
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w.like(User::getUserAccount, keyword).or().like(User::getUserName, keyword));
+        }
+        if (StringUtils.hasText(role)) {
+            wrapper.eq(User::getUserRole, role);
+        }
+        if (status != null) {
+            wrapper.eq(User::getStatus, status);
         }
         wrapper.orderByDesc(User::getId);
         Page<User> page = userService.page(new Page<>(Math.max(1, current), Math.min(Math.max(1, size), 100)), wrapper);

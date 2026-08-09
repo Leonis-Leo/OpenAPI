@@ -54,7 +54,7 @@
         </template>
       </el-table-column>
       <el-table-column prop="content" label="内容" min-width="280" show-overflow-tooltip />
-      <el-table-column prop="createTime" label="时间" width="170" />
+      <el-table-column prop="createTime" label="时间" width="170" sortable />
       <el-table-column label="状态" width="90">
         <template #default="{ row }">
           <el-tag :type="row.isRead === 0 ? 'warning' : 'info'" size="small">

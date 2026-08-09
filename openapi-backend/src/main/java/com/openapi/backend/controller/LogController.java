@@ -56,6 +56,7 @@ public class LogController {
 @Parameter(description = "状态码") @RequestParam(required = false) Integer statusCode,
 @Parameter(description = "应用 ID") @RequestParam(required = false) Long appId,
 @Parameter(description = "接口 ID") @RequestParam(required = false) Long interfaceId,
+@Parameter(description = "请求方式") @RequestParam(required = false) String method,
 @Parameter(description = "开始时间 yyyy-MM-dd HH:mm:ss") @RequestParam(required = false) String startTime,
             @Parameter(description = "结束时间 yyyy-MM-dd HH:mm:ss") @RequestParam(required = false) String endTime,
             HttpServletRequest request) {
@@ -75,6 +76,9 @@ public class LogController {
         }
         if (interfaceId != null) {
             wrapper.eq(InvokeLog::getInterfaceId, interfaceId);
+        }
+        if (StringUtils.hasText(method)) {
+            wrapper.eq(InvokeLog::getMethod, method.toUpperCase());
         }
         if (StringUtils.hasText(startTime)) {
             wrapper.ge(InvokeLog::getCreateTime,

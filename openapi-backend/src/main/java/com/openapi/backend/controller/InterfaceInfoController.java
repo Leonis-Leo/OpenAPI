@@ -67,6 +67,7 @@ public class InterfaceInfoController {
             @RequestParam(defaultValue = "10") long size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String method,
             @RequestParam(required = false) Long groupId,
             @RequestParam(required = false) Boolean ungrouped,
             @RequestParam(required = false) Long tagId,
@@ -86,6 +87,9 @@ public class InterfaceInfoController {
             wrapper.isNull(InterfaceInfo::getGroupId);
         } else if (groupId != null) {
             wrapper.eq(InterfaceInfo::getGroupId, groupId);
+        }
+        if (StringUtils.hasText(method)) {
+            wrapper.eq(InterfaceInfo::getMethod, method.toUpperCase());
         }
         if (tagId != null) {
             List<Long> ids = interfaceInfoService.interfaceIdsByTag(tagId);

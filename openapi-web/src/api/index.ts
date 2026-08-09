@@ -108,6 +108,7 @@ export const pageInterfaces = (params: {
   status?: number
   groupId?: number
   ungrouped?: boolean
+  method?: string
   tagId?: number
 }) =>
   request.get<unknown, PageResult<InterfaceInfo>>('/interface/page', { params })
@@ -317,7 +318,13 @@ export interface UserInfo {
 export const listUsers = (keyword?: string) =>
   request.get<unknown, UserInfo[]>('/user/list', { params: { keyword } })
 
-export const pageUsers = (params: { current: number; size: number; keyword?: string }) =>
+export const pageUsers = (params: {
+  current: number
+  size: number
+  keyword?: string
+  role?: string
+  status?: number
+}) =>
   request.get<unknown, PageResult<UserInfo>>('/user/page', { params })
 
 export const updateUserRole = (id: number, role: string) =>
@@ -422,6 +429,7 @@ export const listApiLogs = (params: {
   statusCode?: number
   appId?: number
   interfaceId?: number
+  method?: string
   startTime?: string
   endTime?: string
 }) =>

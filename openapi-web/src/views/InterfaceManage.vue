@@ -100,6 +100,13 @@
           <el-option label="已订阅" value="subscribed" />
           <el-option label="未订阅" value="unsubscribed" />
         </el-select>
+        <el-select v-model="methodFilter" clearable placeholder="请求方式" style="width: 120px" @change="applyFilters">
+          <el-option label="GET" value="GET" />
+          <el-option label="POST" value="POST" />
+          <el-option label="PUT" value="PUT" />
+          <el-option label="PATCH" value="PATCH" />
+          <el-option label="DELETE" value="DELETE" />
+        </el-select>
         <el-select v-model="tagFilter" clearable placeholder="全部标签" style="width: 120px" @change="onFilterChange">
           <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
         </el-select>
@@ -187,7 +194,7 @@
     >
       <el-table-column type="selection" width="50" />
       <el-table-column type="index" label="#" width="60" :index="indexMethod" />
-      <el-table-column label="名称">
+<el-table-column label="名称" prop="name" sortable>
         <template #default="{ row }">
           <el-link type="primary" @click="openDetail(row)">{{ row.name }}</el-link>
         </template>
@@ -200,7 +207,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="url" label="路径" min-width="180" />
+<el-table-column prop="url" label="路径" min-width="180" sortable />
       <el-table-column label="分组" width="110">
         <template #default="{ row }">
           <el-tag v-if="row.groupName" type="info" size="small" effect="plain">{{ row.groupName }}</el-tag>
@@ -222,7 +229,7 @@
           <span v-if="!(row.tags ?? []).length" class="text-muted">-</span>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="80">
+<el-table-column prop="status" label="状态" width="80" sortable>
         <template #default="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'info'">
             {{ row.status === 1 ? '上线' : '下线' }}
@@ -594,6 +601,7 @@ const loading = ref(false)
 const keyword = ref('')
 const keywordInput = ref('')
 const filterStatus = ref<'all' | 'online' | 'subscribed' | 'unsubscribed'>('all')
+const methodFilter = ref<string>()
 const groups = ref<InterfaceGroupInfo[]>([])
 const tags = ref<InterfaceTagInfo[]>([])
 const groupFilter = ref<number | null | undefined>(undefined)
@@ -833,6 +841,7 @@ function resetFilters() {
   clearTimeout(keywordTimer)
   keywordInput.value = ''
   keyword.value = ''
+  methodFilter.value = undefined
   tagFilter.value = undefined
   filterStatus.value = 'all'
   currentPage.value = 1
@@ -1039,6 +1048,7 @@ const filteredInterfaces = computed(() => {
       if (groupFilter.value === null ? i.groupId != null : i.groupId !== groupFilter.value) return false
     }
     if (tagFilter.value && !(i.tags ?? []).some((t) => t.id === tagFilter.value)) return false
+    if (methodFilter.value && i.method !== methodFilter.value) return false
     const matchKw =
       !kw || i.name.toLowerCase().includes(kw) || i.url.toLowerCase().includes(kw)
     if (!matchKw) return false
@@ -1090,6 +1100,7 @@ async function load() {
         size: pageSize.value,
         keyword: keyword.value || undefined,
         status: filterStatus.value === 'online' ? 1 : undefined,
+        method: methodFilter.value,
         groupId: groupFilter.value === null ? undefined : groupFilter.value,
         ungrouped: groupFilter.value === null ? true : undefined,
         tagId: tagFilter.value

@@ -11,6 +11,16 @@
         style="width: 240px"
         @input="onKeywordInput"
       />
+      <template #more>
+        <el-select v-model="roleFilter" clearable placeholder="角色" style="width: 120px" @change="applySearch">
+          <el-option label="管理员" value="admin" />
+          <el-option label="普通用户" value="user" />
+        </el-select>
+        <el-select v-model="statusFilter" clearable placeholder="状态" style="width: 120px" @change="applySearch">
+          <el-option label="启用" :value="1" />
+          <el-option label="禁用" :value="0" />
+        </el-select>
+      </template>
     </CollapsibleFilter>
 
     <div class="action-bar">
@@ -78,27 +88,27 @@
     >
       <el-table-column type="selection" width="50" />
       <el-table-column type="index" label="#" width="60" :index="indexMethod" />
-      <el-table-column label="账号">
+      <el-table-column label="账号" prop="userAccount" sortable>
         <template #default="{ row }">
           <el-link type="primary" @click="openDetail(row)">{{ row.userAccount }}</el-link>
         </template>
       </el-table-column>
       <el-table-column prop="userName" label="昵称" />
-      <el-table-column prop="userRole" label="角色" width="100">
+      <el-table-column prop="userRole" label="角色" width="100" sortable>
         <template #default="{ row }">
           <el-tag :type="row.userRole === 'admin' ? 'danger' : 'info'">
             {{ row.userRole === 'admin' ? '管理员' : '普通用户' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="90">
+      <el-table-column prop="status" label="状态" width="90" sortable>
         <template #default="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'danger'">
             {{ row.status === 1 ? '启用' : '禁用' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createTime" label="创建时间" width="170" />
+      <el-table-column prop="createTime" label="创建时间" width="170" sortable />
     </el-table>
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑用户' : '新增用户'" width="420px">
@@ -130,7 +140,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailVisible" :title="`用户详情 - ${detailRow?.userAccount ?? ''}`" width="520px">
+    <el-dialog v-model="detailVisible" :title="`用户详情 - ${detailRow?.userAccount ?? ''}`" width="980px" top="6vh">
       <el-descriptions :column="1" border>
         <el-descriptions-item label="账号">{{ detailRow?.userAccount }}</el-descriptions-item>
         <el-descriptions-item label="昵称">{{ detailRow?.userName }}</el-descriptions-item>
@@ -142,53 +152,79 @@
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ detailRow?.createTime }}</el-descriptions-item>
       </el-descriptions>
-      <h4>所属应用</h4>
-      <el-table v-if="detailApps.length" :data="pagedDetailApps" border stripe size="small">
-        <el-table-column prop="appName" label="应用名称" />
-        <el-table-column prop="accessKey" label="AccessKey" min-width="200" show-overflow-tooltip />
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-              {{ row.status === 1 ? '启用' : '禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="170" />
-      </el-table>
-      <el-pagination
-        v-if="detailApps.length > appDetailPageSize"
-        class="dialog-pagination"
-        size="small"
-        layout="total, prev, pager, next"
-        :total="detailApps.length"
-        :page-size="appDetailPageSize"
-        v-model:current-page="appDetailPage"
-      />
-      <el-empty v-else description="暂无应用" :image-size="60" />
-      <h4>订阅记录</h4>
-      <el-table v-if="detailSubscribes.length" :data="pagedDetailSubscribes" border stripe size="small">
-        <el-table-column prop="interfaceName" label="接口" />
-        <el-table-column prop="interfaceUrl" label="路径" min-width="160" />
-        <el-table-column prop="appName" label="应用" />
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="subscribeType(row.status)" size="small">
-              {{ subscribeText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="申请时间" width="170" />
-      </el-table>
-      <el-pagination
-        v-if="detailSubscribes.length > subDetailPageSize"
-        class="dialog-pagination"
-        size="small"
-        layout="total, prev, pager, next"
-        :total="detailSubscribes.length"
-        :page-size="subDetailPageSize"
-        v-model:current-page="subDetailPage"
-      />
-      <el-empty v-else description="暂无订阅" :image-size="60" />
+      <div class="detail-cols">
+        <div class="detail-col">
+          <div class="detail-list-head">
+            <h4>所属应用</h4>
+            <el-input
+              v-model="detailAppKeyword"
+              placeholder="搜索应用 / AccessKey"
+              clearable
+              size="small"
+              style="width: 170px"
+              @input="appDetailPage = 1"
+            />
+          </div>
+          <el-table v-if="filteredDetailApps.length" :data="pagedDetailApps" border stripe size="small">
+            <el-table-column prop="appName" label="应用名称" />
+            <el-table-column prop="accessKey" label="AccessKey" min-width="180" show-overflow-tooltip />
+            <el-table-column label="状态" width="80">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
+                  {{ row.status === 1 ? '启用' : '禁用' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="createTime" label="创建时间" width="160" />
+          </el-table>
+          <el-pagination
+            v-if="filteredDetailApps.length > appDetailPageSize"
+            class="dialog-pagination"
+            size="small"
+            layout="total, prev, pager, next"
+            :total="filteredDetailApps.length"
+            :page-size="appDetailPageSize"
+            v-model:current-page="appDetailPage"
+          />
+          <el-empty v-else :description="detailApps.length ? '无匹配结果' : '暂无应用'" :image-size="56" />
+        </div>
+        <div class="detail-col">
+          <div class="detail-list-head">
+            <h4>订阅记录</h4>
+            <el-input
+              v-model="detailSubKeyword"
+              placeholder="搜索接口 / 路径"
+              clearable
+              size="small"
+              style="width: 170px"
+              @input="subDetailPage = 1"
+            />
+          </div>
+          <el-table v-if="filteredDetailSubscribes.length" :data="pagedDetailSubscribes" border stripe size="small">
+            <el-table-column prop="interfaceName" label="接口" min-width="100" />
+            <el-table-column prop="interfaceUrl" label="路径" min-width="140" show-overflow-tooltip />
+            <el-table-column prop="appName" label="应用" min-width="100" />
+            <el-table-column label="状态" width="90">
+              <template #default="{ row }">
+                <el-tag :type="subscribeType(row.status)" size="small">
+                  {{ subscribeText(row.status) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="createTime" label="申请时间" width="150" />
+          </el-table>
+          <el-pagination
+            v-if="filteredDetailSubscribes.length > subDetailPageSize"
+            class="dialog-pagination"
+            size="small"
+            layout="total, prev, pager, next"
+            :total="filteredDetailSubscribes.length"
+            :page-size="subDetailPageSize"
+            v-model:current-page="subDetailPage"
+          />
+          <el-empty v-else :description="detailSubscribes.length ? '无匹配结果' : '暂无订阅'" :image-size="56" />
+        </div>
+      </div>
     </el-dialog>
 
     <el-dialog v-model="resetVisible" :title="`重置密码（${resetTargets.length} 人）`" width="420px">
@@ -236,6 +272,8 @@ const users = ref<UserInfo[]>([])
 const loading = ref(false)
 const keyword = ref('')
 const keywordInput = ref('')
+const roleFilter = ref<string | undefined>(undefined)
+const statusFilter = ref<number | undefined>(undefined)
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -249,13 +287,33 @@ const appDetailPage = ref(1)
 const appDetailPageSize = ref(5)
 const subDetailPage = ref(1)
 const subDetailPageSize = ref(5)
+const detailAppKeyword = ref('')
+const detailSubKeyword = ref('')
+const filteredDetailApps = computed(() => {
+  const kw = detailAppKeyword.value.trim().toLowerCase()
+  if (!kw) return detailApps.value
+  return detailApps.value.filter(
+    (app) =>
+      (app.appName || '').toLowerCase().includes(kw) ||
+      (app.accessKey || '').toLowerCase().includes(kw)
+  )
+})
+const filteredDetailSubscribes = computed(() => {
+  const kw = detailSubKeyword.value.trim().toLowerCase()
+  if (!kw) return detailSubscribes.value
+  return detailSubscribes.value.filter(
+    (sub) =>
+      (sub.interfaceName || '').toLowerCase().includes(kw) ||
+      (sub.interfaceUrl || '').toLowerCase().includes(kw)
+  )
+})
 const pagedDetailApps = computed(() => {
   const start = (appDetailPage.value - 1) * appDetailPageSize.value
-  return detailApps.value.slice(start, start + appDetailPageSize.value)
+  return filteredDetailApps.value.slice(start, start + appDetailPageSize.value)
 })
 const pagedDetailSubscribes = computed(() => {
   const start = (subDetailPage.value - 1) * subDetailPageSize.value
-  return detailSubscribes.value.slice(start, start + subDetailPageSize.value)
+  return filteredDetailSubscribes.value.slice(start, start + subDetailPageSize.value)
 })
 const resetVisible = ref(false)
 const resetTargets = ref<UserInfo[]>([])
@@ -311,6 +369,8 @@ function resetFilters() {
   clearTimeout(keywordTimer)
   keywordInput.value = ''
   keyword.value = ''
+  roleFilter.value = undefined
+  statusFilter.value = undefined
   currentPage.value = 1
   load()
 }
@@ -328,7 +388,9 @@ async function load() {
     const result = await pageUsers({
       current: currentPage.value,
       size: pageSize.value,
-      keyword: keyword.value || undefined
+      keyword: keyword.value || undefined,
+      role: roleFilter.value,
+      status: statusFilter.value
     })
     users.value = result.records
     total.value = Number(result.total)
@@ -474,6 +536,8 @@ function openDetail(row: UserInfo) {
   detailSubscribes.value = []
   appDetailPage.value = 1
   subDetailPage.value = 1
+  detailAppKeyword.value = ''
+  detailSubKeyword.value = ''
   detailVisible.value = true
   loadApps(row.id)
   loadSubscribes(row.id)
@@ -508,12 +572,20 @@ async function handleResetPassword() {
 }
 
 async function loadApps(userId: number) {
-  detailApps.value = await listAppsForAdmin(userId)
+  try {
+    detailApps.value = await listAppsForAdmin(userId)
+  } catch {
+    // 拦截器已提示
+  }
 }
 
 async function loadSubscribes(userId: number) {
-  const all = await listSubscribes()
-  detailSubscribes.value = all.filter((s) => s.userId === userId)
+  try {
+    const all = await listSubscribes()
+    detailSubscribes.value = all.filter((s) => String(s.userId) === String(userId))
+  } catch {
+    // 拦截器已提示
+  }
 }
 
 function subscribeType(status: number) {
@@ -561,5 +633,33 @@ onMounted(load)
 .dialog-pagination {
   justify-content: flex-end;
   margin-top: 10px;
+}
+.detail-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 8px;
+}
+.detail-list-head h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-text, #172033);
+}
+.detail-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+  margin-top: 8px;
+}
+.detail-col {
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .detail-cols {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

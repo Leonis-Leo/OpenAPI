@@ -87,7 +87,7 @@
     >
       <el-table-column type="selection" width="50" />
       <el-table-column type="index" label="#" width="60" :index="indexMethod" />
-      <el-table-column label="应用名称" min-width="120">
+      <el-table-column label="应用名称" prop="appName" min-width="120" sortable>
         <template #default="{ row }">
           <el-link type="primary" @click="openDetail(row)">{{ row.appName }}</el-link>
         </template>
@@ -107,14 +107,14 @@
           </el-button>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="80">
+      <el-table-column prop="status" label="状态" width="80" sortable>
         <template #default="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'info'">
             {{ row.status === 1 ? '启用' : '禁用' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createTime" label="创建时间" width="170" />
+      <el-table-column prop="createTime" label="创建时间" width="170" sortable />
     </el-table>
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '重命名应用' : '新建应用'" width="420px">
@@ -182,8 +182,18 @@
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ detailRow?.createTime }}</el-descriptions-item>
       </el-descriptions>
-      <h4>已订阅接口</h4>
-      <el-table v-if="appSubscribes.length" :data="pagedSubscribes" border stripe size="small">
+      <div class="detail-list-head">
+        <h4>已订阅接口</h4>
+        <el-input
+          v-model="detailSubKeyword"
+          placeholder="搜索接口 / 路径"
+          clearable
+          size="small"
+          style="width: 180px"
+          @input="detailPage = 1"
+        />
+      </div>
+      <el-table v-if="filteredSubscribes.length" :data="pagedSubscribes" border stripe size="small">
         <el-table-column prop="interfaceName" label="接口名称" />
         <el-table-column prop="interfaceUrl" label="路径" min-width="160" />
         <el-table-column label="状态" width="100">
@@ -196,15 +206,15 @@
         <el-table-column prop="createTime" label="申请时间" width="170" />
       </el-table>
       <el-pagination
-        v-if="appSubscribes.length > detailPageSize"
+        v-if="filteredSubscribes.length > detailPageSize"
         class="dialog-pagination"
         size="small"
         layout="total, prev, pager, next"
-        :total="appSubscribes.length"
+        :total="filteredSubscribes.length"
         :page-size="detailPageSize"
         v-model:current-page="detailPage"
       />
-      <el-empty v-else description="暂无订阅" :image-size="60" />
+      <el-empty v-else :description="appSubscribes.length ? '无匹配结果' : '暂无订阅'" :image-size="60" />
     </el-dialog>
   </div>
 </template>
@@ -245,9 +255,19 @@ const detailRow = ref<AppInfo | null>(null)
 const appSubscribes = ref<SubscribeInfo[]>([])
 const detailPage = ref(1)
 const detailPageSize = ref(5)
+const detailSubKeyword = ref('')
+const filteredSubscribes = computed(() => {
+  const kw = detailSubKeyword.value.trim().toLowerCase()
+  if (!kw) return appSubscribes.value
+  return appSubscribes.value.filter(
+    (sub) =>
+      (sub.interfaceName || '').toLowerCase().includes(kw) ||
+      (sub.interfaceUrl || '').toLowerCase().includes(kw)
+  )
+})
 const pagedSubscribes = computed(() => {
   const start = (detailPage.value - 1) * detailPageSize.value
-  return appSubscribes.value.slice(start, start + detailPageSize.value)
+  return filteredSubscribes.value.slice(start, start + detailPageSize.value)
 })
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
@@ -527,6 +547,7 @@ function openDetail(row: AppInfo) {
   detailRow.value = row
   appSubscribes.value = []
   detailPage.value = 1
+  detailSubKeyword.value = ''
   detailVisible.value = true
   loadSubscribes(row.id)
 }
@@ -613,5 +634,18 @@ onMounted(load)
 .dialog-pagination {
   justify-content: flex-end;
   margin-top: 10px;
+}
+.detail-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 8px;
+}
+.detail-list-head h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-text, #172033);
 }
 </style>

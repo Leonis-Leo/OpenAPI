@@ -24,6 +24,10 @@
             style="width: 260px"
             @input="appPage = 1"
           />
+          <el-select v-model="appConfigFilter" clearable placeholder="配置状态" style="width: 120px" @change="appPage = 1">
+            <el-option label="已配置" value="configured" />
+            <el-option label="未配置" value="unconfigured" />
+          </el-select>
         </CollapsibleFilter>
     <div class="action-bar">
       <div class="bar-left">
@@ -59,23 +63,23 @@
           <el-table-column type="index" label="#" width="60" :index="appIndex" />
           <el-table-column prop="appName" label="应用名称" />
           <el-table-column prop="accessKey" label="AccessKey" min-width="200" show-overflow-tooltip />
-          <el-table-column label="配置状态" width="100">
+          <el-table-column label="配置状态" prop="configured" width="100" sortable>
             <template #default="{ row }">
               <el-tag v-if="row.configured" type="success" size="small">已配置</el-tag>
               <el-tag v-else type="info" size="small">未配置</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="启用" width="90">
+          <el-table-column label="启用" prop="enabled" width="90" sortable>
             <template #default="{ row }">
               <el-switch :model-value="row.enabled" @change="(v: boolean | string | number) => saveAppEnabled(row, v)" />
             </template>
           </el-table-column>
-          <el-table-column label="容量" width="140">
+          <el-table-column label="容量" prop="capacity" width="140" sortable>
             <template #default="{ row }">
               <el-input-number v-model="row.capacity" :min="1" :max="10000" @change="markDirtyApp(row)" />
             </template>
           </el-table-column>
-          <el-table-column label="补充速率(个/秒)" width="160">
+          <el-table-column label="补充速率(个/秒)" prop="refillRate" width="160" sortable>
             <template #default="{ row }">
               <el-input-number v-model="row.refillRate" :min="1" :max="1000" @change="markDirtyApp(row)" />
             </template>
@@ -91,6 +95,10 @@
             style="width: 260px"
             @input="interfacePage = 1"
           />
+          <el-select v-model="interfaceConfigFilter" clearable placeholder="配置状态" style="width: 120px" @change="interfacePage = 1">
+            <el-option label="已配置" value="configured" />
+            <el-option label="未配置" value="unconfigured" />
+          </el-select>
         </CollapsibleFilter>
     <div class="action-bar">
       <div class="bar-left">
@@ -131,23 +139,23 @@
             </template>
           </el-table-column>
           <el-table-column prop="url" label="路径" min-width="180" />
-          <el-table-column label="配置状态" width="100">
+          <el-table-column label="配置状态" prop="configured" width="100" sortable>
             <template #default="{ row }">
               <el-tag v-if="row.configured" type="success" size="small">已配置</el-tag>
               <el-tag v-else type="info" size="small">未配置</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="启用" width="90">
+          <el-table-column label="启用" prop="enabled" width="90" sortable>
             <template #default="{ row }">
               <el-switch :model-value="row.enabled" @change="(v: boolean | string | number) => saveInterfaceEnabled(row, v)" />
             </template>
           </el-table-column>
-          <el-table-column label="容量" width="140">
+          <el-table-column label="容量" prop="capacity" width="140" sortable>
             <template #default="{ row }">
               <el-input-number v-model="row.capacity" :min="1" :max="10000" @change="markDirtyInterface(row)" />
             </template>
           </el-table-column>
-          <el-table-column label="补充速率(个/秒)" width="160">
+          <el-table-column label="补充速率(个/秒)" prop="refillRate" width="160" sortable>
             <template #default="{ row }">
               <el-input-number v-model="row.refillRate" :min="1" :max="1000" @change="markDirtyInterface(row)" />
             </template>
@@ -179,6 +187,8 @@ const appList = ref<AppRateLimitConfig[]>([])
 const interfaceList = ref<RateLimitConfig[]>([])
 const appKeyword = ref('')
 const interfaceKeyword = ref('')
+const appConfigFilter = ref<'all' | 'configured' | 'unconfigured'>('all')
+const interfaceConfigFilter = ref<'all' | 'configured' | 'unconfigured'>('all')
 const loading = ref(false)
 const appSelected = ref<AppRateLimitConfig[]>([])
 const interfaceSelected = ref<RateLimitConfig[]>([])
@@ -209,6 +219,7 @@ function applyAppFilter() {
 
 function resetAppFilter() {
   appKeyword.value = ''
+  appConfigFilter.value = 'all'
   appPage.value = 1
 }
 
@@ -218,7 +229,38 @@ function applyInterfaceFilter() {
 
 function resetInterfaceFilter() {
   interfaceKeyword.value = ''
+  interfaceConfigFilter.value = 'all'
   interfacePage.value = 1
+}
+
+function filterAppList() {
+  const kw = appKeyword.value.trim().toLowerCase()
+  return appList.value.filter((r) => {
+    const matchKw =
+      !kw || r.appName.toLowerCase().includes(kw) || (r.accessKey ?? '').toLowerCase().includes(kw)
+    const matchConfig =
+      appConfigFilter.value === 'configured'
+        ? !!r.configured
+        : appConfigFilter.value === 'unconfigured'
+          ? !r.configured
+          : true
+    return matchKw && matchConfig
+  })
+}
+
+function filterInterfaceList() {
+  const kw = interfaceKeyword.value.trim().toLowerCase()
+  return interfaceList.value.filter((r) => {
+    const matchKw =
+      !kw || r.interfaceName.toLowerCase().includes(kw) || r.url.toLowerCase().includes(kw)
+    const matchConfig =
+      interfaceConfigFilter.value === 'configured'
+        ? !!r.configured
+        : interfaceConfigFilter.value === 'unconfigured'
+          ? !r.configured
+          : true
+    return matchKw && matchConfig
+  })
 }
 
 const appRow = computed(() => (appSelected.value.length === 1 ? appSelected.value[0] : null))
@@ -239,49 +281,23 @@ function clearInterfaceSelection() {
 }
 
 const pagedAppList = computed(() => {
-  const kw = appKeyword.value.trim().toLowerCase()
-  const filtered = !kw
-    ? appList.value
-    : appList.value.filter(
-        (r) =>
-          r.appName.toLowerCase().includes(kw) ||
-          (r.accessKey ?? '').toLowerCase().includes(kw)
-      )
+  const filtered = filterAppList()
   const start = (appPage.value - 1) * pageSize.value
   return filtered.slice(start, start + pageSize.value)
 })
 
 const filteredAppCount = computed(() => {
-  const kw = appKeyword.value.trim().toLowerCase()
-  if (!kw) return appList.value.length
-  return appList.value.filter(
-    (r) =>
-      r.appName.toLowerCase().includes(kw) ||
-      (r.accessKey ?? '').toLowerCase().includes(kw)
-  ).length
+  return filterAppList().length
 })
 
 const pagedInterfaceList = computed(() => {
-  const kw = interfaceKeyword.value.trim().toLowerCase()
-  const filtered = !kw
-    ? interfaceList.value
-    : interfaceList.value.filter(
-        (r) =>
-          r.interfaceName.toLowerCase().includes(kw) ||
-          r.url.toLowerCase().includes(kw)
-      )
+  const filtered = filterInterfaceList()
   const start = (interfacePage.value - 1) * pageSize.value
   return filtered.slice(start, start + pageSize.value)
 })
 
 const filteredInterfaceCount = computed(() => {
-  const kw = interfaceKeyword.value.trim().toLowerCase()
-  if (!kw) return interfaceList.value.length
-  return interfaceList.value.filter(
-    (r) =>
-      r.interfaceName.toLowerCase().includes(kw) ||
-      r.url.toLowerCase().includes(kw)
-  ).length
+  return filterInterfaceList().length
 })
 
 watch(appList, () => {
