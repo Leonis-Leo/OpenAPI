@@ -75,6 +75,5 @@ const hasChips = computed(() => Boolean(slots.chips?.()?.length))
   flex-wrap: wrap;
   gap: 8px;
   padding-top: 10px;
-  border-top: 1px dashed var(--app-border);
 }
 </style>

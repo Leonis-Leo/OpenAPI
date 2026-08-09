@@ -16,13 +16,15 @@
     />
     <el-tabs v-model="activeTab">
       <el-tab-pane label="按应用限流" name="app">
-        <el-input
-          v-model="appKeyword"
-          placeholder="搜索应用名称 / AccessKey"
-          clearable
-          style="width: 260px; margin-bottom: 12px"
-          @input="appPage = 1"
-        />
+        <CollapsibleFilter @search="applyAppFilter" @reset="resetAppFilter">
+          <el-input
+            v-model="appKeyword"
+            placeholder="搜索应用名称 / AccessKey"
+            clearable
+            style="width: 260px"
+            @input="appPage = 1"
+          />
+        </CollapsibleFilter>
     <div class="action-bar">
       <div class="bar-left">
         <el-button size="small" type="primary" :disabled="appSelected.length === 0" @click="handleSaveApp">保存配置</el-button>
@@ -81,13 +83,15 @@
         </el-table>
       </el-tab-pane>
       <el-tab-pane label="按接口限流" name="interface">
-        <el-input
-          v-model="interfaceKeyword"
-          placeholder="搜索接口名称 / 路径"
-          clearable
-          style="width: 260px; margin-bottom: 12px"
-          @input="interfacePage = 1"
-        />
+        <CollapsibleFilter @search="applyInterfaceFilter" @reset="resetInterfaceFilter">
+          <el-input
+            v-model="interfaceKeyword"
+            placeholder="搜索接口名称 / 路径"
+            clearable
+            style="width: 260px"
+            @input="interfacePage = 1"
+          />
+        </CollapsibleFilter>
     <div class="action-bar">
       <div class="bar-left">
         <el-button size="small" type="primary" :disabled="interfaceSelected.length === 0" @click="handleSaveInterface">保存配置</el-button>
@@ -158,6 +162,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
+import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import {
   listRateLimitConfigs,
   saveRateLimitConfig,
@@ -196,6 +201,24 @@ function markDirtyInterface(row: RateLimitConfig) {
 
 function clearDirty() {
   dirtyKeys.value = new Set()
+}
+
+function applyAppFilter() {
+  appPage.value = 1
+}
+
+function resetAppFilter() {
+  appKeyword.value = ''
+  appPage.value = 1
+}
+
+function applyInterfaceFilter() {
+  interfacePage.value = 1
+}
+
+function resetInterfaceFilter() {
+  interfaceKeyword.value = ''
+  interfacePage.value = 1
 }
 
 const appRow = computed(() => (appSelected.value.length === 1 ? appSelected.value[0] : null))
