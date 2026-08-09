@@ -55,7 +55,16 @@
       </el-table-column>
       <el-table-column prop="content" label="内容" min-width="280" show-overflow-tooltip />
       <el-table-column prop="createTime" label="时间" width="170" sortable />
-      <el-table-column label="状态" width="90">
+      <el-table-column
+        label="状态"
+        prop="isRead"
+        width="90"
+        :filters="[
+          { text: '未读', value: 0 },
+          { text: '已读', value: 1 }
+        ]"
+        :filter-method="filterNotifStatus"
+      >
         <template #default="{ row }">
           <el-tag :type="row.isRead === 0 ? 'warning' : 'info'" size="small">
             {{ row.isRead === 0 ? '未读' : '已读' }}
@@ -120,6 +129,10 @@ function handlePageChange() {
 
 function handleSelectionChange(rows: NotificationItem[]) {
   selected.value = rows
+}
+
+function filterNotifStatus(value: number, row: NotificationItem) {
+  return row.isRead === value
 }
 
 function handleRowClick(row: NotificationItem) {

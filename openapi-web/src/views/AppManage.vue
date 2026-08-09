@@ -107,7 +107,17 @@
           </el-button>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="80" sortable>
+      <el-table-column
+        prop="status"
+        label="状态"
+        width="80"
+        sortable
+        :filters="[
+          { text: '启用', value: 1 },
+          { text: '禁用', value: 0 }
+        ]"
+        :filter-method="filterAppStatus"
+      >
         <template #default="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'info'">
             {{ row.status === 1 ? '启用' : '禁用' }}
@@ -306,6 +316,10 @@ function exportApps() {
   link.click()
   URL.revokeObjectURL(url)
   ElMessage.success('CSV 已导出当前页数据')
+}
+
+function filterAppStatus(value: number, row: AppInfo) {
+  return row.status === value
 }
 
 function exportAppsJson() {

@@ -17,13 +17,6 @@
         <el-option label="失败" value="fail" />
       </el-select>
       <template #more>
-        <el-select v-model="methodFilter" clearable placeholder="请求方式" style="width: 120px" @change="reload">
-          <el-option label="GET" value="GET" />
-          <el-option label="POST" value="POST" />
-          <el-option label="PUT" value="PUT" />
-          <el-option label="PATCH" value="PATCH" />
-          <el-option label="DELETE" value="DELETE" />
-        </el-select>
         <el-select v-model="statusFilter" placeholder="状态码" clearable style="width: 120px" @change="reload">
           <el-option label="401" :value="401" />
           <el-option label="403" :value="403" />
@@ -106,7 +99,19 @@
           <el-link type="primary" @click="openDetail(row)">{{ row.interfaceName }}</el-link>
         </template>
       </el-table-column>
-      <el-table-column prop="method" label="方式" width="80">
+      <el-table-column
+        prop="method"
+        label="方式"
+        width="80"
+        :filters="[
+          { text: 'GET', value: 'GET' },
+          { text: 'POST', value: 'POST' },
+          { text: 'PUT', value: 'PUT' },
+          { text: 'PATCH', value: 'PATCH' },
+          { text: 'DELETE', value: 'DELETE' }
+        ]"
+        :filter-method="filterLogMethod"
+      >
         <template #default="{ row }">
           <el-tag :type="row.method === 'GET' ? 'success' : 'warning'">{{ row.method }}</el-tag>
         </template>
@@ -179,7 +184,6 @@ const pageSize = ref(10)
 const keyword = ref('')
 const statusFilter = ref<number | undefined>(undefined)
 const statusType = ref<'success' | 'fail' | undefined>(undefined)
-const methodFilter = ref<string | undefined>(undefined)
 const timeRange = ref<[Date, Date] | null>(null)
 const timePreset = ref<'all' | '1h' | '24h' | '7d' | 'custom'>('all')
 const showCustomTime = computed(() => timePreset.value === 'custom')
@@ -213,7 +217,6 @@ async function load() {
     keyword: keyword.value.trim() || undefined,
     success: statusType.value === 'success' ? 1 : statusType.value === 'fail' ? 0 : undefined,
     statusCode: statusFilter.value,
-    method: methodFilter.value,
     appId: appFilter.value,
     interfaceId: interfaceFilter.value,
     startTime: dateFilter.value ? `${dateFilter.value} 00:00:00` : formatTime(timeRange.value?.[0]),
@@ -232,7 +235,6 @@ function reload() {
 function resetFilters() {
   statusType.value = undefined
   statusFilter.value = undefined
-  methodFilter.value = undefined
   timePreset.value = 'all'
   timeRange.value = null
   keyword.value = ''
@@ -242,6 +244,10 @@ function resetFilters() {
   interfaceFilter.value = undefined
   interfaceFilterName.value = ''
   reload()
+}
+
+function filterLogMethod(value: string, row: ApiLog) {
+  return row.method === value
 }
 
 function onTimePresetChange() {

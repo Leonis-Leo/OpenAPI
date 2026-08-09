@@ -52,7 +52,18 @@
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
           <el-table-column prop="appName" label="应用" />
           <el-table-column prop="userAccount" label="申请人" width="120" />
-          <el-table-column prop="status" label="状态" width="100" sortable>
+          <el-table-column
+            prop="status"
+            label="状态"
+            width="100"
+            sortable
+            :filters="[
+              { text: '待审批', value: 0 },
+              { text: '已通过', value: 1 },
+              { text: '已拒绝', value: 2 }
+            ]"
+            :filter-method="filterSubscribeStatus"
+          >
             <template #default="{ row }">
               <el-tag :type="statusType(row.status)" size="small">
                 {{ statusText(row.status) }}
@@ -144,7 +155,18 @@
           <el-table-column prop="interfaceUrl" label="接口路径" min-width="180" />
           <el-table-column prop="appName" label="应用" />
           <el-table-column prop="userAccount" label="申请人" width="120" />
-          <el-table-column prop="status" label="状态" width="100" sortable>
+          <el-table-column
+            prop="status"
+            label="状态"
+            width="100"
+            sortable
+            :filters="[
+              { text: '待审批', value: 0 },
+              { text: '已通过', value: 1 },
+              { text: '已拒绝', value: 2 }
+            ]"
+            :filter-method="filterSubscribeStatus"
+          >
             <template #default="{ row }">
               <el-tag :type="statusType(row.status)" size="small">
                 {{ statusText(row.status) }}
@@ -260,6 +282,10 @@ const filteredMine = computed(() => myList.value.filter(matchKw))
 const pagedMine = computed(() => filteredMine.value)
 const filteredAll = computed(() => allList.value.filter(matchKw))
 const pagedAll = computed(() => filteredAll.value)
+
+function filterSubscribeStatus(value: number, row: SubscribeInfo) {
+  return row.status === value
+}
 
 function resetSearch() {
   pendingPage.value = 1

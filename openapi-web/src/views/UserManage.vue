@@ -11,16 +11,6 @@
         style="width: 240px"
         @input="onKeywordInput"
       />
-      <template #more>
-        <el-select v-model="roleFilter" clearable placeholder="角色" style="width: 120px" @change="applySearch">
-          <el-option label="管理员" value="admin" />
-          <el-option label="普通用户" value="user" />
-        </el-select>
-        <el-select v-model="statusFilter" clearable placeholder="状态" style="width: 120px" @change="applySearch">
-          <el-option label="启用" :value="1" />
-          <el-option label="禁用" :value="0" />
-        </el-select>
-      </template>
     </CollapsibleFilter>
 
     <div class="action-bar">
@@ -94,14 +84,34 @@
         </template>
       </el-table-column>
       <el-table-column prop="userName" label="昵称" />
-      <el-table-column prop="userRole" label="角色" width="100" sortable>
+      <el-table-column
+        prop="userRole"
+        label="角色"
+        width="100"
+        sortable
+        :filters="[
+          { text: '管理员', value: 'admin' },
+          { text: '普通用户', value: 'user' }
+        ]"
+        :filter-method="filterUserRole"
+      >
         <template #default="{ row }">
           <el-tag :type="row.userRole === 'admin' ? 'danger' : 'info'">
             {{ row.userRole === 'admin' ? '管理员' : '普通用户' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="90" sortable>
+      <el-table-column
+        prop="status"
+        label="状态"
+        width="90"
+        sortable
+        :filters="[
+          { text: '启用', value: 1 },
+          { text: '禁用', value: 0 }
+        ]"
+        :filter-method="filterUserStatus"
+      >
         <template #default="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'danger'">
             {{ row.status === 1 ? '启用' : '禁用' }}
@@ -272,8 +282,6 @@ const users = ref<UserInfo[]>([])
 const loading = ref(false)
 const keyword = ref('')
 const keywordInput = ref('')
-const roleFilter = ref<string | undefined>(undefined)
-const statusFilter = ref<number | undefined>(undefined)
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -369,10 +377,16 @@ function resetFilters() {
   clearTimeout(keywordTimer)
   keywordInput.value = ''
   keyword.value = ''
-  roleFilter.value = undefined
-  statusFilter.value = undefined
   currentPage.value = 1
   load()
+}
+
+function filterUserRole(value: string, row: UserInfo) {
+  return row.userRole === value
+}
+
+function filterUserStatus(value: number, row: UserInfo) {
+  return row.status === value
 }
 
 const pagedUsers = computed(() => users.value)
@@ -388,9 +402,7 @@ async function load() {
     const result = await pageUsers({
       current: currentPage.value,
       size: pageSize.value,
-      keyword: keyword.value || undefined,
-      role: roleFilter.value,
-      status: statusFilter.value
+      keyword: keyword.value || undefined
     })
     users.value = result.records
     total.value = Number(result.total)
