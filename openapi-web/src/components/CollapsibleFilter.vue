@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, useSlots } from 'vue'
+import { Comment, computed, ref, useSlots } from 'vue'
 import { ArrowDown, ArrowUp, Search } from '@element-plus/icons-vue'
 
 const emit = defineEmits<{ (e: 'search'): void; (e: 'reset'): void }>()
 const expanded = ref(false)
 const slots = useSlots()
-const hasChips = computed(() => Boolean(slots.chips?.()?.length))
+const hasChips = computed(() =>
+  (slots.chips?.() ?? []).some((node) => node.type !== Comment)
+)
 </script>
 
 <template>
