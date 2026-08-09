@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { init, use, type ECharts } from 'echarts/core'
 import { LineChart } from 'echarts/charts'
 import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
@@ -20,6 +20,7 @@ const latest = computed(() => {
 const chartRef = ref<HTMLDivElement>()
 let chart: ECharts | null = null
 let observer: MutationObserver | null = null
+let resizeObserver: ResizeObserver | null = null
 const onResize = () => chart?.resize()
 
 function onDaysChange(value: string | number | boolean) {
@@ -32,25 +33,33 @@ function cssVar(name: string): string {
 
 function render() {
   if (!chart || !hasEnoughData.value) return
-  chart.setOption({
-    color: [cssVar('--el-color-primary'), cssVar('--el-color-success'), cssVar('--el-color-danger')],
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['调用量', '成功量', '失败量'], top: 0, right: 10 },
-    grid: { left: 48, right: 24, top: 44, bottom: 40 },
-    xAxis: { type: 'category', data: props.series.days, axisLabel: { margin: 12 } },
-    yAxis: { type: 'value', minInterval: 1 },
-    series: [
-      { name: '调用量', type: 'line', smooth: true, areaStyle: { opacity: 0.08 }, data: props.series.total },
-      { name: '成功量', type: 'line', smooth: true, areaStyle: { opacity: 0.08 }, data: props.series.ok },
-      { name: '失败量', type: 'line', smooth: true, areaStyle: { opacity: 0.08 }, data: props.series.fail }
-    ]
-  })
+  try {
+    chart.setOption({
+      color: [cssVar('--el-color-primary'), cssVar('--el-color-success'), cssVar('--el-color-danger')],
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['调用量', '成功量', '失败量'], top: 0, right: 10 },
+      grid: { left: 48, right: 24, top: 44, bottom: 40 },
+      xAxis: { type: 'category', data: props.series.days, axisLabel: { margin: 12 } },
+      yAxis: { type: 'value', minInterval: 1 },
+      series: [
+        { name: '调用量', type: 'line', smooth: true, areaStyle: { opacity: 0.08 }, data: props.series.total },
+        { name: '成功量', type: 'line', smooth: true, areaStyle: { opacity: 0.08 }, data: props.series.ok },
+        { name: '失败量', type: 'line', smooth: true, areaStyle: { opacity: 0.08 }, data: props.series.fail }
+      ]
+    })
+  } catch {
+    // 图表渲染失败时保持占位，不影响页面其他模块
+  }
 }
 
 function ensureChart() {
   if (chartRef.value && !chart) {
     chart = init(chartRef.value)
     window.addEventListener('resize', onResize)
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => chart?.resize())
+      resizeObserver.observe(chartRef.value)
+    }
   }
 }
 
@@ -73,8 +82,16 @@ onMounted(async () => {
   syncTheme()
 })
 
+onActivated(async () => {
+  ensureChart()
+  chart?.resize()
+  await nextTick()
+  render()
+})
+
 onBeforeUnmount(() => {
   observer?.disconnect()
+  resizeObserver?.disconnect()
   window.removeEventListener('resize', onResize)
   chart?.dispose()
   chart = null
