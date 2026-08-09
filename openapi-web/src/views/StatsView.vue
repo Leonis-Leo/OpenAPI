@@ -102,64 +102,11 @@
         </el-card>
       </el-col>
     </el-row>
-    <el-card class="detail-card">
-      <template #header>
-        <div class="chart-header">
-          <span>调用明细</span>
-          <el-radio-group v-model="detailDimension" size="small" @change="onDimensionChange">
-            <el-radio-button value="day">按天</el-radio-button>
-            <el-radio-button value="app">按应用</el-radio-button>
-            <el-radio-button value="interface">按接口</el-radio-button>
-          </el-radio-group>
-        </div>
-      </template>
-      <el-table
-        :data="detailList"
-        border
-        stripe
-        size="small"
-        v-loading="detailLoading"
-        @row-click="openDetailLogs"
-      >
-        <el-table-column type="index" label="#" width="50" :index="detailIndex" />
-        <el-table-column v-if="detailDimension === 'day'" prop="day" label="日期" min-width="120" />
-        <el-table-column v-else-if="detailDimension === 'app'" prop="appName" label="应用" min-width="150" />
-        <el-table-column v-else prop="interfaceName" label="接口" min-width="170" />
-        <el-table-column prop="total" label="调用量" width="90" sortable />
-        <el-table-column prop="success" label="成功" width="80" />
-        <el-table-column prop="fail" label="失败" width="80" />
-        <el-table-column label="成功率" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.successRate >= 90 ? 'success' : row.total ? 'warning' : 'info'" size="small">
-              {{ row.successRate }}%
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="avgCostMs" label="平均耗时(ms)" width="110" />
-        <el-table-column label="操作" width="90">
-          <template #default="{ row }">
-            <el-button size="small" text type="primary" @click.stop="openDetailLogs(row)">查看日志</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-empty v-if="!detailList.length && !detailLoading" description="暂无明显数据" :image-size="60" />
-      <el-pagination
-        class="pagination"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="detailTotal"
-        :page-sizes="[10, 20, 50, 100]"
-        v-model:current-page="detailPage"
-        v-model:page-size="detailPageSize"
-        @current-change="loadDetail"
-        @size-change="loadDetail"
-      />
-    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { nextTick, onActivated, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { CircleCheck, CircleClose, DataLine, Odometer } from '@element-plus/icons-vue'
 import { init, use, type ECharts } from 'echarts/core'
 import { LineChart } from 'echarts/charts'
@@ -170,44 +117,44 @@ import {
   statsDaily,
   statsTopInterfaces,
   statsTopApps,
-  statsDailyPage,
   type DailyStat,
-  type StatsDetailItem,
   type StatsOverview,
   type TopStat
 } from '@/api'
 
 use([LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
 
-const router = useRouter()
 const overview = ref<StatsOverview>({ total: 0, success: 0, fail: 0, successRate: 0 })
 const daily = ref<DailyStat[]>([])
 const days = ref(7)
 const topInterfaces = ref<TopStat[]>([])
 const topApps = ref<TopStat[]>([])
 const rankLoading = ref(false)
-const detailDimension = ref<'day' | 'app' | 'interface'>('day')
-const detailList = ref<StatsDetailItem[]>([])
-const detailTotal = ref(0)
-const detailPage = ref(1)
-const detailPageSize = ref(10)
-const detailLoading = ref(false)
 const chartRef = ref<HTMLDivElement>()
 let chart: ECharts | null = null
+let resizeObserver: ResizeObserver | null = null
 
 const onResize = () => chart?.resize()
-const detailIndex = (i: number) => (detailPage.value - 1) * detailPageSize.value + i + 1
+
+function ensureChart() {
+  if (chartRef.value && !chart) {
+    chart = init(chartRef.value)
+    window.addEventListener('resize', onResize)
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => chart?.resize())
+      resizeObserver.observe(chartRef.value)
+    }
+  }
+}
 
 async function loadChart() {
   daily.value = await statsDaily(days.value)
   await nextTick()
   if (!chartRef.value) return
-  if (!chart) {
-    chart = init(chartRef.value)
-    window.addEventListener('resize', onResize)
-  }
-  chart.clear()
-  chart.setOption({
+  ensureChart()
+  chart?.resize()
+  chart?.clear()
+  chart?.setOption({
     tooltip: { trigger: 'axis' },
     legend: { data: ['调用量', '成功量'], top: 0, right: 10 },
     grid: { left: 40, right: 20, top: 40, bottom: 40 },
@@ -246,43 +193,9 @@ async function loadRanks() {
   }
 }
 
-async function loadDetail() {
-  detailLoading.value = true
-  try {
-    const result = await statsDailyPage({
-      current: detailPage.value,
-      size: detailPageSize.value,
-      dimension: detailDimension.value
-    })
-    detailList.value = result.records
-    detailTotal.value = Number(result.total)
-  } finally {
-    detailLoading.value = false
-  }
-}
-
-function onDimensionChange() {
-  detailPage.value = 1
-  loadDetail()
-}
-
-function openDetailLogs(row: StatsDetailItem) {
-  const query: Record<string, string> = {}
-  if (row.day) query.date = row.day
-  if (row.appId) {
-    query.appId = String(row.appId)
-    if (row.appName) query.appName = row.appName
-  }
-  if (row.interfaceId) {
-    query.interfaceId = String(row.interfaceId)
-    if (row.interfaceName) query.interfaceName = row.interfaceName
-  }
-  router.push({ path: '/logs', query })
-}
-
 async function reload() {
   overview.value = await statsOverview()
-  await Promise.all([loadChart(), loadRanks(), loadDetail()])
+  await Promise.all([loadChart(), loadRanks()])
 }
 
 onMounted(async () => {
@@ -290,10 +203,12 @@ onMounted(async () => {
 })
 
 onActivated(() => {
+  chart?.resize()
   reload()
 })
 
 onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
   window.removeEventListener('resize', onResize)
   chart?.dispose()
 })
@@ -355,12 +270,5 @@ onBeforeUnmount(() => {
 }
 .rank-row {
   margin-top: 16px;
-}
-.detail-card {
-  margin-top: 16px;
-}
-.detail-card .pagination {
-  justify-content: flex-end;
-  margin-top: 12px;
 }
 </style>

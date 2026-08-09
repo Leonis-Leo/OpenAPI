@@ -151,6 +151,19 @@
 - 后端：`GET /v1/stats/daily-page`（聚合表分页，dimension=day/app/interface，支持日期/应用/接口过滤）；`/v1/log/list` 新增 appId/interfaceId 过滤。
 - 验证：三维度接口、日期+接口日志过滤均实测通过；`mvn package`、`npm run build` 通过。
 
+### 调用统计页精简 + 明细独立页 + 左侧菜单分类重构（2026-08-09）
+- **Status:** complete
+- 修复统计页趋势图空白：StatsView 的 echarts 补齐 keep-alive 激活 resize、ResizeObserver 与渲染容错（与仪表盘趋势图一致）。
+- 调用明细从统计页拆为独立页面 `/stats/detail`（`StatsDetailView.vue`），统计页只保留概览卡 + 趋势 + 排行，避免数据量大时页面卡顿。
+- 左侧菜单分类重构，新增未来功能占位（点击进入“规划中”占位页 `ComingSoonView.vue`）：
+  - 资源管理：+ 服务目录
+  - 运营分析：+ 调用明细（真实）、监控告警
+  - 开放治理（新分类）：策略中心 / 灰度发布 / 敏感脱敏 / API 文档
+  - 平台设置：+ 团队与权限 / 多租户 / 计费账单
+  - 开发者中心（新分类）：SDK 与示例 / 压测报告
+  - 占位菜单带“规划中”徽标，路由 `/coming-soon?name=&desc=`。
+- 验证：`npm run build` 通过；统计明细接口此前已实测。
+
 ### P0 安全与质量改造
 
 - **Status:** complete

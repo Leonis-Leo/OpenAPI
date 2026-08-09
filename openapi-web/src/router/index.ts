@@ -52,6 +52,18 @@ const router = createRouter({
           meta: { title: '调用统计' }
         },
         {
+          path: 'stats/detail',
+          name: 'stats-detail',
+          component: () => import('@/views/StatsDetailView.vue'),
+          meta: { title: '调用明细' }
+        },
+        {
+          path: 'coming-soon',
+          name: 'coming-soon',
+          component: () => import('@/views/ComingSoonView.vue'),
+          meta: { title: '规划中' }
+        },
+        {
           path: 'users',
           name: 'users',
           component: () => import('@/views/UserManage.vue'),
@@ -90,7 +102,7 @@ router.beforeEach((to) => {
   if (!to.meta.public && to.path !== '/login' && !userStore.user) {
     return '/login'
   }
-  const adminRoutes = ['/stats', '/users', '/ratelimit', '/logs']
+  const adminRoutes = ['/stats', '/stats/detail', '/users', '/ratelimit', '/logs']
   if (adminRoutes.includes(to.path) && userStore.user?.userRole !== 'admin') {
     return '/dashboard'
   }
