@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="toolbar">
+    <div class="page-heading">
       <div>
         <h2>调用明细</h2>
         <p class="page-subtitle">按天 / 应用 / 接口维度查看调用量、成功率与平均耗时，点击行可跳转当日日志</p>
@@ -8,6 +8,11 @@
       <el-button @click="reload">刷新</el-button>
     </div>
     <CollapsibleFilter @search="reload" @reset="resetFilters">
+      <el-radio-group v-model="dimension" size="small" @change="onDimensionChange">
+        <el-radio-button value="day">按天</el-radio-button>
+        <el-radio-button value="app">按应用</el-radio-button>
+        <el-radio-button value="interface">按接口</el-radio-button>
+      </el-radio-group>
       <el-date-picker
         v-model="dateRange"
         type="daterange"
@@ -18,17 +23,7 @@
         @change="reload"
       />
     </CollapsibleFilter>
-    <el-card shadow="never">
-      <template #header>
-        <div class="detail-header">
-          <span>维度</span>
-          <el-radio-group v-model="dimension" size="small" @change="onDimensionChange">
-            <el-radio-button value="day">按天</el-radio-button>
-            <el-radio-button value="app">按应用</el-radio-button>
-            <el-radio-button value="interface">按接口</el-radio-button>
-          </el-radio-group>
-        </div>
-      </template>
+    <div class="table-card content-card">
       <el-table
         :data="list"
         border
@@ -69,7 +64,7 @@
         @current-change="load"
         @size-change="load"
       />
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -115,7 +110,8 @@ function formatDate(date?: Date): string | undefined {
 
 function resetFilters() {
   dateRange.value = null
-  reload()
+  currentPage.value = 1
+  load()
 }
 
 function onDimensionChange() {
@@ -138,6 +134,7 @@ function openDetailLogs(row: StatsDetailItem) {
 }
 
 function reload() {
+  currentPage.value = 1
   load()
 }
 
@@ -145,22 +142,23 @@ onActivated(load)
 </script>
 
 <style scoped>
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
 .page-subtitle {
   margin: 6px 0 0;
   color: var(--app-muted, #64748b);
   font-size: 13px;
 }
-.detail-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.detail-header > span {
-  font-weight: 600;
-  color: var(--app-text, #172033);
+.table-card {
+  overflow: hidden;
 }
 .pagination {
   justify-content: flex-end;
-  margin-top: 12px;
+  padding: 14px 16px;
 }
 </style>

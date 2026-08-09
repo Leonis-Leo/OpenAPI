@@ -186,6 +186,11 @@
 - 接口管理：旧式 tabs+搜索+标签 筛选行改为标准 `CollapsibleFilter` 筛选条（tabs/搜索/标签靠左，重置/查询靠右），新增 applyFilters/resetFilters。
 - 验证：`npm run build` 通过。
 
+### 调用明细页统一标准布局（2026-08-09）
+- **Status:** complete
+- 调用明细页按应用管理标准重排：标题区（标题+副标题+刷新）、标准筛选条（维度 tabs + 日期范围，右侧重置/查询）、表格卡片（无多余头部）、分页右下。
+- 验证：`npm run build` 通过。
+
 ### P0 安全与质量改造
 
 - **Status:** complete
