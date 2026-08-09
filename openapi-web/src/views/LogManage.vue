@@ -24,7 +24,15 @@
           <el-option label="429" :value="429" />
           <el-option label="500" :value="500" />
         </el-select>
+        <el-select v-model="timePreset" style="width: 140px" @change="onTimePresetChange">
+          <el-option label="全部时间" value="all" />
+          <el-option label="近 1 小时" value="1h" />
+          <el-option label="近 24 小时" value="24h" />
+          <el-option label="近 7 天" value="7d" />
+          <el-option label="自定义" value="custom" />
+        </el-select>
         <el-date-picker
+          v-if="showCustomTime"
           v-model="timeRange"
           type="datetimerange"
           range-separator="至"
@@ -164,6 +172,8 @@ const keyword = ref('')
 const statusFilter = ref<number | undefined>(undefined)
 const statusType = ref<'success' | 'fail' | undefined>(undefined)
 const timeRange = ref<[Date, Date] | null>(null)
+const timePreset = ref<'all' | '1h' | '24h' | '7d' | 'custom'>('all')
+const showCustomTime = computed(() => timePreset.value === 'custom')
 const appFilter = ref<number | undefined>(undefined)
 const appFilterName = ref('')
 const interfaceFilter = ref<number | undefined>(undefined)
@@ -212,6 +222,7 @@ function reload() {
 function resetFilters() {
   statusType.value = undefined
   statusFilter.value = undefined
+  timePreset.value = 'all'
   timeRange.value = null
   keyword.value = ''
   dateFilter.value = ''
@@ -219,6 +230,22 @@ function resetFilters() {
   appFilterName.value = ''
   interfaceFilter.value = undefined
   interfaceFilterName.value = ''
+  reload()
+}
+
+function onTimePresetChange() {
+  const now = new Date()
+  if (timePreset.value === 'all') {
+    timeRange.value = null
+  } else if (timePreset.value === 'custom') {
+    // 自定义时等待用户选择时间
+  } else {
+    const start = new Date(now)
+    if (timePreset.value === '1h') start.setHours(start.getHours() - 1)
+    else if (timePreset.value === '24h') start.setDate(start.getDate() - 1)
+    else start.setDate(start.getDate() - 6)
+    timeRange.value = [start, now]
+  }
   reload()
 }
 

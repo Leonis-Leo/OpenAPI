@@ -13,7 +13,15 @@
         <el-option label="按应用" value="app" />
         <el-option label="按接口" value="interface" />
       </el-select>
+      <el-select v-model="datePreset" style="width: 130px" @change="onDatePresetChange">
+        <el-option label="全部时间" value="all" />
+        <el-option label="近 7 天" value="7" />
+        <el-option label="近 30 天" value="30" />
+        <el-option label="近 90 天" value="90" />
+        <el-option label="自定义" value="custom" />
+      </el-select>
       <el-date-picker
+        v-if="showCustomDate"
         v-model="dateRange"
         type="daterange"
         range-separator="至"
@@ -69,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { onActivated, ref } from 'vue'
+import { computed, onActivated, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import { statsDailyPage, type StatsDetailItem } from '@/api'
@@ -81,7 +89,9 @@ const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const loading = ref(false)
+const datePreset = ref<'all' | '7' | '30' | '90' | 'custom'>('all')
 const dateRange = ref<[Date, Date] | null>(null)
+const showCustomDate = computed(() => datePreset.value === 'custom')
 
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
 
@@ -109,7 +119,23 @@ function formatDate(date?: Date): string | undefined {
 }
 
 function resetFilters() {
+  datePreset.value = 'all'
   dateRange.value = null
+  currentPage.value = 1
+  load()
+}
+
+function onDatePresetChange() {
+  const now = new Date()
+  if (datePreset.value === 'all') {
+    dateRange.value = null
+  } else if (datePreset.value === 'custom') {
+    // 自定义时等待用户选择日期
+  } else {
+    const start = new Date(now)
+    start.setDate(start.getDate() - Number(datePreset.value) + 1)
+    dateRange.value = [start, now]
+  }
   currentPage.value = 1
   load()
 }
