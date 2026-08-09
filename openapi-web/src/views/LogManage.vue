@@ -11,38 +11,50 @@
       <el-card shadow="never" class="summary-card"><div class="summary-label">异常请求</div><div class="summary-value danger-number">{{ errorCount }}</div><div class="summary-foot negative"><span class="summary-icon red"><WarningFilled /></span>需要关注</div></el-card>
     </div>
     <div class="filter-card content-card">
-      <div class="filter-label">筛选条件</div>
-      <div class="toolbar-right">
-        <el-select v-model="statusType" placeholder="结果" clearable style="width: 110px" @change="reload">
-          <el-option label="成功" value="success" />
-          <el-option label="失败" value="fail" />
-        </el-select>
-        <el-select v-model="statusFilter" placeholder="状态码" clearable style="width: 110px" @change="reload">
-          <el-option label="401" :value="401" />
-          <el-option label="403" :value="403" />
-          <el-option label="429" :value="429" />
-          <el-option label="500" :value="500" />
-        </el-select>
-        <el-date-picker
-          v-model="timeRange"
-          type="datetimerange"
-          range-separator="至"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
-          style="width: 340px"
-          @change="reload"
-        />
-        <el-input
-          v-model="keyword"
-          placeholder="搜索路径 / IP"
-          clearable
-          style="width: 220px"
-          @keyup.enter="reload"
-          @clear="reload"
-        />
-        <el-button @click="reload">搜索</el-button>
-        <el-button type="primary" @click="reload"><el-icon><Search /></el-icon>查询</el-button>
+      <div class="filter-head">
+        <span class="filter-title">筛选条件</span>
+        <div class="filter-head-actions">
+          <el-button plain @click="resetFilters">重置</el-button>
+          <el-button type="primary" @click="reload"><el-icon><Search /></el-icon>查询</el-button>
+        </div>
       </div>
+      <el-form label-position="top" class="filter-fields">
+        <el-form-item label="结果">
+          <el-select v-model="statusType" placeholder="全部" clearable style="width: 100%" @change="reload">
+            <el-option label="成功" value="success" />
+            <el-option label="失败" value="fail" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态码">
+          <el-select v-model="statusFilter" placeholder="全部" clearable style="width: 100%" @change="reload">
+            <el-option label="401" :value="401" />
+            <el-option label="403" :value="403" />
+            <el-option label="429" :value="429" />
+            <el-option label="500" :value="500" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="时间范围" class="filter-time">
+          <el-date-picker
+            v-model="timeRange"
+            type="datetimerange"
+            range-separator="至"
+            start-placeholder="开始时间"
+            end-placeholder="结束时间"
+            style="width: 100%"
+            @change="reload"
+          />
+        </el-form-item>
+        <el-form-item label="关键词">
+          <el-input
+            v-model="keyword"
+            placeholder="搜索路径 / IP"
+            clearable
+            style="width: 100%"
+            @keyup.enter="reload"
+            @clear="reload"
+          />
+        </el-form-item>
+      </el-form>
       <div v-if="activeFilters.length" class="filter-chips">
         <el-tag
           v-for="filter in activeFilters"
@@ -223,6 +235,19 @@ function reload() {
   load()
 }
 
+function resetFilters() {
+  statusType.value = undefined
+  statusFilter.value = undefined
+  timeRange.value = null
+  keyword.value = ''
+  dateFilter.value = ''
+  appFilter.value = undefined
+  appFilterName.value = ''
+  interfaceFilter.value = undefined
+  interfaceFilterName.value = ''
+  reload()
+}
+
 function formatTime(date?: Date): string | undefined {
   if (!date) return undefined
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -401,10 +426,18 @@ onActivated(() => {
 .page-heading,.table-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 24px 0 18px; }
 .summary-card { min-height: 128px; }.summary-label { color: var(--app-muted); font-size: 13px; }.summary-value { margin: 8px 0 12px; color: var(--app-text); font-size: 28px; font-weight: 700; letter-spacing: -.03em; }.summary-value small { margin-left: 3px; color: var(--app-muted); font-size: 13px; font-weight: 500; }.danger-number { color: #dc2626; }.summary-foot { display: flex; align-items: center; gap: 7px; color: var(--app-muted); font-size: 11px; }.summary-foot.positive { color: #059669; }.summary-foot.negative { color: #dc2626; }.summary-icon { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; }.summary-icon.blue { background: #dbeafe; color: #2563eb; }.summary-icon.green { background: #d1fae5; color: #059669; }.summary-icon.amber { background: #fef3c7; color: #d97706; }.summary-icon.red { background: #fee2e2; color: #dc2626; }
-.filter-card { display: flex; align-items: center; gap: 18px; padding: 16px; margin-bottom: 16px; }.filter-label { flex: 0 0 auto; color: var(--app-text); font-size: 13px; font-weight: 600; }.toolbar-right { display: flex; flex: 1; flex-wrap: wrap; gap: 8px; }.toolbar-right :deep(.el-date-editor) { width: 330px; }.toolbar-right :deep(.el-input) { width: 220px; }
-.filter-chips { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; padding-top: 10px; }
+.filter-card { padding: 16px; margin-bottom: 16px; }
+.filter-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.filter-title { color: var(--app-text); font-size: 13px; font-weight: 600; }
+.filter-head-actions { display: flex; align-items: center; gap: 8px; }
+.filter-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); column-gap: 16px; row-gap: 2px; }
+.filter-fields :deep(.el-form-item) { margin-bottom: 0; }
+.filter-fields :deep(.el-form-item__label) { color: var(--app-muted); font-size: 12px; font-weight: 500; line-height: 1.4; padding-bottom: 4px; }
+.filter-fields :deep(.el-form-item__content) { width: 100%; }
+.filter-fields .filter-time { min-width: 320px; }
+.filter-chips { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; margin-top: 12px; border-top: 1px dashed var(--app-border); }
 .table-card { overflow: hidden; }.table-heading { padding: 18px 20px; border-bottom: 1px solid var(--app-border); }.table-heading strong { color: var(--app-text); font-size: 15px; }.table-heading span { margin-left: 10px; color: var(--app-muted); font-size: 12px; }.action-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }.danger-right { margin-left: 4px; }.batch-tip { color: var(--app-muted); font-size: 12px; }.table-card :deep(.el-table) { border: 0; }.table-card :deep(.el-table__inner-wrapper::before) { display: none; }.table-card :deep(.el-table th:first-child),.table-card :deep(.el-table td:first-child) { padding-left: 20px; }.pagination { justify-content: flex-end; padding: 18px 20px; }
 .json-block { max-height: 260px; overflow: auto; padding: 14px; border: 1px solid var(--app-border); border-radius: 8px; background: #f8fafc; color: #334155; font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; line-height: 1.65; white-space: pre-wrap; }.json-block :deep(.json-key) { color: #2563eb; }.json-block :deep(.json-string) { color: #059669; }.json-block :deep(.json-number) { color: #d97706; }.json-block :deep(.json-boolean) { color: #db2777; }.json-block :deep(.json-null) { color: #94a3b8; }.block-toolbar { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 6px; color: var(--app-text); font-size: 13px; font-weight: 600; }
-@media (max-width: 1100px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.filter-card { align-items: flex-start; flex-direction: column; gap: 10px; }.toolbar-right :deep(.el-date-editor),.toolbar-right :deep(.el-input) { width: min(100%, 260px); } }
+@media (max-width: 1100px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.filter-fields { grid-template-columns: 1fr; }.filter-fields .filter-time { min-width: 0; } }
 @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; }.page-heading { align-items: flex-start; flex-direction: column; }.table-heading { align-items: flex-start; flex-direction: column; }.action-bar { width: 100%; }.danger-right { margin-left: auto; } }
 </style>
