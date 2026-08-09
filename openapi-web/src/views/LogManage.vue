@@ -54,34 +54,34 @@
       </template>
     </CollapsibleFilter>
 
-    <div class="table-card content-card">
-      <div class="action-bar">
-        <div class="bar-left">
-          <el-button size="small" plain @click="exportCsv"><el-icon><Download /></el-icon>导出 CSV</el-button>
-          <el-divider direction="vertical" />
-          <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
-            查看详情
-          </el-button>
-          <el-button class="danger-right" size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">
-            删除
-          </el-button>
-          <el-divider direction="vertical" />
-          <el-button size="small" type="danger" plain @click="handleClear">清空日志</el-button>
-          <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
-        </div>
-        <el-pagination
-          class="bar-pagination"
-          size="small"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          @size-change="handleSizeChange"
-          @current-change="handlePageChange"
-        />
+    <div class="action-bar">
+      <div class="bar-left">
+        <el-button size="small" plain @click="exportCsv"><el-icon><Download /></el-icon>导出 CSV</el-button>
+        <el-divider direction="vertical" />
+        <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
+          查看详情
+        </el-button>
+        <el-button class="danger-right" size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">
+          删除
+        </el-button>
+        <el-divider direction="vertical" />
+        <el-button size="small" type="danger" plain @click="handleClear">清空日志</el-button>
+        <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
       </div>
+      <el-pagination
+        class="bar-pagination"
+        size="small"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+        :page-sizes="[10, 20, 50, 100]"
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        @size-change="handleSizeChange"
+        @current-change="handlePageChange"
+      />
+    </div>
 
+    <div class="table-card content-card">
       <el-table
       ref="tableRef"
       :data="logs"
@@ -426,7 +426,7 @@ onActivated(() => {
 <style scoped>
 .logs-page { max-width: 1600px; margin: 0 auto; }
 .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.table-card { overflow: hidden; }.table-card .action-bar { margin-bottom: 0; padding: 10px 14px; }.danger-right { margin-left: 4px; }.batch-tip { color: var(--app-muted); font-size: 12px; }.table-card :deep(.el-table) { border: 0; }.table-card :deep(.el-table__inner-wrapper::before) { display: none; }.table-card :deep(.el-table th:first-child),.table-card :deep(.el-table td:first-child) { padding-left: 20px; }
+.table-card { overflow: hidden; }.danger-right { margin-left: 4px; }.batch-tip { color: var(--app-muted); font-size: 12px; }.table-card :deep(.el-table) { border: 0; }.table-card :deep(.el-table__inner-wrapper::before) { display: none; }.table-card :deep(.el-table th:first-child),.table-card :deep(.el-table td:first-child) { padding-left: 20px; }
 .json-block { max-height: 260px; overflow: auto; padding: 14px; border: 1px solid var(--app-border); border-radius: 8px; background: #f8fafc; color: #334155; font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; line-height: 1.65; white-space: pre-wrap; }.json-block :deep(.json-key) { color: #2563eb; }.json-block :deep(.json-string) { color: #059669; }.json-block :deep(.json-number) { color: #d97706; }.json-block :deep(.json-boolean) { color: #db2777; }.json-block :deep(.json-null) { color: #94a3b8; }.block-toolbar { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 6px; color: var(--app-text); font-size: 13px; font-weight: 600; }
 @media (max-width: 640px) { .page-heading { align-items: flex-start; flex-direction: column; }.action-bar { width: 100%; }.danger-right { margin-left: auto; } }
 </style>

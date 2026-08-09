@@ -30,24 +30,25 @@
         @change="reload"
       />
     </CollapsibleFilter>
-    <div class="table-card content-card">
-      <div class="action-bar">
-        <div class="bar-left">
-          <el-button size="small" plain @click="exportCsv">导出 CSV</el-button>
-          <el-button size="small" @click="reload">刷新</el-button>
-        </div>
-        <el-pagination
-          class="bar-pagination"
-          size="small"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          @current-change="load"
-          @size-change="load"
-        />
+    <div class="action-bar">
+      <div class="bar-left">
+        <el-button size="small" plain @click="exportCsv">导出 CSV</el-button>
+        <el-button size="small" @click="reload">刷新</el-button>
       </div>
+      <el-pagination
+        class="bar-pagination"
+        size="small"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+        :page-sizes="[10, 20, 50, 100]"
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        @current-change="load"
+        @size-change="load"
+      />
+    </div>
+
+    <div class="table-card content-card">
       <el-table
         :data="list"
         border
