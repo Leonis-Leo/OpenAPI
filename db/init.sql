@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS `invoke_log`
     `method`       VARCHAR(8)   DEFAULT NULL COMMENT '请求方式',
     `path`         VARCHAR(256) DEFAULT NULL COMMENT '请求路径',
     `request_params` TEXT COMMENT '请求参数（JSON）',
+    `request_headers` TEXT COMMENT '请求头（JSON，脱敏后）',
     `response_body`  TEXT COMMENT '响应体（JSON，截断）',
     `status_code`  INT      DEFAULT 0 COMMENT 'HTTP 状态码',
     `success`      TINYINT  DEFAULT 0 COMMENT '是否成功：0失败 1成功',

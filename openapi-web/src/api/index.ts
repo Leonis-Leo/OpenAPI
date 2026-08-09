@@ -376,6 +376,7 @@ export interface ApiLog {
   method: string
   path: string
   requestParams?: string
+  requestHeaders?: string
   responseBody?: string
   statusCode: number
   success: number

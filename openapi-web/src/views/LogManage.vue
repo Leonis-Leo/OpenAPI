@@ -125,6 +125,11 @@
       </div>
       <pre class="json-block" v-html="highlightJson(prettyJson(detail?.requestParams))"></pre>
       <div class="block-toolbar">
+        <span>请求头</span>
+        <el-button size="small" plain @click="copyText(detail?.requestHeaders)">复制</el-button>
+      </div>
+      <pre class="json-block" v-html="highlightJson(prettyJson(detail?.requestHeaders))"></pre>
+      <div class="block-toolbar">
         <span>响应体</span>
         <el-button size="small" plain @click="copyText(detail?.responseBody)">复制</el-button>
       </div>

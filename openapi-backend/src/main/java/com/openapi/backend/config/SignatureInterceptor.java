@@ -27,12 +27,17 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.Map;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class SignatureInterceptor implements HandlerInterceptor {
+    private static final Set<String> SENSITIVE_HEADERS = Set.of(
+            "authorization", "cookie", "proxy-authorization", "set-cookie", "x-csrf-token");
+
     private final AppMapper appMapper;
     private final InterfaceInfoMapper interfaceInfoMapper;
     private final InterfaceSubscribeService subscribeService;
@@ -77,12 +82,28 @@ public class SignatureInterceptor implements HandlerInterceptor {
         try {
             Long start = (Long) request.getAttribute("openapi.startTime"); App app = (App) request.getAttribute("openapi.app");
             if (start == null || app == null) return;
-            InvokeLogMessage m = new InvokeLogMessage(); m.setInterfaceId((Long) request.getAttribute("openapi.interfaceId")); m.setAppId(app.getId()); m.setUserId(app.getUserId()); m.setIp(request.getRemoteAddr()); m.setMethod(request.getMethod()); m.setPath(request.getRequestURI()); m.setRequestParams(buildParams(request)); m.setResponseBody(readBody(response)); m.setStatusCode(response.getStatus()); m.setSuccess(response.getStatus() < 400); m.setCostMs(System.currentTimeMillis() - start);
+            InvokeLogMessage m = new InvokeLogMessage(); m.setInterfaceId((Long) request.getAttribute("openapi.interfaceId")); m.setAppId(app.getId()); m.setUserId(app.getUserId()); m.setIp(request.getRemoteAddr()); m.setMethod(request.getMethod()); m.setPath(request.getRequestURI()); m.setRequestParams(buildParams(request)); m.setRequestHeaders(buildHeaders(request)); m.setResponseBody(readBody(response)); m.setStatusCode(response.getStatus()); m.setSuccess(response.getStatus() < 400); m.setCostMs(System.currentTimeMillis() - start);
             rabbitTemplate.convertAndSend(RabbitConstant.EXCHANGE_INVOKE, RabbitConstant.ROUTING_INVOKE_LOG, m);
         } catch (Exception e) { log.warn("publish invoke log failed", e); }
     }
 
     private String buildParams(HttpServletRequest request) { try { Map<String,String> p = new HashMap<>(); request.getParameterMap().forEach((k,v)->p.put(k,String.join(",",v))); return truncate(objectMapper.writeValueAsString(p)); } catch(Exception e) { return ""; } }
+    private String buildHeaders(HttpServletRequest request) {
+        try {
+            Map<String, String> headers = new LinkedHashMap<>();
+            java.util.Enumeration<String> names = request.getHeaderNames();
+            while (names != null && names.hasMoreElements()) {
+                String name = names.nextElement();
+                if (SENSITIVE_HEADERS.contains(name.toLowerCase())) {
+                    continue;
+                }
+                headers.put(name, request.getHeader(name));
+            }
+            return truncate(objectMapper.writeValueAsString(headers));
+        } catch (Exception e) {
+            return "";
+        }
+    }
     private String readBody(HttpServletResponse response) { try { if (response instanceof ContentCachingResponseWrapper w) return truncate(new String(w.getContentAsByteArray(), StandardCharsets.UTF_8)); } catch(Exception ignored) {} return ""; }
     private static String truncate(String s) { return s != null && s.length() > 2000 ? s.substring(0,2000) : s; }
     private boolean reject(HttpServletResponse response, ErrorCode code) throws IOException { int status = code == ErrorCode.NO_SUBSCRIBE || code == ErrorCode.CSRF_INVALID ? 403 : code == ErrorCode.DEPENDENCY_UNAVAILABLE ? 503 : 401; response.setStatus(status); response.setContentType("application/json;charset=UTF-8"); response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.error(code))); return false; }

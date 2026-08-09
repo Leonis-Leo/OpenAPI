@@ -28,6 +28,7 @@ public class InvokeLogConsumer {
         log.setMethod(message.getMethod());
         log.setPath(message.getPath());
         log.setRequestParams(message.getRequestParams());
+        log.setRequestHeaders(message.getRequestHeaders());
         log.setResponseBody(message.getResponseBody());
         log.setStatusCode(message.getStatusCode());
         log.setSuccess(message.isSuccess() ? 1 : 0);

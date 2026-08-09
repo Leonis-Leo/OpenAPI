@@ -28,6 +28,8 @@ public class InvokeLogMessage implements Serializable {
 
     private String requestParams;
 
+    private String requestHeaders;
+
     private String responseBody;
 
     private Integer statusCode;

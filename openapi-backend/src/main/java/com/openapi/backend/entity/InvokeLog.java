@@ -38,6 +38,9 @@ public class InvokeLog implements Serializable {
 
     private String requestParams;
 
+    /** 请求头（JSON，脱敏后） */
+    private String requestHeaders;
+
     private String responseBody;
 
     private Integer statusCode;
