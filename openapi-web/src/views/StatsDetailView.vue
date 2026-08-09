@@ -8,11 +8,6 @@
       <el-button @click="reload">刷新</el-button>
     </div>
     <CollapsibleFilter @search="reload" @reset="resetFilters">
-      <el-radio-group v-model="dimension" size="small" @change="onDimensionChange">
-        <el-radio-button value="day">按天</el-radio-button>
-        <el-radio-button value="app">按应用</el-radio-button>
-        <el-radio-button value="interface">按接口</el-radio-button>
-      </el-radio-group>
       <el-date-picker
         v-model="dateRange"
         type="daterange"
@@ -22,6 +17,13 @@
         style="width: 260px"
         @change="reload"
       />
+      <template #more>
+        <el-radio-group v-model="dimension" size="small" @change="onDimensionChange">
+          <el-radio-button value="day">按天</el-radio-button>
+          <el-radio-button value="app">按应用</el-radio-button>
+          <el-radio-button value="interface">按接口</el-radio-button>
+        </el-radio-group>
+      </template>
     </CollapsibleFilter>
     <div class="table-card content-card">
       <el-table

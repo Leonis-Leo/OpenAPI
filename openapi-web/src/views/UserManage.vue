@@ -20,13 +20,40 @@
     <div class="action-bar">
       <div class="bar-left">
         <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openEdit(selectedRow)">编辑</el-button>
-        <el-button size="small" type="danger" plain :disabled="selected.length === 0" @click="toggleRole('admin')">设为管理员</el-button>
-        <el-button size="small" type="primary" plain :disabled="selected.length === 0" @click="toggleRole('user')">设为普通用户</el-button>
-        <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="openResetPassword">重置密码</el-button>
-        <el-button size="small" type="success" :disabled="selected.length === 0" @click="toggleStatus(true)">启用</el-button>
-        <el-button size="small" type="danger" :disabled="selected.length === 0" @click="toggleStatus(false)">禁用</el-button>
-        <el-button class="danger-right" size="small" type="danger" plain :disabled="selected.length === 0" @click="handleDelete">删除</el-button>
+        <el-button
+          size="small"
+          type="primary"
+          plain
+          :disabled="roleAction.disabled"
+          @click="toggleRole(roleAction.target)"
+        >
+          {{ roleAction.label }}
+        </el-button>
+        <el-button
+          size="small"
+          :type="statusAction.target === 0 ? 'danger' : 'success'"
+          :disabled="statusAction.disabled"
+          @click="toggleStatus(statusAction.target === 1)"
+        >
+          {{ statusAction.label }}
+        </el-button>
+        <el-dropdown @command="handleMoreCommand">
+          <el-button size="small" plain>
+            更多
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="reset-password" :disabled="selected.length === 0">
+                重置密码
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+      <div class="bar-right">
         <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
+        <el-button size="small" type="danger" plain :disabled="selected.length === 0" @click="handleDelete">删除</el-button>
       </div>
       <el-pagination
         class="bar-pagination"
@@ -171,6 +198,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
+import { ArrowDown } from '@element-plus/icons-vue'
 import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import {
   pageUsers,
@@ -215,6 +243,22 @@ const userForm = ref({
 })
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
+const roleAction = computed(() => {
+  const rows = selected.value
+  if (rows.length === 0) return { label: '设为管理员', disabled: true, target: 'admin' as const }
+  const admins = rows.filter((u) => u.userRole === 'admin')
+  if (admins.length === rows.length) return { label: '设为普通用户', disabled: false, target: 'user' as const }
+  if (admins.length === 0) return { label: '设为管理员', disabled: false, target: 'admin' as const }
+  return { label: '角色调整', disabled: true, target: 'admin' as const }
+})
+const statusAction = computed(() => {
+  const rows = selected.value
+  if (rows.length === 0) return { label: '启用', disabled: true, target: 1 }
+  const enabled = rows.filter((u) => u.status === 1)
+  if (enabled.length === rows.length) return { label: '禁用', disabled: false, target: 0 }
+  if (enabled.length === 0) return { label: '启用', disabled: false, target: 1 }
+  return { label: '启用/禁用', disabled: true, target: 1 }
+})
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
 let keywordTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -409,6 +453,10 @@ function openResetPassword() {
   if (resetTargets.value.length === 0) return
   resetPassword.value = ''
   resetVisible.value = true
+}
+
+function handleMoreCommand(command: string) {
+  if (command === 'reset-password') openResetPassword()
 }
 
 async function handleResetPassword() {

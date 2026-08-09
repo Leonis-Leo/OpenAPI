@@ -228,8 +228,9 @@ body .el-pagination .el-pager li { border-radius: 6px; }
 body .pagination { margin-bottom: 8px; }
 /* 列表页：批量操作按钮居左，分页控件靠右并紧凑显示 */
 body .action-bar { justify-content: space-between; }
-body .action-bar .bar-left { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+body .action-bar .bar-left { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; flex: 1; }
 body .action-bar .bar-left .danger-right { margin-left: 0; }
+body .action-bar .bar-right { display: flex; align-items: center; gap: 8px; flex: none; }
 body .action-bar .bar-pagination { flex: none; }
 body .bar-pagination.el-pagination { margin: 0; padding: 0; min-height: 32px; }
 body .bar-pagination.el-pagination .el-pagination__total { font-size: 12px; }

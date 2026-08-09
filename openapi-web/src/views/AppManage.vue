@@ -3,7 +3,18 @@
     <div class="toolbar">
       <h2>应用管理</h2>
       <div class="toolbar-right">
-        <el-button type="primary" plain @click="exportApps">导出 CSV</el-button>
+        <el-dropdown @command="handleExportCommand">
+          <el-button type="primary" plain>
+            导出
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="csv">应用 CSV</el-dropdown-item>
+              <el-dropdown-item command="json">应用 JSON</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
         <el-button type="primary" @click="openCreate">新建应用</el-button>
       </div>
     </div>
@@ -27,11 +38,31 @@
       <div class="bar-left">
         <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="copySelected">复制AK</el-button>
         <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openRename(selectedRow)">重命名</el-button>
-        <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="handleResetSecret">重置密钥</el-button>
-        <el-button size="small" type="success" :disabled="selected.length === 0" @click="toggleOne(true)">启用</el-button>
-        <el-button size="small" type="warning" :disabled="selected.length === 0" @click="toggleOne(false)">禁用</el-button>
-        <el-button class="danger-right" size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">删除</el-button>
+        <el-button
+          size="small"
+          :type="statusAction.target === 0 ? 'warning' : 'success'"
+          :disabled="statusAction.disabled"
+          @click="toggleOne(statusAction.target === 1)"
+        >
+          {{ statusAction.label }}
+        </el-button>
+        <el-dropdown @command="handleMoreCommand">
+          <el-button size="small" plain>
+            更多
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="reset-secret" :disabled="selected.length === 0">
+                重置密钥
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+      <div class="bar-right">
         <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
+        <el-button size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">删除</el-button>
       </div>
       <el-pagination
         class="bar-pagination"
@@ -174,7 +205,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
-import { CopyDocument, Hide, View } from '@element-plus/icons-vue'
+import { ArrowDown, CopyDocument, Hide, View } from '@element-plus/icons-vue'
 import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import { useUserStore } from '@/store/user'
 import {
@@ -214,6 +245,14 @@ const showSecretIds = ref<Set<number>>(new Set())
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
+const statusAction = computed(() => {
+  const rows = selected.value
+  if (rows.length === 0) return { label: '启用', disabled: true, target: 1 }
+  const enabled = rows.filter((app) => app.status === 1)
+  if (enabled.length === rows.length) return { label: '禁用', disabled: false, target: 0 }
+  if (enabled.length === 0) return { label: '启用', disabled: false, target: 1 }
+  return { label: '启用/禁用', disabled: true, target: 1 }
+})
 let keywordTimer: ReturnType<typeof setTimeout> | undefined
 
 function exportApps() {
@@ -233,6 +272,26 @@ function exportApps() {
   link.click()
   URL.revokeObjectURL(url)
   ElMessage.success('CSV 已导出当前页数据')
+}
+
+function exportAppsJson() {
+  const blob = new Blob([JSON.stringify(apps.value, null, 2)], { type: 'application/json;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `apps-${new Date().toISOString().slice(0, 10)}.json`
+  link.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success('JSON 已导出当前页数据')
+}
+
+function handleExportCommand(command: string) {
+  if (command === 'json') exportAppsJson()
+  else exportApps()
+}
+
+function handleMoreCommand(command: string) {
+  if (command === 'reset-secret') handleResetSecret()
 }
 
 function onKeywordInput() {
