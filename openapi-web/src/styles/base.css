@@ -195,7 +195,16 @@ body .el-table .cell { line-height: 20px; }
 body .el-table td.el-table__cell { padding: 6px 0; }
 body .el-table th.el-table__cell { padding: 8px 0; }
 body .el-table td.el-table__cell:nth-child(4), body .el-table td.el-table__cell:nth-child(5) { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; }
-body .el-table .el-link { font-weight: 600; }
+/* 表格/全局链接：亮蓝 + 中等字重，hover 加深加下划线 */
+body .el-link {
+  color: #3b82f6;
+  font-weight: 500;
+  transition: color .15s ease;
+}
+body .el-link:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
 body .el-table .el-tag { border-radius: 6px; font-weight: 600; }
 body .el-table__body tr { transition: background-color .16s ease; }
 body .el-table__body tr.current-row > td.el-table__cell { background: #eff6ff !important; }
