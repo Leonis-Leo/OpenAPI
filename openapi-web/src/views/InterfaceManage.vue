@@ -107,24 +107,37 @@
 
       <div class="row-actions multi">
         <div v-if="isAdmin" class="row-actions-page">
-          <el-button size="small" text type="primary" @click="openGroupTagManage">分组标签</el-button>
-          <el-button size="small" plain @click="importVisible = true">导入 OpenAPI</el-button>
-          <el-dropdown @command="handleExportCommand">
-            <el-button size="small" plain>
-              导出
-              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="openapi-json">OpenAPI JSON</el-dropdown-item>
-                <el-dropdown-item command="openapi-yaml">OpenAPI YAML</el-dropdown-item>
-                <el-dropdown-item command="csv">接口 CSV</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-          <el-button size="small" type="primary" @click="openCreateForm">新增接口</el-button>
+          <div class="bar-left">
+            <el-button size="small" text type="primary" @click="openGroupTagManage">分组标签</el-button>
+            <el-button size="small" plain @click="importVisible = true">导入 OpenAPI</el-button>
+            <el-dropdown @command="handleExportCommand">
+              <el-button size="small" plain>
+                导出
+                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="openapi-json">OpenAPI JSON</el-dropdown-item>
+                  <el-dropdown-item command="openapi-yaml">OpenAPI YAML</el-dropdown-item>
+                  <el-dropdown-item command="csv">接口 CSV</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+            <el-button size="small" type="primary" @click="openCreateForm">新增接口</el-button>
+          </div>
+          <el-pagination
+            class="bar-pagination"
+            size="small"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="total"
+            :page-sizes="[10, 20, 50, 100]"
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            @current-change="handlePageChange"
+            @size-change="handlePageChange"
+          />
         </div>
-        <div class="row-actions-batch">
+        <div v-if="selected.length" class="row-actions-batch">
           <div class="row-actions-left">
           <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
             详情/调试
@@ -160,17 +173,6 @@
             删除
           </el-button>
           </div>
-          <el-pagination
-            class="bar-pagination"
-            size="small"
-            layout="total, sizes, prev, pager, next, jumper"
-            :total="total"
-            :page-sizes="[10, 20, 50, 100]"
-            v-model:current-page="currentPage"
-            v-model:page-size="pageSize"
-            @current-change="handlePageChange"
-            @size-change="handlePageChange"
-          />
         </div>
       </div>
 
@@ -2076,8 +2078,17 @@ onActivated(load)
 .row-actions-page {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.row-actions-page .bar-left {
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 .row-actions-batch {
   display: flex;
