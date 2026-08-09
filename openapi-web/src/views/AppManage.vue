@@ -125,6 +125,19 @@
         </template>
       </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="170" sortable />
+      <el-table-column label="操作" width="120" fixed="right">
+        <template #default="{ row }">
+          <el-button size="small" text type="primary" aria-label="查看详情" title="查看详情" @click.stop="openDetail(row)">
+            <el-icon><View /></el-icon>
+          </el-button>
+          <el-button size="small" text type="primary" aria-label="重命名" title="重命名" @click.stop="openRename(row)">
+            <el-icon><Edit /></el-icon>
+          </el-button>
+          <el-button size="small" text type="danger" aria-label="删除" title="删除" @click.stop="handleDeleteRow(row)">
+            <el-icon><Delete /></el-icon>
+          </el-button>
+        </template>
+      </el-table-column>
     </el-table>
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '重命名应用' : '新建应用'" width="420px">
@@ -230,10 +243,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
-import { ArrowDown, CopyDocument, Hide, View } from '@element-plus/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ArrowDown, CopyDocument, Delete, Edit, Hide, View } from '@element-plus/icons-vue'
 import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import { useUserStore } from '@/store/user'
 import {
@@ -250,6 +264,8 @@ import {
 } from '@/api'
 
 const userStore = useUserStore()
+const route = useRoute()
+const router = useRouter()
 const apps = ref<AppInfo[]>([])
 const loading = ref(false)
 const keyword = ref('')
@@ -351,11 +367,31 @@ function onKeywordInput() {
   }, 300)
 }
 
+function applyRouteFilters() {
+  const query = route.query
+  if (typeof query.keyword === 'string') {
+    keywordInput.value = query.keyword
+    keyword.value = query.keyword
+  }
+  if (typeof query.status === 'string') {
+    const status = Number(query.status)
+    statusFilter.value = Number.isInteger(status) ? status : undefined
+  }
+}
+
+function syncRoute() {
+  const query: Record<string, string> = {}
+  if (keyword.value) query.keyword = keyword.value
+  if (statusFilter.value !== undefined) query.status = String(statusFilter.value)
+  router.replace({ query })
+}
+
 function applySearch() {
   clearTimeout(keywordTimer)
   keyword.value = keywordInput.value
   currentPage.value = 1
   load()
+  syncRoute()
 }
 
 function resetFilters() {
@@ -365,6 +401,7 @@ function resetFilters() {
   statusFilter.value = undefined
   currentPage.value = 1
   load()
+  syncRoute()
 }
 
 const pagedApps = computed(() => apps.value)
@@ -372,6 +409,7 @@ const pagedApps = computed(() => apps.value)
 function onStatusChange() {
   currentPage.value = 1
   load()
+  syncRoute()
 }
 
 function handlePageChange() {
@@ -528,6 +566,11 @@ async function handleDelete() {
   await load()
 }
 
+async function handleDeleteRow(row: AppInfo) {
+  selected.value = [row]
+  await handleDelete()
+}
+
 function summarizeResults(
   results: PromiseSettledResult<unknown>[],
   total: number,
@@ -583,7 +626,15 @@ function subscribeText(status: number) {
 
 
 
-onMounted(load)
+onMounted(() => {
+  applyRouteFilters()
+  load()
+})
+
+onActivated(() => {
+  applyRouteFilters()
+  load()
+})
 </script>
 
 <style scoped>
