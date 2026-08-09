@@ -41,18 +41,18 @@
           @change="reload"
         />
       </template>
-      <template #chips>
-        <el-tag
-          v-for="filter in activeFilters"
-          :key="filter.key"
-          closable
-          size="small"
-          @close="clearFilter(filter.key)"
-        >
-          {{ filter.label }}
-        </el-tag>
-      </template>
     </CollapsibleFilter>
+    <div v-if="activeFilters.length" class="log-filter-chips">
+      <el-tag
+        v-for="filter in activeFilters"
+        :key="filter.key"
+        closable
+        size="small"
+        @close="clearFilter(filter.key)"
+      >
+        {{ filter.label }}
+      </el-tag>
+    </div>
 
     <div class="action-bar">
       <div class="bar-left">
@@ -426,6 +426,7 @@ onActivated(() => {
 <style scoped>
 .logs-page { max-width: 1600px; margin: 0 auto; }
 .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.log-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 12px; }
 .table-card { overflow: hidden; }.danger-right { margin-left: 4px; }.batch-tip { color: var(--app-muted); font-size: 12px; }.table-card :deep(.el-table) { border: 0; }.table-card :deep(.el-table__inner-wrapper::before) { display: none; }.table-card :deep(.el-table th:first-child),.table-card :deep(.el-table td:first-child) { padding-left: 20px; }
 .json-block { max-height: 260px; overflow: auto; padding: 14px; border: 1px solid var(--app-border); border-radius: 8px; background: #f8fafc; color: #334155; font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; line-height: 1.65; white-space: pre-wrap; }.json-block :deep(.json-key) { color: #2563eb; }.json-block :deep(.json-string) { color: #059669; }.json-block :deep(.json-number) { color: #d97706; }.json-block :deep(.json-boolean) { color: #db2777; }.json-block :deep(.json-null) { color: #94a3b8; }.block-toolbar { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 6px; color: var(--app-text); font-size: 13px; font-weight: 600; }
 @media (max-width: 640px) { .page-heading { align-items: flex-start; flex-direction: column; }.action-bar { width: 100%; }.danger-right { margin-left: auto; } }

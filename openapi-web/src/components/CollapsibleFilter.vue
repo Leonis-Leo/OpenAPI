@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import { Comment, computed, ref, useSlots } from 'vue'
+import { ref } from 'vue'
 import { ArrowDown, ArrowUp, Search } from '@element-plus/icons-vue'
 
 const emit = defineEmits<{ (e: 'search'): void; (e: 'reset'): void }>()
 const expanded = ref(false)
-const slots = useSlots()
-const hasChips = computed(() =>
-  (slots.chips?.() ?? []).some((node) => node.type !== Comment)
-)
 </script>
 
 <template>
@@ -29,9 +25,6 @@ const hasChips = computed(() =>
           <el-icon><Search /></el-icon>查询
         </el-button>
       </div>
-    </div>
-    <div v-if="hasChips" class="cf-chips">
-      <slot name="chips" />
     </div>
   </div>
 </template>
@@ -72,11 +65,5 @@ const hasChips = computed(() =>
 .cf-more {
   height: 28px;
   padding: 0 6px;
-}
-.cf-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-top: 10px;
 }
 </style>
