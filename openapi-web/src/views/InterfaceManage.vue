@@ -2077,7 +2077,7 @@ onActivated(load)
 }
 .page-title {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: -.02em;
   color: var(--app-text);

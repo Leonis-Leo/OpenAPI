@@ -207,6 +207,13 @@ onActivated(load)
   gap: 16px;
   margin-bottom: 14px;
 }
+.page-heading h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: var(--app-text, #172033);
+}
 .page-subtitle {
   margin: 6px 0 0;
   color: var(--app-muted, #64748b);
