@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, useSlots } from 'vue'
 import { ArrowDown, ArrowUp, Search } from '@element-plus/icons-vue'
 
 const emit = defineEmits<{ (e: 'search'): void; (e: 'reset'): void }>()
 const expanded = ref(false)
+const slots = useSlots()
+const hasChips = computed(() => Boolean(slots.chips?.()?.length))
 </script>
 
 <template>
@@ -26,7 +28,7 @@ const expanded = ref(false)
         </el-button>
       </div>
     </div>
-    <div v-if="$slots.chips" class="cf-chips">
+    <div v-if="hasChips" class="cf-chips">
       <slot name="chips" />
     </div>
   </div>
