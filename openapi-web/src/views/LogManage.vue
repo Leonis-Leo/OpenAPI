@@ -43,6 +43,17 @@
         <el-button @click="reload">搜索</el-button>
         <el-button type="primary" @click="reload"><el-icon><Search /></el-icon>查询</el-button>
       </div>
+      <div v-if="activeFilters.length" class="filter-chips">
+        <el-tag
+          v-for="filter in activeFilters"
+          :key="filter.key"
+          closable
+          size="small"
+          @close="clearFilter(filter.key)"
+        >
+          {{ filter.label }}
+        </el-tag>
+      </div>
     </div>
 
     <div class="table-card content-card">
@@ -140,6 +151,7 @@
 
 <script setup lang="ts">
 import { computed, onActivated, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { CircleCheckFilled, DataLine, Download, Search, Timer, WarningFilled } from '@element-plus/icons-vue'
@@ -160,6 +172,12 @@ const keyword = ref('')
 const statusFilter = ref<number | undefined>(undefined)
 const statusType = ref<'success' | 'fail' | undefined>(undefined)
 const timeRange = ref<[Date, Date] | null>(null)
+const appFilter = ref<number | undefined>(undefined)
+const appFilterName = ref('')
+const interfaceFilter = ref<number | undefined>(undefined)
+const interfaceFilterName = ref('')
+const dateFilter = ref('')
+const route = useRoute()
 const loading = ref(false)
 const selected = ref<ApiLog[]>([])
 const tableRef = ref<TableInstance>()
@@ -174,6 +192,13 @@ const successRate = computed(() => {
 const averageCost = computed(() => logs.value.length ? Math.round(logs.value.reduce((sum, item) => sum + Number(item.costMs || 0), 0) / logs.value.length) : 0)
 const errorCount = computed(() => logs.value.filter((item) => item.statusCode >= 400).length)
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
+const activeFilters = computed(() => {
+  const list: { key: string; label: string }[] = []
+  if (dateFilter.value) list.push({ key: 'date', label: `日期：${dateFilter.value}` })
+  if (appFilter.value) list.push({ key: 'app', label: `应用：${appFilterName.value || `#${appFilter.value}`}` })
+  if (interfaceFilter.value) list.push({ key: 'interface', label: `接口：${interfaceFilterName.value || `#${interfaceFilter.value}`}` })
+  return list
+})
 
 async function load() {
   loading.value = true
@@ -183,8 +208,10 @@ async function load() {
     keyword: keyword.value.trim() || undefined,
     success: statusType.value === 'success' ? 1 : statusType.value === 'fail' ? 0 : undefined,
     statusCode: statusFilter.value,
-    startTime: formatTime(timeRange.value?.[0]),
-    endTime: formatTime(timeRange.value?.[1])
+    appId: appFilter.value,
+    interfaceId: interfaceFilter.value,
+    startTime: dateFilter.value ? `${dateFilter.value} 00:00:00` : formatTime(timeRange.value?.[0]),
+    endTime: dateFilter.value ? `${dateFilter.value} 23:59:59` : formatTime(timeRange.value?.[1])
   })
   logs.value = page.records
   total.value = Number(page.total)
@@ -200,6 +227,28 @@ function formatTime(date?: Date): string | undefined {
   if (!date) return undefined
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+function applyRouteFilters() {
+  const query = route.query
+  if (typeof query.date === 'string') {
+    dateFilter.value = query.date
+  }
+  if (typeof query.appId === 'string' && query.appId) {
+    appFilter.value = Number(query.appId)
+    appFilterName.value = typeof query.appName === 'string' ? query.appName : ''
+  }
+  if (typeof query.interfaceId === 'string' && query.interfaceId) {
+    interfaceFilter.value = Number(query.interfaceId)
+    interfaceFilterName.value = typeof query.interfaceName === 'string' ? query.interfaceName : ''
+  }
+}
+
+function clearFilter(key: string) {
+  if (key === 'date') dateFilter.value = ''
+  if (key === 'app') { appFilter.value = undefined; appFilterName.value = '' }
+  if (key === 'interface') { interfaceFilter.value = undefined; interfaceFilterName.value = '' }
+  reload()
 }
 
 function handleRowClick(row: ApiLog) {
@@ -336,9 +385,13 @@ function exportCsv() {
   URL.revokeObjectURL(url)
 }
 
-onMounted(load)
+onMounted(() => {
+  applyRouteFilters()
+  load()
+})
 
 onActivated(() => {
+  applyRouteFilters()
   load()
 })
 </script>
@@ -349,6 +402,7 @@ onActivated(() => {
 .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 24px 0 18px; }
 .summary-card { min-height: 128px; }.summary-label { color: var(--app-muted); font-size: 13px; }.summary-value { margin: 8px 0 12px; color: var(--app-text); font-size: 28px; font-weight: 700; letter-spacing: -.03em; }.summary-value small { margin-left: 3px; color: var(--app-muted); font-size: 13px; font-weight: 500; }.danger-number { color: #dc2626; }.summary-foot { display: flex; align-items: center; gap: 7px; color: var(--app-muted); font-size: 11px; }.summary-foot.positive { color: #059669; }.summary-foot.negative { color: #dc2626; }.summary-icon { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; }.summary-icon.blue { background: #dbeafe; color: #2563eb; }.summary-icon.green { background: #d1fae5; color: #059669; }.summary-icon.amber { background: #fef3c7; color: #d97706; }.summary-icon.red { background: #fee2e2; color: #dc2626; }
 .filter-card { display: flex; align-items: center; gap: 18px; padding: 16px; margin-bottom: 16px; }.filter-label { flex: 0 0 auto; color: var(--app-text); font-size: 13px; font-weight: 600; }.toolbar-right { display: flex; flex: 1; flex-wrap: wrap; gap: 8px; }.toolbar-right :deep(.el-date-editor) { width: 330px; }.toolbar-right :deep(.el-input) { width: 220px; }
+.filter-chips { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; padding-top: 10px; }
 .table-card { overflow: hidden; }.table-heading { padding: 18px 20px; border-bottom: 1px solid var(--app-border); }.table-heading strong { color: var(--app-text); font-size: 15px; }.table-heading span { margin-left: 10px; color: var(--app-muted); font-size: 12px; }.action-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }.danger-right { margin-left: 4px; }.batch-tip { color: var(--app-muted); font-size: 12px; }.table-card :deep(.el-table) { border: 0; }.table-card :deep(.el-table__inner-wrapper::before) { display: none; }.table-card :deep(.el-table th:first-child),.table-card :deep(.el-table td:first-child) { padding-left: 20px; }.pagination { justify-content: flex-end; padding: 18px 20px; }
 .json-block { max-height: 260px; overflow: auto; padding: 14px; border: 1px solid var(--app-border); border-radius: 8px; background: #f8fafc; color: #334155; font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; line-height: 1.65; white-space: pre-wrap; }.json-block :deep(.json-key) { color: #2563eb; }.json-block :deep(.json-string) { color: #059669; }.json-block :deep(.json-number) { color: #d97706; }.json-block :deep(.json-boolean) { color: #db2777; }.json-block :deep(.json-null) { color: #94a3b8; }.block-toolbar { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 6px; color: var(--app-text); font-size: 13px; font-weight: 600; }
 @media (max-width: 1100px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.filter-card { align-items: flex-start; flex-direction: column; gap: 10px; }.toolbar-right :deep(.el-date-editor),.toolbar-right :deep(.el-input) { width: min(100%, 260px); } }

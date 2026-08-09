@@ -131,6 +131,39 @@ CREATE TABLE IF NOT EXISTS `invoke_log`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='接口调用日志表';
 
+-- 调用统计：按天聚合（计费/报表主表，永久保留，不随明细日志删除）
+CREATE TABLE IF NOT EXISTS `invoke_stats_daily` (
+    `id`            BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `stat_date`     DATE     NOT NULL COMMENT '统计日期',
+    `app_id`        BIGINT   NOT NULL COMMENT '应用 ID',
+    `interface_id`  BIGINT   NOT NULL COMMENT '接口 ID',
+    `total`         BIGINT   DEFAULT 0 COMMENT '总调用',
+    `success`       BIGINT   DEFAULT 0 COMMENT '成功数',
+    `fail`          BIGINT   DEFAULT 0 COMMENT '失败数',
+    `total_cost_ms` BIGINT   DEFAULT 0 COMMENT '累计耗时（毫秒）',
+    `create_time`   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_date_app_interface` (`stat_date`, `app_id`, `interface_id`),
+    KEY `idx_date` (`stat_date`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='调用统计-按天聚合';
+
+-- 调用统计：累计计数器（概览/排行直接读取，零聚合计算）
+CREATE TABLE IF NOT EXISTS `invoke_stats_counter` (
+    `id`            BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `app_id`        BIGINT   NOT NULL COMMENT '应用 ID',
+    `interface_id`  BIGINT   NOT NULL COMMENT '接口 ID',
+    `total`         BIGINT   DEFAULT 0 COMMENT '总调用',
+    `success`       BIGINT   DEFAULT 0 COMMENT '成功数',
+    `fail`          BIGINT   DEFAULT 0 COMMENT '失败数',
+    `total_cost_ms` BIGINT   DEFAULT 0 COMMENT '累计耗时（毫秒）',
+    `update_time`   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_app_interface` (`app_id`, `interface_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='调用统计-累计计数';
+
 -- 接口限流配置表（管理平台配置，网关按接口限流）
 CREATE TABLE IF NOT EXISTS `rate_limit_config`
 (

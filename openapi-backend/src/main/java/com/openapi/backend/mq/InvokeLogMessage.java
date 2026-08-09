@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 /**
  * 调用日志消息（生产者 -> MQ -> 消费者）。
@@ -37,4 +38,7 @@ public class InvokeLogMessage implements Serializable {
     private boolean success;
 
     private long costMs;
+
+    /** 调用发生时间（用于按天聚合，避免跨日偏差） */
+    private LocalDateTime createTime;
 }

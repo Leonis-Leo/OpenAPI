@@ -53,8 +53,10 @@ public class LogController {
             @Parameter(example = "10") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "搜索：路径 / IP") @RequestParam(required = false) String keyword,
             @Parameter(description = "结果：1 成功 / 0 失败") @RequestParam(required = false) Integer success,
-            @Parameter(description = "状态码") @RequestParam(required = false) Integer statusCode,
-            @Parameter(description = "开始时间 yyyy-MM-dd HH:mm:ss") @RequestParam(required = false) String startTime,
+@Parameter(description = "状态码") @RequestParam(required = false) Integer statusCode,
+@Parameter(description = "应用 ID") @RequestParam(required = false) Long appId,
+@Parameter(description = "接口 ID") @RequestParam(required = false) Long interfaceId,
+@Parameter(description = "开始时间 yyyy-MM-dd HH:mm:ss") @RequestParam(required = false) String startTime,
             @Parameter(description = "结束时间 yyyy-MM-dd HH:mm:ss") @RequestParam(required = false) String endTime,
             HttpServletRequest request) {
         requireAdmin(request);
@@ -67,6 +69,12 @@ public class LogController {
         }
         if (statusCode != null) {
             wrapper.eq(InvokeLog::getStatusCode, statusCode);
+        }
+        if (appId != null) {
+            wrapper.eq(InvokeLog::getAppId, appId);
+        }
+        if (interfaceId != null) {
+            wrapper.eq(InvokeLog::getInterfaceId, interfaceId);
         }
         if (StringUtils.hasText(startTime)) {
             wrapper.ge(InvokeLog::getCreateTime,

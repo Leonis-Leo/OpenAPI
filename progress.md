@@ -136,6 +136,21 @@
 - 预览页 `docs/ui-button-style-preview.html` 新增“方案 D · 现代 SaaS（推荐）”，保留 A/B/C 供对比。
 - 验证：`npm run build` 通过；刷新页面生效。
 
+### 调用统计持久化（与明细日志解耦，2026-08-09）
+- **Status:** complete
+- 新增聚合表 `invoke_stats_daily`（按天：日期/应用/接口 唯一）与 `invoke_stats_counter`（累计计数），永久保留。
+- `InvokeLogConsumer` 在同一事务（TransactionTemplate）内：写明细日志 + upsert 当日聚合 + 累计计数；消息带 `createTime` 避免跨日偏差。
+- 统计接口（overview/daily/top-interfaces/top-apps）全部改读聚合表，不再 GROUP BY invoke_log。
+- 迁移脚本回填历史日志（先清空再按明细聚合）；`db/init.sql` 同步新表。
+- 验证：发调用后 overview/daily/top 正常；删除明细日志后统计总数不变（8/8）；为多租户计费预留 (stat_date, app_id, interface_id) 维度。
+
+### 调用统计页新增“调用明细”列表 + 日志联动（2026-08-09）
+- **Status:** complete
+- 统计页新增“调用明细”卡片：按天 / 按应用 / 按接口三个维度切换、分页、成功率/平均耗时列。
+- 点击行（或“查看日志”）跳转 API 日志页，URL 带 date/appId/interfaceId，日志页自动过滤当天/应用/接口，并显示可清除的过滤标签。
+- 后端：`GET /v1/stats/daily-page`（聚合表分页，dimension=day/app/interface，支持日期/应用/接口过滤）；`/v1/log/list` 新增 appId/interfaceId 过滤。
+- 验证：三维度接口、日期+接口日志过滤均实测通过；`mvn package`、`npm run build` 通过。
+
 ### P0 安全与质量改造
 
 - **Status:** complete

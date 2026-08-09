@@ -280,6 +280,31 @@ export const statsTopInterfaces = (limit = 10) =>
 export const statsTopApps = (limit = 10) =>
   request.get<unknown, TopStat[]>('/stats/top-apps', { params: { limit } })
 
+export interface StatsDetailItem {
+  day?: string
+  appId?: number
+  appName?: string
+  interfaceId?: number
+  interfaceName?: string
+  total: number
+  success: number
+  fail: number
+  successRate: number
+  totalCostMs?: number
+  avgCostMs?: number
+}
+
+export const statsDailyPage = (params: {
+  current: number
+  size: number
+  dimension?: 'day' | 'app' | 'interface'
+  startDate?: string
+  endDate?: string
+  appId?: number
+  interfaceId?: number
+}) =>
+  request.get<unknown, PageResult<StatsDetailItem>>('/stats/daily-page', { params })
+
 export interface UserInfo {
   id: number
   userAccount: string
@@ -395,6 +420,8 @@ export const listApiLogs = (params: {
   keyword?: string
   success?: number
   statusCode?: number
+  appId?: number
+  interfaceId?: number
   startTime?: string
   endTime?: string
 }) =>

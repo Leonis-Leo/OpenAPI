@@ -26,6 +26,7 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Set;
@@ -82,7 +83,7 @@ public class SignatureInterceptor implements HandlerInterceptor {
         try {
             Long start = (Long) request.getAttribute("openapi.startTime"); App app = (App) request.getAttribute("openapi.app");
             if (start == null || app == null) return;
-            InvokeLogMessage m = new InvokeLogMessage(); m.setInterfaceId((Long) request.getAttribute("openapi.interfaceId")); m.setAppId(app.getId()); m.setUserId(app.getUserId()); m.setIp(request.getRemoteAddr()); m.setMethod(request.getMethod()); m.setPath(request.getRequestURI()); m.setRequestParams(buildParams(request)); m.setRequestHeaders(buildHeaders(request)); m.setResponseBody(readBody(response)); m.setStatusCode(response.getStatus()); m.setSuccess(response.getStatus() < 400); m.setCostMs(System.currentTimeMillis() - start);
+            InvokeLogMessage m = new InvokeLogMessage(); m.setInterfaceId((Long) request.getAttribute("openapi.interfaceId")); m.setAppId(app.getId()); m.setUserId(app.getUserId()); m.setIp(request.getRemoteAddr()); m.setMethod(request.getMethod()); m.setPath(request.getRequestURI()); m.setRequestParams(buildParams(request)); m.setRequestHeaders(buildHeaders(request)); m.setResponseBody(readBody(response)); m.setStatusCode(response.getStatus()); m.setSuccess(response.getStatus() < 400); m.setCostMs(System.currentTimeMillis() - start); m.setCreateTime(LocalDateTime.now());
             rabbitTemplate.convertAndSend(RabbitConstant.EXCHANGE_INVOKE, RabbitConstant.ROUTING_INVOKE_LOG, m);
         } catch (Exception e) { log.warn("publish invoke log failed", e); }
     }
