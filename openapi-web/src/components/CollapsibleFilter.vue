@@ -18,12 +18,12 @@ const hasChips = computed(() => Boolean(slots.chips?.()?.length))
         </template>
       </div>
       <div class="cf-actions">
-        <el-button v-if="$slots.more" text class="cf-more" @click="expanded = !expanded">
+        <el-button v-if="$slots.more" size="small" text class="cf-more" @click="expanded = !expanded">
           {{ expanded ? '收起' : '更多筛选' }}
           <el-icon class="el-icon--right"><ArrowUp v-if="expanded" /><ArrowDown v-else /></el-icon>
         </el-button>
-        <el-button plain @click="emit('reset')">重置</el-button>
-        <el-button type="primary" @click="emit('search')">
+        <el-button size="small" plain @click="emit('reset')">重置</el-button>
+        <el-button size="small" type="primary" @click="emit('search')">
           <el-icon><Search /></el-icon>查询
         </el-button>
       </div>
@@ -44,6 +44,7 @@ const hasChips = computed(() => Boolean(slots.chips?.()?.length))
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius);
   background: var(--app-surface);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .04);
 }
 .cf-main {
   display: flex;
