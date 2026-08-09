@@ -2,15 +2,17 @@
   <div>
     <div class="toolbar">
       <h2>订阅审批</h2>
+      <el-button type="primary" plain @click="exportCurrent">导出 CSV</el-button>
+    </div>
+    <CollapsibleFilter @search="resetSearch" @reset="resetFilters">
       <el-input
         v-model="keyword"
         placeholder="搜索接口 / 应用"
         clearable
-        style="width: 220px"
+        style="width: 240px"
         @input="resetSearch"
       />
-      <el-button type="primary" plain @click="exportCurrent">导出 CSV</el-button>
-    </div>
+    </CollapsibleFilter>
     <el-tabs v-model="activeTab">
       <el-tab-pane v-if="isAdmin" label="全部订阅" name="all">
         <div class="action-bar">
@@ -167,6 +169,7 @@ import { computed, onActivated, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
+import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import {
   pageSubscribes,
   pageMySubscribes,
@@ -257,6 +260,11 @@ function resetSearch() {
   pendingPage.value = 1
   minePage.value = 1
   allPage.value = 1
+}
+
+function resetFilters() {
+  keyword.value = ''
+  resetSearch()
 }
 
 async function load() {

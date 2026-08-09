@@ -3,17 +3,19 @@
     <div class="toolbar">
       <h2>用户管理</h2>
       <div class="toolbar-right">
-        <el-input
-          v-model="keywordInput"
-          placeholder="搜索账号 / 昵称"
-          clearable
-          style="width: 220px"
-          @input="onKeywordInput"
-        />
         <el-button type="primary" plain @click="exportUsers">导出 CSV</el-button>
         <el-button type="primary" @click="openCreate">新增用户</el-button>
       </div>
     </div>
+    <CollapsibleFilter @search="applySearch" @reset="resetFilters">
+      <el-input
+        v-model="keywordInput"
+        placeholder="搜索账号 / 昵称"
+        clearable
+        style="width: 240px"
+        @input="onKeywordInput"
+      />
+    </CollapsibleFilter>
 
     <div class="action-bar">
       <div class="bar-left">
@@ -169,6 +171,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
+import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import {
   pageUsers,
   listAppsForAdmin,
@@ -222,6 +225,21 @@ function onKeywordInput() {
     currentPage.value = 1
     load()
   }, 300)
+}
+
+function applySearch() {
+  clearTimeout(keywordTimer)
+  keyword.value = keywordInput.value
+  currentPage.value = 1
+  load()
+}
+
+function resetFilters() {
+  clearTimeout(keywordTimer)
+  keywordInput.value = ''
+  keyword.value = ''
+  currentPage.value = 1
+  load()
 }
 
 const pagedUsers = computed(() => users.value)

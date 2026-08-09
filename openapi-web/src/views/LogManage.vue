@@ -4,58 +4,37 @@
       <div><h1 class="page-title">API 日志</h1><p class="page-subtitle">追踪接口调用状态，快速定位异常请求和性能瓶颈</p></div>
       <el-button plain @click="exportCsv"><el-icon><Download /></el-icon>导出 CSV</el-button>
     </div>
-    <div class="summary-grid">
-      <el-card shadow="never" class="summary-card"><div class="summary-label">总调用量</div><div class="summary-value">{{ total }}</div><div class="summary-foot"><span class="summary-icon blue"><DataLine /></span>当前筛选范围</div></el-card>
-      <el-card shadow="never" class="summary-card"><div class="summary-label">成功率</div><div class="summary-value">{{ successRate }}<small>%</small></div><div class="summary-foot positive"><span class="summary-icon green"><CircleCheckFilled /></span>请求成功</div></el-card>
-      <el-card shadow="never" class="summary-card"><div class="summary-label">平均耗时</div><div class="summary-value">{{ averageCost }}<small>ms</small></div><div class="summary-foot"><span class="summary-icon amber"><Timer /></span>当前页平均值</div></el-card>
-      <el-card shadow="never" class="summary-card"><div class="summary-label">异常请求</div><div class="summary-value danger-number">{{ errorCount }}</div><div class="summary-foot negative"><span class="summary-icon red"><WarningFilled /></span>需要关注</div></el-card>
-    </div>
-    <div class="filter-card content-card">
-      <div class="filter-head">
-        <span class="filter-title">筛选条件</span>
-        <div class="filter-head-actions">
-          <el-button plain @click="resetFilters">重置</el-button>
-          <el-button type="primary" @click="reload"><el-icon><Search /></el-icon>查询</el-button>
-        </div>
-      </div>
-      <el-form label-position="top" class="filter-fields">
-        <el-form-item label="结果">
-          <el-select v-model="statusType" placeholder="全部" clearable style="width: 100%" @change="reload">
-            <el-option label="成功" value="success" />
-            <el-option label="失败" value="fail" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态码">
-          <el-select v-model="statusFilter" placeholder="全部" clearable style="width: 100%" @change="reload">
-            <el-option label="401" :value="401" />
-            <el-option label="403" :value="403" />
-            <el-option label="429" :value="429" />
-            <el-option label="500" :value="500" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="时间范围" class="filter-time">
-          <el-date-picker
-            v-model="timeRange"
-            type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            style="width: 100%"
-            @change="reload"
-          />
-        </el-form-item>
-        <el-form-item label="关键词">
-          <el-input
-            v-model="keyword"
-            placeholder="搜索路径 / IP"
-            clearable
-            style="width: 100%"
-            @keyup.enter="reload"
-            @clear="reload"
-          />
-        </el-form-item>
-      </el-form>
-      <div v-if="activeFilters.length" class="filter-chips">
+    <CollapsibleFilter @search="reload" @reset="resetFilters">
+      <el-input
+        v-model="keyword"
+        placeholder="搜索路径 / IP"
+        clearable
+        style="width: 220px"
+        @keyup.enter="reload"
+        @clear="reload"
+      />
+      <el-select v-model="statusType" placeholder="结果" clearable style="width: 110px" @change="reload">
+        <el-option label="成功" value="success" />
+        <el-option label="失败" value="fail" />
+      </el-select>
+      <template #more>
+        <el-select v-model="statusFilter" placeholder="状态码" clearable style="width: 120px" @change="reload">
+          <el-option label="401" :value="401" />
+          <el-option label="403" :value="403" />
+          <el-option label="429" :value="429" />
+          <el-option label="500" :value="500" />
+        </el-select>
+        <el-date-picker
+          v-model="timeRange"
+          type="datetimerange"
+          range-separator="至"
+          start-placeholder="开始时间"
+          end-placeholder="结束时间"
+          style="width: 340px"
+          @change="reload"
+        />
+      </template>
+      <template #chips>
         <el-tag
           v-for="filter in activeFilters"
           :key="filter.key"
@@ -65,8 +44,8 @@
         >
           {{ filter.label }}
         </el-tag>
-      </div>
-    </div>
+      </template>
+    </CollapsibleFilter>
 
     <div class="table-card content-card">
       <div class="table-heading"><div><strong>调用记录</strong><span>共 {{ total }} 条记录</span></div><div class="action-bar">
@@ -166,7 +145,8 @@ import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
-import { CircleCheckFilled, DataLine, Download, Search, Timer, WarningFilled } from '@element-plus/icons-vue'
+import { Download } from '@element-plus/icons-vue'
+import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import {
   listApiLogs,
   getApiLog,
@@ -197,12 +177,6 @@ const detailVisible = ref(false)
 const detail = ref<ApiLog | null>(null)
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
-const successRate = computed(() => {
-  if (!logs.value.length) return '0.0'
-  return ((logs.value.filter((item) => item.statusCode < 400).length / logs.value.length) * 100).toFixed(1)
-})
-const averageCost = computed(() => logs.value.length ? Math.round(logs.value.reduce((sum, item) => sum + Number(item.costMs || 0), 0) / logs.value.length) : 0)
-const errorCount = computed(() => logs.value.filter((item) => item.statusCode >= 400).length)
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
 const activeFilters = computed(() => {
   const list: { key: string; label: string }[] = []
@@ -424,20 +398,7 @@ onActivated(() => {
 <style scoped>
 .logs-page { max-width: 1600px; margin: 0 auto; }
 .page-heading,.table-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 24px 0 18px; }
-.summary-card { min-height: 128px; }.summary-label { color: var(--app-muted); font-size: 13px; }.summary-value { margin: 8px 0 12px; color: var(--app-text); font-size: 28px; font-weight: 700; letter-spacing: -.03em; }.summary-value small { margin-left: 3px; color: var(--app-muted); font-size: 13px; font-weight: 500; }.danger-number { color: #dc2626; }.summary-foot { display: flex; align-items: center; gap: 7px; color: var(--app-muted); font-size: 11px; }.summary-foot.positive { color: #059669; }.summary-foot.negative { color: #dc2626; }.summary-icon { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; }.summary-icon.blue { background: #dbeafe; color: #2563eb; }.summary-icon.green { background: #d1fae5; color: #059669; }.summary-icon.amber { background: #fef3c7; color: #d97706; }.summary-icon.red { background: #fee2e2; color: #dc2626; }
-.filter-card { padding: 16px; margin-bottom: 16px; }
-.filter-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-.filter-title { color: var(--app-text); font-size: 13px; font-weight: 600; }
-.filter-head-actions { display: flex; align-items: center; gap: 8px; }
-.filter-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); column-gap: 16px; row-gap: 2px; }
-.filter-fields :deep(.el-form-item) { margin-bottom: 0; }
-.filter-fields :deep(.el-form-item__label) { color: var(--app-muted); font-size: 12px; font-weight: 500; line-height: 1.4; padding-bottom: 4px; }
-.filter-fields :deep(.el-form-item__content) { width: 100%; }
-.filter-fields .filter-time { min-width: 320px; }
-.filter-chips { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; margin-top: 12px; border-top: 1px dashed var(--app-border); }
 .table-card { overflow: hidden; }.table-heading { padding: 18px 20px; border-bottom: 1px solid var(--app-border); }.table-heading strong { color: var(--app-text); font-size: 15px; }.table-heading span { margin-left: 10px; color: var(--app-muted); font-size: 12px; }.action-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }.danger-right { margin-left: 4px; }.batch-tip { color: var(--app-muted); font-size: 12px; }.table-card :deep(.el-table) { border: 0; }.table-card :deep(.el-table__inner-wrapper::before) { display: none; }.table-card :deep(.el-table th:first-child),.table-card :deep(.el-table td:first-child) { padding-left: 20px; }.pagination { justify-content: flex-end; padding: 18px 20px; }
 .json-block { max-height: 260px; overflow: auto; padding: 14px; border: 1px solid var(--app-border); border-radius: 8px; background: #f8fafc; color: #334155; font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; line-height: 1.65; white-space: pre-wrap; }.json-block :deep(.json-key) { color: #2563eb; }.json-block :deep(.json-string) { color: #059669; }.json-block :deep(.json-number) { color: #d97706; }.json-block :deep(.json-boolean) { color: #db2777; }.json-block :deep(.json-null) { color: #94a3b8; }.block-toolbar { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 6px; color: var(--app-text); font-size: 13px; font-weight: 600; }
-@media (max-width: 1100px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.filter-fields { grid-template-columns: 1fr; }.filter-fields .filter-time { min-width: 0; } }
-@media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; }.page-heading { align-items: flex-start; flex-direction: column; }.table-heading { align-items: flex-start; flex-direction: column; }.action-bar { width: 100%; }.danger-right { margin-left: auto; } }
+@media (max-width: 640px) { .page-heading { align-items: flex-start; flex-direction: column; }.table-heading { align-items: flex-start; flex-direction: column; }.action-bar { width: 100%; }.danger-right { margin-left: auto; } }
 </style>

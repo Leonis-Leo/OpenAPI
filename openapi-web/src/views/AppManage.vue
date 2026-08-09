@@ -3,21 +3,25 @@
     <div class="toolbar">
       <h2>应用管理</h2>
       <div class="toolbar-right">
-        <el-input
-          v-model="keywordInput"
-          placeholder="搜索应用名称 / AccessKey"
-          clearable
-          style="width: 240px"
-          @input="onKeywordInput"
-        />
-        <el-select v-model="statusFilter" clearable placeholder="状态" style="width: 110px" @change="onStatusChange">
-          <el-option label="启用" :value="1" />
-          <el-option label="禁用" :value="0" />
-        </el-select>
         <el-button type="primary" plain @click="exportApps">导出 CSV</el-button>
         <el-button type="primary" @click="openCreate">新建应用</el-button>
       </div>
     </div>
+    <CollapsibleFilter @search="applySearch" @reset="resetFilters">
+      <el-input
+        v-model="keywordInput"
+        placeholder="搜索应用名称 / AccessKey"
+        clearable
+        style="width: 240px"
+        @input="onKeywordInput"
+      />
+      <template #more>
+        <el-select v-model="statusFilter" clearable placeholder="状态" style="width: 120px" @change="onStatusChange">
+          <el-option label="启用" :value="1" />
+          <el-option label="禁用" :value="0" />
+        </el-select>
+      </template>
+    </CollapsibleFilter>
 
     <div class="action-bar">
       <div class="bar-left">
@@ -171,6 +175,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { CopyDocument, Hide, View } from '@element-plus/icons-vue'
+import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import { useUserStore } from '@/store/user'
 import {
   pageApps,
@@ -237,6 +242,22 @@ function onKeywordInput() {
     currentPage.value = 1
     load()
   }, 300)
+}
+
+function applySearch() {
+  clearTimeout(keywordTimer)
+  keyword.value = keywordInput.value
+  currentPage.value = 1
+  load()
+}
+
+function resetFilters() {
+  clearTimeout(keywordTimer)
+  keywordInput.value = ''
+  keyword.value = ''
+  statusFilter.value = undefined
+  currentPage.value = 1
+  load()
 }
 
 const pagedApps = computed(() => apps.value)

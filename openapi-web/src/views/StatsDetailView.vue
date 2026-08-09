@@ -7,6 +7,17 @@
       </div>
       <el-button @click="reload">刷新</el-button>
     </div>
+    <CollapsibleFilter @search="reload" @reset="resetFilters">
+      <el-date-picker
+        v-model="dateRange"
+        type="daterange"
+        range-separator="至"
+        start-placeholder="开始日期"
+        end-placeholder="结束日期"
+        style="width: 260px"
+        @change="reload"
+      />
+    </CollapsibleFilter>
     <el-card shadow="never">
       <template #header>
         <div class="detail-header">
@@ -65,6 +76,7 @@
 <script setup lang="ts">
 import { onActivated, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import { statsDailyPage, type StatsDetailItem } from '@/api'
 
 const router = useRouter()
@@ -74,6 +86,7 @@ const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const loading = ref(false)
+const dateRange = ref<[Date, Date] | null>(null)
 
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
 
@@ -83,13 +96,26 @@ async function load() {
     const result = await statsDailyPage({
       current: currentPage.value,
       size: pageSize.value,
-      dimension: dimension.value
+      dimension: dimension.value,
+      startDate: formatDate(dateRange.value?.[0]),
+      endDate: formatDate(dateRange.value?.[1])
     })
     list.value = result.records
     total.value = Number(result.total)
   } finally {
     loading.value = false
   }
+}
+
+function formatDate(date?: Date): string | undefined {
+  if (!date) return undefined
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+function resetFilters() {
+  dateRange.value = null
+  reload()
 }
 
 function onDimensionChange() {
