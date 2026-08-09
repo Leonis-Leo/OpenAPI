@@ -14,8 +14,21 @@
     <el-tabs v-model="activeTab">
       <el-tab-pane v-if="isAdmin" label="全部订阅" name="all">
         <div class="action-bar">
-          <el-button class="danger-right" size="small" type="danger" plain :disabled="selectedAll.length === 0" @click="handleDeleteAll">删除记录</el-button>
-          <span v-if="selectedAll.length" class="batch-tip">已选 {{ selectedAll.length }} 项</span>
+          <div class="bar-left">
+            <el-button class="danger-right" size="small" type="danger" plain :disabled="selectedAll.length === 0" @click="handleDeleteAll">删除记录</el-button>
+            <span v-if="selectedAll.length" class="batch-tip">已选 {{ selectedAll.length }} 项</span>
+          </div>
+          <el-pagination
+            class="bar-pagination"
+            size="small"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="allTotal"
+            :page-sizes="[10, 20, 50, 100]"
+            v-model:current-page="allPage"
+            v-model:page-size="pageSize"
+            @current-change="handleAllPageChange"
+            @size-change="handleAllPageChange"
+          />
         </div>
         <el-table
           ref="allTableRef"
@@ -45,22 +58,25 @@
           </el-table-column>
           <el-table-column prop="createTime" label="申请时间" width="180" />
         </el-table>
-        <el-pagination
-          class="pagination"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="allTotal"
-          :page-sizes="[10, 20, 50, 100]"
-          v-model:current-page="allPage"
-          v-model:page-size="pageSize"
-          @current-change="handleAllPageChange"
-          @size-change="handleAllPageChange"
-        />
       </el-tab-pane>
       <el-tab-pane v-if="isAdmin" label="待审批" name="pending">
-            <div class="action-bar">
-      <el-button size="small" type="success" :disabled="selectedPending.length === 0" @click="handleApprove(true)">通过</el-button>
-      <el-button class="danger-right" size="small" type="danger" :disabled="selectedPending.length === 0" @click="handleApprove(false)">拒绝</el-button>
-      <span v-if="selectedPending.length" class="batch-tip">已选 {{ selectedPending.length }} 项</span>
+    <div class="action-bar">
+      <div class="bar-left">
+        <el-button size="small" type="success" :disabled="selectedPending.length === 0" @click="handleApprove(true)">通过</el-button>
+        <el-button class="danger-right" size="small" type="danger" :disabled="selectedPending.length === 0" @click="handleApprove(false)">拒绝</el-button>
+        <span v-if="selectedPending.length" class="batch-tip">已选 {{ selectedPending.length }} 项</span>
+      </div>
+      <el-pagination
+        class="bar-pagination"
+        size="small"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="pendingTotal"
+        :page-sizes="[10, 20, 50, 100]"
+        v-model:current-page="pendingPage"
+        v-model:page-size="pageSize"
+        @current-change="handlePendingPageChange"
+        @size-change="handlePendingPageChange"
+      />
     </div>
         <el-table
           ref="pendingTableRef"
@@ -83,21 +99,24 @@
           <el-table-column v-if="isAdmin" prop="userAccount" label="申请人" width="120" />
           <el-table-column prop="createTime" label="申请时间" width="180" />
         </el-table>
-        <el-pagination
-          class="pagination"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="pendingTotal"
-          :page-sizes="[10, 20, 50, 100]"
-          v-model:current-page="pendingPage"
-          v-model:page-size="pageSize"
-          @current-change="handlePendingPageChange"
-          @size-change="handlePendingPageChange"
-        />
       </el-tab-pane>
       <el-tab-pane label="我的订阅" name="mine">
-            <div class="action-bar">
-      <el-button class="danger-right" size="small" type="danger" plain :disabled="selectedMine.length === 0" @click="handleUnsubscribe">取消订阅</el-button>
-      <span v-if="selectedMine.length" class="batch-tip">已选 {{ selectedMine.length }} 项</span>
+    <div class="action-bar">
+      <div class="bar-left">
+        <el-button class="danger-right" size="small" type="danger" plain :disabled="selectedMine.length === 0" @click="handleUnsubscribe">取消订阅</el-button>
+        <span v-if="selectedMine.length" class="batch-tip">已选 {{ selectedMine.length }} 项</span>
+      </div>
+      <el-pagination
+        class="bar-pagination"
+        size="small"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="mineTotal"
+        :page-sizes="[10, 20, 50, 100]"
+        v-model:current-page="minePage"
+        v-model:page-size="pageSize"
+        @current-change="handleMinePageChange"
+        @size-change="handleMinePageChange"
+      />
     </div>
         <el-table
           ref="mineTableRef"
@@ -127,16 +146,6 @@
           </el-table-column>
           <el-table-column prop="createTime" label="申请时间" width="180" />
         </el-table>
-        <el-pagination
-          class="pagination"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="mineTotal"
-          :page-sizes="[10, 20, 50, 100]"
-          v-model:current-page="minePage"
-          v-model:page-size="pageSize"
-          @current-change="handleMinePageChange"
-          @size-change="handleMinePageChange"
-        />
       </el-tab-pane>
     </el-tabs>
 
@@ -154,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
@@ -259,13 +268,13 @@ async function load() {
         pageSubscribes({ current: allPage.value, size: pageSize.value })
       ])
       pendingList.value = pending.records
-      pendingTotal.value = pending.total
+      pendingTotal.value = Number(pending.total)
       allList.value = all.records
-      allTotal.value = all.total
+      allTotal.value = Number(all.total)
     }
     const mine = await pageMySubscribes({ current: minePage.value, size: pageSize.value })
     myList.value = mine.records
-    mineTotal.value = mine.total
+    mineTotal.value = Number(mine.total)
   } finally {
     loading.value = false
   }
@@ -361,7 +370,7 @@ function openDetail(row: SubscribeInfo) {
   detailVisible.value = true
 }
 
-onMounted(load)
+onActivated(load)
 </script>
 
 <style scoped>

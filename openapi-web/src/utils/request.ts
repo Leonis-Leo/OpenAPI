@@ -1,6 +1,13 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import type { AxiosResponse } from 'axios'
+import type { AxiosResponse, AxiosRequestConfig } from 'axios'
+
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    /** 后台轮询等静默请求：网络异常时不跳转异常页、不弹提示 */
+    skipNetworkRedirect?: boolean
+  }
+}
 
 interface ApiResponse<T> {
   code: number
@@ -14,9 +21,28 @@ const request = axios.create({
   withCredentials: true
 })
 
+let networkErrorRedirecting = false
+let lastErrorToast = ''
+let lastErrorToastTime = 0
+
 function redirectToLogin() {
   localStorage.removeItem('openapi_user')
   window.location.href = '/login'
+}
+
+function showErrorOnce(message: string) {
+  const now = Date.now()
+  if (message && message === lastErrorToast && now - lastErrorToastTime < 3000) return
+  lastErrorToast = message
+  lastErrorToastTime = now
+  ElMessage.error(message)
+}
+
+function redirectToNetworkError() {
+  if (networkErrorRedirecting) return
+  if (window.location.pathname === '/network-error') return
+  networkErrorRedirecting = true
+  window.location.assign('/network-error')
 }
 
 request.interceptors.request.use((config) => {
@@ -41,22 +67,30 @@ request.interceptors.response.use(
     return res.data as AxiosResponse
   },
   (error) => {
-    const isNetworkError = !error.response && (
-      error.code === 'ERR_NETWORK' ||
-      error.code === 'ECONNABORTED' ||
-      error.message === 'Network Error' ||
-      error.message?.toLowerCase().includes('timeout')
-    )
+    const config = error.config as (AxiosRequestConfig & { skipNetworkRedirect?: boolean }) | undefined
+    const rawData = error.response?.data
+    // 后端不可达 / 代理返回非 JSON 错误体（如网关 HTML）→ 视为网络异常
+    const proxyError = typeof rawData === 'string' && /^\s*</.test(rawData)
+    const isNetworkError =
+      (!error.response &&
+        (error.code === 'ERR_NETWORK' ||
+          error.code === 'ECONNABORTED' ||
+          error.message === 'Network Error' ||
+          error.message?.toLowerCase().includes('timeout'))) ||
+      proxyError
     if (isNetworkError) {
-      if (window.location.pathname !== '/network-error') {
-        window.location.assign('/network-error')
+      if (!config?.skipNetworkRedirect) {
+        redirectToNetworkError()
       }
       return Promise.reject(error)
     }
     if (error.response?.status === 401) {
       redirectToLogin()
     }
-    ElMessage.error(error.response?.data?.message || '网络异常')
+    showErrorOnce(
+      error.response?.data?.message ||
+        (error.response?.status ? `请求失败（${error.response.status}）` : '网络异常')
+    )
     return Promise.reject(error)
   }
 )

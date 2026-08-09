@@ -1,55 +1,178 @@
 <template>
-  <div>
-    <div class="toolbar">
-      <h2>接口管理</h2>
-      <div class="toolbar-right">
-        <el-radio-group v-model="filterStatus" size="default" @change="onFilterChange">
+  <div class="interface-layout">
+    <aside v-show="groupPanelVisible" class="group-panel" :style="{ width: panelWidth + 'px' }">
+      <div class="group-panel-head">
+        <span>接口分组</span>
+        <div class="group-panel-actions">
+          <el-button v-if="isAdmin" text type="primary" size="small" @click="openGroupTagManage">管理</el-button>
+          <button
+            type="button"
+            class="panel-toggle"
+            aria-label="收起分组面板"
+            title="收起分组面板"
+            @click="toggleGroupPanel"
+          >
+            <el-icon><Fold /></el-icon>
+          </button>
+        </div>
+      </div>
+      <el-input
+        v-model="groupKeyword"
+        placeholder="搜索分组"
+        clearable
+        size="small"
+        class="group-search"
+        @input="onGroupSearch"
+      />
+      <ul class="group-tree-static">
+        <li>
+          <button
+            type="button"
+            :class="{ active: groupFilter === undefined }"
+            @click="selectGroup(undefined)"
+          >
+            <span>全部接口</span>
+            <span class="group-count">{{ totalAll }}</span>
+          </button>
+        </li>
+        <li>
+          <button
+            type="button"
+            :class="{ active: groupFilter === null }"
+            @click="selectGroup(null)"
+          >
+            <span>未分组</span>
+            <span class="group-count">{{ ungroupedCount }}</span>
+          </button>
+        </li>
+      </ul>
+      <el-tree
+        ref="groupTreeRef"
+        class="group-tree"
+        :data="groups"
+        :props="{ label: 'name', children: 'children' }"
+        node-key="id"
+        highlight-current
+        default-expand-all
+        :expand-on-click-node="false"
+        :filter-node-method="filterGroupNode"
+        :current-node-key="groupFilter ?? undefined"
+        @node-click="onGroupNodeClick"
+      >
+        <template #default="{ data }">
+          <span class="tree-node">
+            <span class="tree-node-name">{{ data.name }}</span>
+            <span class="group-count">{{ data.interfaceCount }}</span>
+          </span>
+        </template>
+      </el-tree>
+    </aside>
+    <div v-show="groupPanelVisible" class="panel-resizer" aria-hidden="true" @mousedown="startResize">
+      <span class="resizer-grip" />
+    </div>
+    <button
+      v-if="!groupPanelVisible"
+      type="button"
+      class="panel-expand"
+      aria-label="展开分组面板"
+      title="展开分组面板"
+      @click="toggleGroupPanel"
+    >
+      <el-icon><Expand /></el-icon>
+    </button>
+
+    <section class="interface-content">
+      <div class="page-header">
+        <h2 class="page-title">接口管理</h2>
+        <div class="page-actions">
+          <el-button v-if="isAdmin" text type="primary" @click="openGroupTagManage">分组标签</el-button>
+          <el-button v-if="isAdmin" plain @click="importVisible = true">导入 OpenAPI</el-button>
+          <el-dropdown v-if="isAdmin" @command="handleExportCommand">
+            <el-button plain>
+              导出
+              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="openapi-json">OpenAPI JSON</el-dropdown-item>
+                <el-dropdown-item command="openapi-yaml">OpenAPI YAML</el-dropdown-item>
+                <el-dropdown-item command="csv">接口 CSV</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <el-button v-if="isAdmin" type="primary" @click="openCreateForm">新增接口</el-button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <el-radio-group v-model="filterStatus" size="small" @change="onFilterChange">
           <el-radio-button value="all">全部</el-radio-button>
           <el-radio-button value="online">已上线</el-radio-button>
           <el-radio-button value="subscribed">已订阅</el-radio-button>
           <el-radio-button value="unsubscribed">未订阅</el-radio-button>
         </el-radio-group>
-        <el-input
-          v-model="keywordInput"
-          placeholder="搜索名称 / 路径"
-          clearable
-          style="width: 220px"
-          @input="onKeywordInput"
-        />
-        <el-button v-if="isAdmin" type="primary" @click="openCreateForm">新增接口</el-button>
+        <div class="filter-right">
+          <el-input
+            v-model="keywordInput"
+            placeholder="搜索名称 / 路径"
+            clearable
+            style="width: 200px"
+            @input="onKeywordInput"
+          />
+          <el-select v-model="tagFilter" clearable placeholder="全部标签" style="width: 120px" @change="onFilterChange">
+            <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
+          </el-select>
+        </div>
       </div>
-    </div>
 
-            <div class="action-bar">
-      <el-button class="action-secondary" size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
-        详情/调试
-      </el-button>
-      <el-button class="action-primary" size="small" type="primary" plain :disabled="selected.length === 0" @click="openSubscribe">
-        订阅
-      </el-button>
-      <el-button
-        size="small"
-        type="danger"
-        plain
-        :disabled="selected.length === 0"
-        @click="handleUnsubscribe"
-      >
-        取消订阅
-      </el-button>
-      <template v-if="isAdmin">
-        <el-button size="small" type="success" :disabled="selected.length === 0" @click="toggleStatus(1)">
-          上线
-        </el-button>
-        <el-button size="small" type="warning" :disabled="selected.length === 0" @click="toggleStatus(0)">
-          下线
-        </el-button>
-        <el-button class="action-secondary" size="small" type="primary" plain :disabled="!selectedRow" @click="openEditForm(selectedRow)">编辑</el-button>
-        <el-button class="danger-right" size="small" type="danger" plain :disabled="selected.length === 0" @click="handleDeleteInterface">
-          删除
-        </el-button>
-      </template>
-      <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
-    </div>
+      <div class="row-actions">
+        <div class="row-actions-left">
+          <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
+            详情/调试
+          </el-button>
+          <el-button
+            size="small"
+            type="primary"
+            plain
+            :disabled="subscribeAction.disabled"
+            @click="handleSubscribeToggle"
+          >
+            {{ subscribeAction.label }}
+          </el-button>
+          <template v-if="isAdmin">
+            <el-button
+              size="small"
+              :type="statusAction.target === 0 ? 'warning' : 'success'"
+              plain
+              :disabled="statusAction.disabled"
+              @click="toggleStatus(statusAction.target)"
+            >
+              {{ statusAction.label }}
+            </el-button>
+            <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openEditForm(selectedRow)">
+              编辑
+            </el-button>
+            <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openVersionHistory(selectedRow)">
+              版本历史
+            </el-button>
+          </template>
+          <span v-if="selected.length" class="selected-tip">已选 {{ selected.length }} 项</span>
+          <el-button v-if="isAdmin" size="small" type="danger" plain :disabled="selected.length === 0" @click="handleDeleteInterface">
+            删除
+          </el-button>
+        </div>
+        <el-pagination
+          class="bar-pagination"
+          size="small"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          @current-change="handlePageChange"
+          @size-change="handlePageChange"
+        />
+      </div>
 
     <el-table
       ref="tableRef"
@@ -76,6 +199,27 @@
         </template>
       </el-table-column>
       <el-table-column prop="url" label="路径" min-width="180" />
+      <el-table-column label="分组" width="110">
+        <template #default="{ row }">
+          <el-tag v-if="row.groupName" type="info" size="small" effect="plain">{{ row.groupName }}</el-tag>
+          <span v-else class="text-muted">-</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="标签" min-width="140">
+        <template #default="{ row }">
+          <el-tag
+            v-for="tag in row.tags ?? []"
+            :key="tag.id"
+            size="small"
+            effect="light"
+            class="tag-chip"
+            :style="{ color: tag.color, borderColor: tag.color + '55', background: tag.color + '14' }"
+          >
+            {{ tag.name }}
+          </el-tag>
+          <span v-if="!(row.tags ?? []).length" class="text-muted">-</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="status" label="状态" width="80">
         <template #default="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'info'">
@@ -91,18 +235,9 @@
           <el-tag v-else type="info" size="small">未订阅</el-tag>
         </template>
       </el-table-column>
-    </el-table>
+      </el-table>
 
-    <el-pagination
-      class="pagination"
-      layout="total, sizes, prev, pager, next, jumper"
-      :total="total"
-      :page-sizes="[10, 20, 50, 100]"
-      v-model:current-page="currentPage"
-      v-model:page-size="pageSize"
-      @current-change="handlePageChange"
-      @size-change="handlePageChange"
-    />
+    </section>
 
     <el-dialog v-model="detailVisible" class="interface-detail-dialog" :title="`接口详情 - ${debugInterface?.name ?? ''}`" width="1120px" top="6vh">
       <el-tabs v-model="detailTab" class="interface-detail-tabs">
@@ -238,6 +373,16 @@
           </el-select>
         </el-form-item>
         <el-form-item label="路径"><el-input v-model="interfaceForm.url" placeholder="/api/xxx" /></el-form-item>
+        <el-form-item label="分组">
+          <el-select v-model="interfaceForm.groupId" clearable placeholder="选择分组" style="width: 100%">
+            <el-option v-for="g in groups" :key="g.id" :label="g.name" :value="g.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="标签">
+          <el-select v-model="interfaceForm.tags" multiple clearable placeholder="选择标签" style="width: 100%">
+            <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="请求参数">
           <el-input v-model="interfaceForm.requestParams" type="textarea" :rows="3" placeholder='JSON，如 {"key":"说明"}' />
         </el-form-item>
@@ -250,13 +395,160 @@
         <el-button type="primary" :loading="savingForm" @click="handleSaveForm">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="groupTagVisible" title="分组与标签管理" width="720px">
+      <el-tabs v-model="groupTagTab">
+        <el-tab-pane label="分组" name="groups">
+          <div class="meta-bar">
+            <el-input v-model="newGroupName" placeholder="新分组名称" style="width: 200px" @keyup.enter="handleCreateGroup" />
+            <el-select v-model="newGroupParentId" clearable placeholder="顶级分组" style="width: 150px">
+              <el-option v-for="g in flatGroups" :key="g.id" :label="g.name" :value="g.id" />
+            </el-select>
+            <el-button type="primary" plain @click="handleCreateGroup">新增分组</el-button>
+          </div>
+          <el-table :data="flatGroups" border stripe size="small" v-loading="metaLoading">
+            <el-table-column prop="name" label="分组名称" min-width="130" />
+            <el-table-column label="父分组" width="120">
+              <template #default="{ row }">{{ row.parentName ?? '—' }}</template>
+            </el-table-column>
+            <el-table-column prop="interfaceCount" label="接口数" width="80" />
+            <el-table-column label="操作" width="180">
+              <template #default="{ row }">
+                <el-button size="small" text type="primary" @click="startRenameGroup(row)">重命名</el-button>
+                <el-button size="small" text type="danger" @click="handleDeleteGroup(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+        <el-tab-pane label="标签" name="tags">
+          <div class="meta-bar">
+            <el-input v-model="newTagName" placeholder="新标签名称" style="width: 220px" @keyup.enter="handleCreateTag" />
+            <el-button type="primary" plain @click="handleCreateTag">新增标签</el-button>
+          </div>
+          <el-table :data="tags" border stripe size="small" v-loading="metaLoading">
+            <el-table-column label="标签" min-width="140">
+              <template #default="{ row }">
+                <el-tag size="small" :style="{ color: row.color, borderColor: row.color + '55', background: row.color + '14' }">
+                  {{ row.name }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="interfaceCount" label="接口数" width="80" />
+            <el-table-column label="操作" width="180">
+              <template #default="{ row }">
+                <el-button size="small" text type="danger" @click="handleDeleteTag(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+    </el-dialog>
+
+    <el-dialog v-model="importVisible" title="导入 OpenAPI" width="640px">
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        title="支持 OpenAPI 3.0 JSON / YAML"
+        description="按 paths 中的接口逐个导入（默认下线），自动生成请求参数与响应示例；同名路径+方法已存在的接口会跳过。"
+        style="margin-bottom: 12px"
+      />
+      <el-input
+        v-model="importSpec"
+        type="textarea"
+        :rows="10"
+        placeholder='粘贴 OpenAPI 内容，例如：
+openapi: 3.0.1
+paths:
+  /api/demo/hello:
+    get:
+      summary: 你好
+      description: 示例接口
+      parameters:
+        - name: name
+          in: query
+          required: false
+          description: 名称
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              example: {"code":0,"data":"Hello"}' />
+      <div class="import-actions">
+        <el-button @click="pickImportFile">选择文件</el-button>
+        <span v-if="importFileName" class="import-file-name">{{ importFileName }}</span>
+        <input ref="importFileRef" type="file" accept=".json,.yaml,.yml" style="display: none" @change="onImportFileChange" />
+        <el-button type="primary" :loading="importing" @click="handleImportOpenApi">开始导入</el-button>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="versionVisible" :title="`版本历史 - ${versionInterface?.name ?? ''}`" width="880px" top="6vh">
+      <el-table
+        :data="versions"
+        border
+        stripe
+        v-loading="versionLoading"
+        highlight-current-row
+        @current-change="(row?: InterfaceVersionInfo) => (diffTarget = row ?? null)"
+      >
+        <el-table-column label="版本" width="80">
+          <template #default="{ row }">
+            <el-tag :type="row.id === currentVersionId ? 'success' : 'info'" size="small">
+              v{{ row.versionNo }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="changeNote" label="变更说明" min-width="130" />
+        <el-table-column label="发布状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
+              {{ row.status === 1 ? '上线' : '下线' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="时间" width="170" />
+        <el-table-column label="当前" width="70">
+          <template #default="{ row }">
+            <span v-if="row.id === currentVersionId" class="current-badge">当前</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150">
+          <template #default="{ row }">
+            <el-button size="small" text type="primary" @click="diffTarget = row">差异</el-button>
+            <el-button
+              size="small"
+              text
+              type="danger"
+              :disabled="row.id === currentVersionId"
+              @click="handleRollback(row)"
+            >
+              回滚
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div v-if="diffTarget && diffRows.length" class="version-diff">
+        <h4>v{{ diffTarget.versionNo }} 与当前接口差异</h4>
+        <el-table :data="diffRows" border size="small">
+          <el-table-column prop="field" label="字段" width="110" />
+          <el-table-column prop="current" label="当前值" show-overflow-tooltip />
+          <el-table-column prop="version" label="vN 值" show-overflow-tooltip />
+        </el-table>
+      </div>
+      <el-empty v-else-if="diffTarget" description="与当前版本内容一致" :image-size="50" />
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onActivated, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
+import { ArrowDown, Expand, Fold } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 import {
   listAppsForDebug,
@@ -271,10 +563,24 @@ import {
   type InterfaceForm,
   onlineInterface,
   offlineInterface,
+  listInterfaceVersions,
+  rollbackInterface,
+  listInterfaceGroups,
+  createInterfaceGroup,
+  updateInterfaceGroup,
+  deleteInterfaceGroup,
+  listInterfaceTags,
+  createInterfaceTag,
+  deleteInterfaceTag,
+  importOpenApi,
+  exportOpenApi,
   subscribe,
   mySubscribes,
   unsubscribe,
-  type InterfaceInfo
+  type InterfaceInfo,
+  type InterfaceVersionInfo,
+  type InterfaceGroupInfo,
+  type InterfaceTagInfo
 } from '@/api'
 import { hmacSha256Hex, buildSignContent, type SignParams } from '@/utils/sign'
 
@@ -285,6 +591,17 @@ const loading = ref(false)
 const keyword = ref('')
 const keywordInput = ref('')
 const filterStatus = ref<'all' | 'online' | 'subscribed' | 'unsubscribed'>('all')
+const groups = ref<InterfaceGroupInfo[]>([])
+const tags = ref<InterfaceTagInfo[]>([])
+const groupFilter = ref<number | null | undefined>(undefined)
+const totalAll = ref(0)
+const ungroupedCount = ref(0)
+const groupKeyword = ref('')
+const groupTreeRef = ref()
+const newGroupParentId = ref<number>()
+const panelWidth = ref(Number(localStorage.getItem('openapi-group-panel-width')) || 210)
+const groupPanelVisible = ref(localStorage.getItem('openapi-group-panel-visible') !== '0')
+const tagFilter = ref<number>()
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -298,8 +615,197 @@ const selectedAppId = ref<number | null>(null)
 const subscribing = ref(false)
 const selected = ref<InterfaceInfo[]>([])
 const tableRef = ref<TableInstance>()
+const groupTagVisible = ref(false)
+const groupTagTab = ref('groups')
+const newGroupName = ref('')
+const newTagName = ref('')
+const metaLoading = ref(false)
+const importVisible = ref(false)
+const importSpec = ref('')
+const importFileName = ref('')
+const importFileRef = ref<HTMLInputElement>()
+const importing = ref(false)
+let metaLoaded = false
+const versionVisible = ref(false)
+const versionInterface = ref<InterfaceInfo | null>(null)
+const versions = ref<InterfaceVersionInfo[]>([])
+const versionLoading = ref(false)
+const diffTarget = ref<InterfaceVersionInfo | null>(null)
+const currentVersionId = ref<number | null>(null)
+
+const diffRows = computed(() => {
+  const target = diffTarget.value
+  const current = versionInterface.value
+  if (!target || !current) return []
+  type CompareField = 'name' | 'description' | 'method' | 'url' | 'requestParams' | 'responseExample'
+  const fields: { key: CompareField; label: string }[] = [
+    { key: 'name', label: '名称' },
+    { key: 'description', label: '描述' },
+    { key: 'method', label: '方式' },
+    { key: 'url', label: '路径' },
+    { key: 'requestParams', label: '请求参数' },
+    { key: 'responseExample', label: '响应示例' }
+  ]
+  return fields
+    .filter(({ key }) => String(target[key] ?? '') !== String(current[key] ?? ''))
+    .map(({ key, label }) => ({
+      field: label,
+      current: String(current[key] ?? ''),
+      version: String(target[key] ?? '')
+    }))
+})
+
+async function openVersionHistory(row: InterfaceInfo | null) {
+  if (!row) return
+  versionInterface.value = row
+  diffTarget.value = null
+  versionVisible.value = true
+  versionLoading.value = true
+  try {
+    versions.value = await listInterfaceVersions(row.id)
+    currentVersionId.value = versions.value[0]?.id ?? null
+  } finally {
+    versionLoading.value = false
+  }
+}
+
+async function handleRollback(version: InterfaceVersionInfo) {
+  const info = versionInterface.value
+  if (!info) return
+  await ElMessageBox.confirm(
+    `确定将接口「${info.name}」回滚到 v${version.versionNo} 吗？当前内容将被替换。`,
+    '一键回滚',
+    { type: 'warning' }
+  )
+  try {
+    await rollbackInterface(info.id, version.id)
+    ElMessage.success(`已回滚到 v${version.versionNo}`)
+    await load()
+    await openVersionHistory(info)
+  } catch {
+    // 错误提示已由拦截器处理
+  }
+}
 
 const selectedRow = computed(() => (selected.value.length === 1 ? selected.value[0] : null))
+const flatGroups = computed<InterfaceGroupInfo[]>(() => {
+  const result: InterfaceGroupInfo[] = []
+  const walk = (list: InterfaceGroupInfo[]) => {
+    list.forEach((g) => {
+      result.push(g)
+      if (g.children?.length) walk(g.children)
+    })
+  }
+  walk(groups.value)
+  return result
+})
+function selectGroup(id: number | null | undefined) {
+  groupFilter.value = id
+  currentPage.value = 1
+  clearSelection()
+  load()
+}
+
+function onGroupNodeClick(data: InterfaceGroupInfo) {
+  selectGroup(data.id)
+}
+
+function filterGroupNode(value: string, data: InterfaceGroupInfo) {
+  if (!value) return true
+  return data.name.toLowerCase().includes(value.toLowerCase())
+}
+
+function collectMatchingGroups(list: InterfaceGroupInfo[], kw: string): InterfaceGroupInfo[] {
+  const matches: InterfaceGroupInfo[] = []
+  const walk = (items: InterfaceGroupInfo[]) => {
+    items.forEach((g) => {
+      if (g.name.toLowerCase().includes(kw)) matches.push(g)
+      if (g.children?.length) walk(g.children)
+    })
+  }
+  walk(list)
+  return matches
+}
+
+function onGroupSearch() {
+  const tree = groupTreeRef.value
+  if (!tree) return
+  const kw = groupKeyword.value.trim().toLowerCase()
+  tree.filter(kw || '')
+  if (!kw) {
+    tree.setCurrentKey(null)
+    return
+  }
+  nextTick(() => {
+    const matches = collectMatchingGroups(groups.value, kw)
+    const leaf = matches.find((g) => !g.children?.length) ?? matches[0]
+    if (!leaf) return
+    const node = tree.getNode(leaf.id)
+    let cur = node?.parent
+    while (cur && cur.data && cur.data.id != null) {
+      cur.expanded = true
+      cur = cur.parent
+    }
+    tree.setCurrentKey(leaf.id)
+    nextTick(() => {
+      const container = tree.$el as HTMLElement
+      const current = container.querySelector('.el-tree-node.is-current') as HTMLElement | null
+      if (container && current) {
+        const top = current.getBoundingClientRect().top - container.getBoundingClientRect().top
+        container.scrollTop = Math.max(0, top - 12)
+      }
+    })
+  })
+}
+
+function startResize(event: MouseEvent) {
+  event.preventDefault()
+  const startX = event.clientX
+  const startWidth = panelWidth.value
+  const onMove = (ev: MouseEvent) => {
+    const width = Math.min(360, Math.max(160, startWidth + ev.clientX - startX))
+    panelWidth.value = width
+  }
+  const onUp = () => {
+    localStorage.setItem('openapi-group-panel-width', String(panelWidth.value))
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+  }
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+}
+
+function toggleGroupPanel() {
+  groupPanelVisible.value = !groupPanelVisible.value
+  localStorage.setItem('openapi-group-panel-visible', groupPanelVisible.value ? '1' : '0')
+}
+const subscribeAction = computed(() => {
+  const rows = selected.value
+  if (rows.length === 0) return { label: '订阅', disabled: true, type: 'subscribe' as const }
+  const subscribable = rows.filter(
+    (r) => subscribeMap.value[r.id] === undefined || subscribeMap.value[r.id] === 2
+  )
+  const subscribed = rows.filter((r) => subscribeMap.value[r.id] === 1)
+  if (subscribable.length === rows.length) {
+    return { label: '订阅', disabled: false, type: 'subscribe' as const }
+  }
+  if (subscribed.length === rows.length) {
+    return { label: '取消订阅', disabled: false, type: 'unsubscribe' as const }
+  }
+  return { label: '订阅/取消', disabled: true, type: 'subscribe' as const }
+})
+const statusAction = computed(() => {
+  const rows = selected.value
+  if (rows.length === 0) return { label: '上线', disabled: true, target: 1 }
+  const online = rows.filter((r) => r.status === 1)
+  if (online.length === rows.length) return { label: '下线', disabled: false, target: 0 }
+  if (online.length === 0) return { label: '上线', disabled: false, target: 1 }
+  return { label: '上线/下线', disabled: true, target: 1 }
+})
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
 let keywordTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -507,6 +1013,10 @@ const filteredInterfaces = computed(() => {
   if (filterStatus.value === 'all' || filterStatus.value === 'online') return interfaces.value
   const kw = keyword.value.trim().toLowerCase()
   return interfaces.value.filter((i) => {
+    if (groupFilter.value !== undefined) {
+      if (groupFilter.value === null ? i.groupId != null : i.groupId !== groupFilter.value) return false
+    }
+    if (tagFilter.value && !(i.tags ?? []).some((t) => t.id === tagFilter.value)) return false
     const matchKw =
       !kw || i.name.toLowerCase().includes(kw) || i.url.toLowerCase().includes(kw)
     if (!matchKw) return false
@@ -540,15 +1050,30 @@ const interfaceForm = ref<InterfaceForm>({
 async function load() {
   loading.value = true
   try {
+    if (!metaLoaded) {
+      metaLoaded = true
+      try {
+        const [groupList, tagList] = await Promise.all([listInterfaceGroups(), listInterfaceTags()])
+        groups.value = groupList.tree
+        totalAll.value = groupList.total
+        ungroupedCount.value = groupList.ungrouped
+        tags.value = tagList
+      } catch {
+        metaLoaded = false
+      }
+    }
     if (filterStatus.value === 'all' || filterStatus.value === 'online') {
       const result = await pageInterfaces({
         current: currentPage.value,
         size: pageSize.value,
         keyword: keyword.value || undefined,
-        status: filterStatus.value === 'online' ? 1 : undefined
+        status: filterStatus.value === 'online' ? 1 : undefined,
+        groupId: groupFilter.value === null ? undefined : groupFilter.value,
+        ungrouped: groupFilter.value === null ? true : undefined,
+        tagId: tagFilter.value
       })
       interfaces.value = result.records
-      total.value = result.total
+      total.value = Number(result.total)
     } else {
       interfaces.value = isAdmin ? await listAllInterfaces() : await listInterfaces()
       total.value = filteredInterfaces.value.length
@@ -601,6 +1126,14 @@ function openSubscribe() {
     return
   }
   subscribeVisible.value = true
+}
+
+async function handleSubscribeToggle() {
+  if (subscribeAction.value.type === 'unsubscribe') {
+    await handleUnsubscribe()
+  } else {
+    openSubscribe()
+  }
 }
 
 async function handleSubscribe() {
@@ -846,8 +1379,44 @@ function parseJsonObject(json: string, label: string): Record<string, string> | 
 
 function openCreateForm() {
   editingId.value = null
-  interfaceForm.value = { name: '', description: '', method: 'GET', url: '', requestParams: '', responseExample: '' }
+  interfaceForm.value = {
+    name: '',
+    description: '',
+    method: 'GET',
+    url: '',
+    requestParams: '',
+    responseExample: '',
+    groupId: undefined,
+    tags: []
+  }
   formVisible.value = true
+}
+
+function exportInterfaces() {
+  const header = ['名称', '描述', '方式', '路径', '状态', '订阅状态']
+  const rows = interfaces.value.map((info) => [
+    info.name,
+    info.description ?? '',
+    info.method,
+    info.url,
+    info.status === 1 ? '上线' : '下线',
+    subscribeMap.value[info.id] === 1
+      ? '已订阅'
+      : subscribeMap.value[info.id] === 0
+        ? '待审批'
+        : subscribeMap.value[info.id] === 2
+          ? '已拒绝'
+          : '未订阅'
+  ])
+  const escape = (value: string) => `"${String(value).replace(/"/g, '""')}"`
+  const csv = '\uFEFF' + [header, ...rows].map((row) => row.map(escape).join(',')).join('\r\n')
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `interfaces-${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success('CSV 已导出当前页数据')
 }
 
 function openEditForm(row: InterfaceInfo | null) {
@@ -859,9 +1428,153 @@ function openEditForm(row: InterfaceInfo | null) {
     method: row.method,
     url: row.url,
     requestParams: row.requestParams ?? '',
-    responseExample: row.responseExample ?? ''
+    responseExample: row.responseExample ?? '',
+    groupId: row.groupId,
+    tags: (row.tags ?? []).map((t) => t.id)
   }
   formVisible.value = true
+}
+
+async function openGroupTagManage() {
+  groupTagVisible.value = true
+  await refreshMeta()
+}
+
+async function refreshMeta() {
+  metaLoading.value = true
+  try {
+    const [groupList, tagList] = await Promise.all([listInterfaceGroups(), listInterfaceTags()])
+    groups.value = groupList.tree
+    totalAll.value = groupList.total
+    ungroupedCount.value = groupList.ungrouped
+    tags.value = tagList
+  } finally {
+    metaLoading.value = false
+  }
+}
+
+async function handleCreateGroup() {
+  const name = newGroupName.value.trim()
+  if (!name) return
+  try {
+    await createInterfaceGroup(name, newGroupParentId.value)
+    newGroupName.value = ''
+    newGroupParentId.value = undefined
+    ElMessage.success('分组已创建')
+    await refreshMeta()
+  } catch {
+    // 拦截器已提示
+  }
+}
+
+async function startRenameGroup(row: InterfaceGroupInfo) {
+  try {
+    const { value } = await ElMessageBox.prompt('输入新的分组名称', '重命名分组', {
+      inputValue: row.name,
+      inputValidator: (v: string) => (v?.trim() ? true : '分组名称不能为空')
+    })
+    await updateInterfaceGroup(row.id, value.trim())
+    ElMessage.success('已重命名')
+    await refreshMeta()
+  } catch {
+    // 取消或失败
+  }
+}
+
+async function handleDeleteGroup(row: InterfaceGroupInfo) {
+  await ElMessageBox.confirm(`确定删除分组「${row.name}」吗？`, '删除分组', { type: 'warning' })
+  try {
+    await deleteInterfaceGroup(row.id)
+    ElMessage.success('分组已删除')
+    await refreshMeta()
+    await load()
+  } catch {
+    // 拦截器已提示（分组下有接口会拒绝）
+  }
+}
+
+async function handleCreateTag() {
+  const name = newTagName.value.trim()
+  if (!name) return
+  try {
+    await createInterfaceTag(name)
+    newTagName.value = ''
+    ElMessage.success('标签已创建')
+    await refreshMeta()
+  } catch {
+    // 拦截器已提示
+  }
+}
+
+async function handleDeleteTag(row: InterfaceTagInfo) {
+  await ElMessageBox.confirm(`确定删除标签「${row.name}」吗？`, '删除标签', { type: 'warning' })
+  try {
+    await deleteInterfaceTag(row.id)
+    ElMessage.success('标签已删除')
+    await refreshMeta()
+    await load()
+  } catch {
+    // 拦截器已提示
+  }
+}
+
+function pickImportFile() {
+  importFileRef.value?.click()
+}
+
+function onImportFileChange(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  importFileName.value = file.name
+  const reader = new FileReader()
+  reader.onload = () => {
+    importSpec.value = String(reader.result ?? '')
+  }
+  reader.readAsText(file)
+  ;(event.target as HTMLInputElement).value = ''
+}
+
+async function handleImportOpenApi() {
+  if (!importSpec.value.trim()) {
+    ElMessage.warning('请粘贴 OpenAPI 内容或选择文件')
+    return
+  }
+  importing.value = true
+  try {
+    const result = await importOpenApi(importSpec.value)
+    ElMessage.success(`导入完成：新增 ${result.created} 个，跳过 ${result.skipped} 个`)
+    importVisible.value = false
+    importSpec.value = ''
+    importFileName.value = ''
+    metaLoaded = false
+    await load()
+  } finally {
+    importing.value = false
+  }
+}
+
+async function handleExportOpenApi(format: string) {
+  try {
+    const spec = await exportOpenApi(format as 'json' | 'yaml')
+    const type = format === 'yaml' ? 'text/yaml;charset=utf-8' : 'application/json;charset=utf-8'
+    const url = URL.createObjectURL(new Blob([spec], { type }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `openapi-${new Date().toISOString().slice(0, 10)}.${format}`
+    link.click()
+    URL.revokeObjectURL(url)
+    ElMessage.success(`OpenAPI ${format.toUpperCase()} 已导出`)
+  } catch {
+    // 拦截器已提示
+  }
+}
+
+async function handleExportCommand(command: string) {
+  if (command === 'csv') {
+    exportInterfaces()
+    return
+  }
+  await handleExportOpenApi(command === 'openapi-yaml' ? 'yaml' : 'json')
 }
 
 async function handleSaveForm() {
@@ -931,7 +1644,7 @@ function handleRowClick(row: InterfaceInfo) {
 
 
 
-onMounted(load)
+onActivated(load)
 </script>
 
 <style scoped>
@@ -1056,6 +1769,321 @@ onMounted(load)
   word-break: break-all;
   background: var(--el-bg-color, #fff);
   color: var(--el-text-color-regular, #303133);
+}
+.version-diff {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 10px;
+  background: #fbfcfe;
+}
+.version-diff h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-text, #172033);
+}
+.current-badge {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 12px;
+  font-weight: 600;
+}
+.tag-chip {
+  margin: 2px 6px 2px 0;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.text-muted {
+  color: var(--app-muted, #94a3b8);
+  font-size: 12px;
+}
+.meta-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.import-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.import-file-name {
+  color: var(--app-muted, #64748b);
+  font-size: 12px;
+}
+.interface-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+.group-panel {
+  width: 210px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+  max-height: calc(100vh - 170px);
+  overflow: hidden;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+.group-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--app-text);
+}
+.group-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.panel-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--app-muted);
+  cursor: pointer;
+  font-size: 15px;
+}
+.panel-toggle:hover {
+  background: var(--el-fill-color-light, #f1f5f9);
+  color: var(--app-text);
+}
+.panel-toggle:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 1px;
+}
+.group-search {
+  margin-bottom: 8px;
+}
+.group-tree-static {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 8px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--app-border);
+  list-style: none;
+}
+.group-tree-static button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--app-text);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+}
+.group-tree-static button:hover {
+  background: var(--el-fill-color-light, #f1f5f9);
+}
+.group-tree-static button.active {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+.group-tree-static button:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 1px;
+}
+.group-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.group-tree :deep(.el-tree-node__content) {
+  height: 30px;
+  border-radius: 8px;
+}
+.group-tree :deep(.el-tree-node__content:hover) {
+  background: var(--el-fill-color-light, #f1f5f9);
+}
+.group-tree :deep(.el-tree-node.is-current > .el-tree-node__content) {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+.group-tree :deep(.el-tree-node.is-current > .el-tree-node__content .group-count) {
+  color: #1d4ed8;
+}
+.group-count {
+  flex: none;
+  color: var(--app-muted);
+  font-size: 12px;
+}
+.tree-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding-right: 6px;
+}
+.tree-node-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.panel-resizer {
+  position: relative;
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  margin: 0 4px;
+  cursor: col-resize;
+}
+.panel-resizer::before {
+  content: '';
+  width: 2px;
+  height: 36px;
+  border-radius: 2px;
+  background: var(--app-border);
+  transition: background-color .16s ease, height .16s ease;
+}
+.panel-resizer:hover::before {
+  height: 44px;
+  background: var(--app-primary);
+}
+.resizer-grip {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 2px;
+  border-radius: 6px;
+  background: var(--app-surface);
+}
+.resizer-grip::before,
+.resizer-grip::after {
+  content: '';
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--app-muted);
+}
+.panel-expand {
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  margin-right: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+  color: var(--app-muted);
+  cursor: pointer;
+  font-size: 16px;
+}
+.panel-expand:hover {
+  color: var(--app-primary);
+  background: #eff6ff;
+}
+.panel-expand:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 1px;
+}
+.interface-content {
+  flex: 1;
+  min-width: 0;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.page-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: var(--app-text);
+}
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.filter-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+.row-actions-left,
+.row-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.selected-tip {
+  color: var(--app-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+@media (max-width: 900px) {
+  .interface-layout {
+    flex-direction: column;
+  }
+  .group-panel {
+    width: 100%;
+    min-height: 0;
+    max-height: none;
+  }
+  .panel-resizer {
+    display: none;
+  }
 }
 .debug-form {
   display: grid;

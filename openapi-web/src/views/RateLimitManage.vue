@@ -23,13 +23,26 @@
           style="width: 260px; margin-bottom: 12px"
           @input="appPage = 1"
         />
-            <div class="action-bar">
-      <el-button size="small" type="primary" :disabled="appSelected.length === 0" @click="handleSaveApp">保存配置</el-button>
-      <el-button size="small" type="success" plain :disabled="appSelected.length === 0" @click="handleEnableApp(true)">批量启用</el-button>
-      <el-button size="small" type="warning" plain :disabled="appSelected.length === 0" @click="handleEnableApp(false)">批量禁用</el-button>
-      <el-button size="small" type="info" plain :disabled="appSelected.length < 2" @click="handleCopyApp">复制配置</el-button>
-      <el-button class="danger-right" size="small" type="danger" plain :disabled="appSelected.length === 0" @click="handleDeleteApp">删除配置</el-button>
-      <span v-if="appSelected.length" class="batch-tip">已选 {{ appSelected.length }} 项</span>
+    <div class="action-bar">
+      <div class="bar-left">
+        <el-button size="small" type="primary" :disabled="appSelected.length === 0" @click="handleSaveApp">保存配置</el-button>
+        <el-button size="small" type="success" plain :disabled="appSelected.length === 0" @click="handleEnableApp(true)">批量启用</el-button>
+        <el-button size="small" type="warning" plain :disabled="appSelected.length === 0" @click="handleEnableApp(false)">批量禁用</el-button>
+        <el-button size="small" type="info" plain :disabled="appSelected.length < 2" @click="handleCopyApp">复制配置</el-button>
+        <el-button class="danger-right" size="small" type="danger" plain :disabled="appSelected.length === 0" @click="handleDeleteApp">删除配置</el-button>
+        <span v-if="appSelected.length" class="batch-tip">已选 {{ appSelected.length }} 项</span>
+      </div>
+      <el-pagination
+        class="bar-pagination"
+        size="small"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="filteredAppCount"
+        :page-sizes="[10, 20, 50, 100]"
+        v-model:current-page="appPage"
+        v-model:page-size="pageSize"
+        @current-change="clearAppSelection"
+        @size-change="clearAppSelection"
+      />
     </div>
         <el-table
           ref="appTableRef"
@@ -66,16 +79,6 @@
             </template>
           </el-table-column>
         </el-table>
-        <el-pagination
-          class="pagination"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="filteredAppCount"
-          :page-sizes="[10, 20, 50, 100]"
-          v-model:current-page="appPage"
-          v-model:page-size="pageSize"
-          @current-change="clearAppSelection"
-          @size-change="clearAppSelection"
-        />
       </el-tab-pane>
       <el-tab-pane label="按接口限流" name="interface">
         <el-input
@@ -85,13 +88,26 @@
           style="width: 260px; margin-bottom: 12px"
           @input="interfacePage = 1"
         />
-            <div class="action-bar">
-      <el-button size="small" type="primary" :disabled="interfaceSelected.length === 0" @click="handleSaveInterface">保存配置</el-button>
-      <el-button size="small" type="success" plain :disabled="interfaceSelected.length === 0" @click="handleEnableInterface(true)">批量启用</el-button>
-      <el-button size="small" type="warning" plain :disabled="interfaceSelected.length === 0" @click="handleEnableInterface(false)">批量禁用</el-button>
-      <el-button size="small" type="info" plain :disabled="interfaceSelected.length < 2" @click="handleCopyInterface">复制配置</el-button>
-      <el-button class="danger-right" size="small" type="danger" plain :disabled="interfaceSelected.length === 0" @click="handleDeleteInterface">删除配置</el-button>
-      <span v-if="interfaceSelected.length" class="batch-tip">已选 {{ interfaceSelected.length }} 项</span>
+    <div class="action-bar">
+      <div class="bar-left">
+        <el-button size="small" type="primary" :disabled="interfaceSelected.length === 0" @click="handleSaveInterface">保存配置</el-button>
+        <el-button size="small" type="success" plain :disabled="interfaceSelected.length === 0" @click="handleEnableInterface(true)">批量启用</el-button>
+        <el-button size="small" type="warning" plain :disabled="interfaceSelected.length === 0" @click="handleEnableInterface(false)">批量禁用</el-button>
+        <el-button size="small" type="info" plain :disabled="interfaceSelected.length < 2" @click="handleCopyInterface">复制配置</el-button>
+        <el-button class="danger-right" size="small" type="danger" plain :disabled="interfaceSelected.length === 0" @click="handleDeleteInterface">删除配置</el-button>
+        <span v-if="interfaceSelected.length" class="batch-tip">已选 {{ interfaceSelected.length }} 项</span>
+      </div>
+      <el-pagination
+        class="bar-pagination"
+        size="small"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="filteredInterfaceCount"
+        :page-sizes="[10, 20, 50, 100]"
+        v-model:current-page="interfacePage"
+        v-model:page-size="pageSize"
+        @current-change="clearInterfaceSelection"
+        @size-change="clearInterfaceSelection"
+      />
     </div>
         <el-table
           ref="interfaceTableRef"
@@ -133,16 +149,6 @@
             </template>
           </el-table-column>
         </el-table>
-        <el-pagination
-          class="pagination"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="filteredInterfaceCount"
-          :page-sizes="[10, 20, 50, 100]"
-          v-model:current-page="interfacePage"
-          v-model:page-size="pageSize"
-          @current-change="clearInterfaceSelection"
-          @size-change="clearInterfaceSelection"
-        />
       </el-tab-pane>
     </el-tabs>
   </div>

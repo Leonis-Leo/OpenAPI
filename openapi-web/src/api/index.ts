@@ -34,6 +34,9 @@ export interface InterfaceInfo {
   description: string
   method: string
   url: string
+  groupId?: number
+  groupName?: string
+  tags?: { id: number; name: string; color: string }[]
   status: number
   requestParams?: string
   responseExample?: string
@@ -98,7 +101,15 @@ export const deleteApp = (id: number) =>
 export const listInterfaces = () =>
   request.get<unknown, InterfaceInfo[]>('/interface/list')
 
-export const pageInterfaces = (params: { current: number; size: number; keyword?: string; status?: number }) =>
+export const pageInterfaces = (params: {
+  current: number
+  size: number
+  keyword?: string
+  status?: number
+  groupId?: number
+  ungrouped?: boolean
+  tagId?: number
+}) =>
   request.get<unknown, PageResult<InterfaceInfo>>('/interface/page', { params })
 
 export const interfaceDetail = (id: number) =>
@@ -144,16 +155,96 @@ export interface InterfaceForm {
   url: string
   requestParams?: string
   responseExample?: string
+  groupId?: number
+  tags?: number[]
 }
 
 export const createInterface = (data: InterfaceForm) =>
-  request.post<unknown, InterfaceInfo>('/interface/create', null, { params: data })
+  request.post<unknown, InterfaceInfo>('/interface/create', null, {
+    params: { ...data, tags: data.tags?.length ? data.tags.join(',') : undefined }
+  })
 
 export const updateInterface = (id: number, data: Partial<InterfaceForm>) =>
-  request.post<unknown, void>('/interface/update', null, { params: { id, ...data } })
+  request.post<unknown, void>('/interface/update', null, {
+    params: { id, ...data, tags: data.tags?.length ? data.tags.join(',') : undefined }
+  })
 
 export const deleteInterface = (id: number) =>
   request.post<unknown, void>('/interface/delete', null, { params: { id } })
+
+export interface InterfaceGroupInfo {
+  id: number
+  name: string
+  parentId?: number
+  parentName?: string
+  sortOrder?: number
+  interfaceCount?: number
+  children?: InterfaceGroupInfo[]
+}
+
+export interface GroupTreeResult {
+  tree: InterfaceGroupInfo[]
+  total: number
+  ungrouped: number
+}
+
+export interface InterfaceTagInfo {
+  id: number
+  name: string
+  color?: string
+  interfaceCount?: number
+}
+
+export const listInterfaceGroups = () =>
+  request.get<unknown, GroupTreeResult>('/interface/groups')
+
+export const createInterfaceGroup = (name: string, parentId?: number) =>
+  request.post<unknown, void>('/interface/group/create', null, { params: { name, parentId } })
+
+export const updateInterfaceGroup = (id: number, name: string) =>
+  request.post<unknown, void>('/interface/group/update', null, { params: { id, name } })
+
+export const deleteInterfaceGroup = (id: number) =>
+  request.post<unknown, void>('/interface/group/delete', null, { params: { id } })
+
+export const listInterfaceTags = () =>
+  request.get<unknown, InterfaceTagInfo[]>('/interface/tags')
+
+export const createInterfaceTag = (name: string) =>
+  request.post<unknown, InterfaceTagInfo>('/interface/tag/create', null, { params: { name } })
+
+export const deleteInterfaceTag = (id: number) =>
+  request.post<unknown, void>('/interface/tag/delete', null, { params: { id } })
+
+export const importOpenApi = (spec: string) =>
+  request.post<unknown, { created: number; skipped: number }>('/interface/openapi/import', null, {
+    params: { spec }
+  })
+
+export const exportOpenApi = (format: 'json' | 'yaml') =>
+  request.get<unknown, string>('/interface/openapi/export', { params: { format } })
+
+export interface InterfaceVersionInfo {
+  id: number
+  interfaceId: number
+  versionNo: number
+  name: string
+  description?: string
+  method: string
+  url: string
+  requestParams?: string
+  responseExample?: string
+  status: number
+  changeNote?: string
+  createBy?: number
+  createTime: string
+}
+
+export const listInterfaceVersions = (interfaceId: number) =>
+  request.get<unknown, InterfaceVersionInfo[]>('/interface/versions', { params: { interfaceId } })
+
+export const rollbackInterface = (interfaceId: number, versionId: number) =>
+  request.post<unknown, void>('/interface/rollback', null, { params: { interfaceId, versionId } })
 
 export interface StatsOverview {
   total: number
@@ -319,3 +410,33 @@ export const deleteApiLogs = (ids: number[]) =>
 
 export const clearApiLogs = () =>
   request.post<unknown, void>('/log/clear')
+
+export interface NotificationItem {
+  id: number
+  userId: number
+  type: string
+  title: string
+  content?: string
+  bizId?: number
+  link?: string
+  isRead: number
+  createTime: string
+}
+
+export const pageNotifications = (params: { current: number; size: number; read?: number }) =>
+  request.get<unknown, PageResult<NotificationItem>>('/notification/page', { params, skipNetworkRedirect: true })
+
+export const unreadNotificationCount = () =>
+  request.get<unknown, number>('/notification/unread-count', { skipNetworkRedirect: true })
+
+export const readNotification = (id: number) =>
+  request.post<unknown, void>('/notification/read', null, { params: { id } })
+
+export const readAllNotifications = () =>
+  request.post<unknown, void>('/notification/read-all')
+
+export const deleteNotification = (id: number) =>
+  request.post<unknown, void>('/notification/delete', null, { params: { id } })
+
+export const clearNotifications = () =>
+  request.post<unknown, void>('/notification/clear')

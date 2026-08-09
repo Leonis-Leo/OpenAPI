@@ -15,15 +15,28 @@
       </div>
     </div>
 
-            <div class="action-bar">
-      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openEdit(selectedRow)">编辑</el-button>
-      <el-button size="small" type="danger" plain :disabled="selected.length === 0" @click="toggleRole('admin')">设为管理员</el-button>
-      <el-button size="small" type="primary" plain :disabled="selected.length === 0" @click="toggleRole('user')">设为普通用户</el-button>
-      <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="openResetPassword">重置密码</el-button>
-      <el-button size="small" type="success" :disabled="selected.length === 0" @click="toggleStatus(true)">启用</el-button>
-      <el-button size="small" type="danger" :disabled="selected.length === 0" @click="toggleStatus(false)">禁用</el-button>
-      <el-button class="danger-right" size="small" type="danger" plain :disabled="selected.length === 0" @click="handleDelete">删除</el-button>
-      <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
+    <div class="action-bar">
+      <div class="bar-left">
+        <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openEdit(selectedRow)">编辑</el-button>
+        <el-button size="small" type="danger" plain :disabled="selected.length === 0" @click="toggleRole('admin')">设为管理员</el-button>
+        <el-button size="small" type="primary" plain :disabled="selected.length === 0" @click="toggleRole('user')">设为普通用户</el-button>
+        <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="openResetPassword">重置密码</el-button>
+        <el-button size="small" type="success" :disabled="selected.length === 0" @click="toggleStatus(true)">启用</el-button>
+        <el-button size="small" type="danger" :disabled="selected.length === 0" @click="toggleStatus(false)">禁用</el-button>
+        <el-button class="danger-right" size="small" type="danger" plain :disabled="selected.length === 0" @click="handleDelete">删除</el-button>
+        <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
+      </div>
+      <el-pagination
+        class="bar-pagination"
+        size="small"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+        :page-sizes="[10, 20, 50, 100]"
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        @current-change="handlePageChange"
+        @size-change="handlePageChange"
+      />
     </div>
 
     <el-table
@@ -59,17 +72,6 @@
       </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="170" />
     </el-table>
-
-    <el-pagination
-      class="pagination"
-      layout="total, sizes, prev, pager, next, jumper"
-      :total="total"
-      :page-sizes="[10, 20, 50, 100]"
-      v-model:current-page="currentPage"
-      v-model:page-size="pageSize"
-      @current-change="handlePageChange"
-      @size-change="handlePageChange"
-    />
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑用户' : '新增用户'" width="420px">
       <el-form label-width="80px">
@@ -238,7 +240,7 @@ async function load() {
       keyword: keyword.value || undefined
     })
     users.value = result.records
-    total.value = result.total
+    total.value = Number(result.total)
   } finally {
     loading.value = false
   }

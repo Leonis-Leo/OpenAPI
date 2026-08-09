@@ -4,6 +4,138 @@
 
 ## Session: 2026-08-08
 
+### 订阅审批列表不刷新 + 右上角通知功能（2026-08-08）
+- **Status:** complete
+- 定位：`interface_subscribe` 已有 status=0 数据，但“订阅审批-待审批”页显示“暂无数据”。根因是 `AdminLayout.vue` 用 `<keep-alive>` 缓存页面，订阅审批/接口管理页重新进入时不会重新请求，停留在旧数据。
+- 修复：`SubscribeManage.vue`、`InterfaceManage.vue` 由 `onMounted` 改为 `onActivated(load)`，每次页面激活都拉取最新数据。
+- 通知功能：
+  - 新增 `notification` 表（`db/migrations/2026-08-08-notification.sql`，已应用到本地库，同步更新 `db/init.sql`）。
+  - 后端新增 `Notification` 实体/Mapper/Service/Controller（分页、未读数、单条已读、全部已读），订阅申请时通知所有管理员，审批通过/拒绝时通知申请人，并与状态变更同事务。
+  - 前端 `AdminLayout.vue` 铃铛改为未读数角标 + 通知面板（点开加载列表、点击单条标记已读并跳转、全部已读、30 秒轮询未读数）。
+- 验证：后端接口全链路测试通过（订阅触发通知、已读、审批通知）；`mvn -pl openapi-backend -am package` 与 `npm run build` 通过；测试数据已清理。
+
+### 通知中心与弹窗容量（2026-08-08 跟进）
+- **Status:** complete
+- 弹窗固定只拉 10 条（原 20 条），底部新增“查看全部”入口，避免通知在弹窗内无限堆积。
+- 新增通知中心页 `/notifications`（`NotificationCenter.vue`）：全部/未读筛选、分页、批量标记已读、删除、清空。
+- 后端新增 `read` 筛选参数及删除/清空接口；`clearAll`/`delete` 仅作用于当前用户（逻辑删除）。
+- 验证：`npm run build`、`mvn package` 通过；删除/清空/筛选接口已实测；测试数据已清理。
+
+### 首页“API 生命周期”重新设计（2026-08-08）
+- **Status:** complete
+- 重写 `QuickStart.vue` 为“API 生命周期”卡片：六阶段流程（创建应用 → 发布接口 → 订阅申请 → 审批通过 → 签名调用 → 运营分析），带实时计数/状态（完成、待审批、未开始），按角色自适应文案与可访问性（非管理员“运营分析”步骤标注仅管理员并禁用）。
+- 下方“快速使用”三步指引 + 快捷入口；管理员/普通用户入口按角色过滤。
+- `DashboardView.vue` 调整布局：生命周期卡片整行置于统计/趋势/日志下方，计数 props 来自已有统计接口。
+- 验证：`npm run build` 通过（vue-tsc + vite）。
+
+### 首页卡片排版调整（2026-08-08 跟进）
+- **Status:** complete
+- 生命周期卡片上移至统计卡下方作为主视觉；底部“最近调用动态 + 快速使用”左右分栏。
+- 从生命周期卡拆出“快速使用/快捷入口”为独立 `QuickAccess.vue` 侧边卡，卡片职责更清晰；普通用户视图下方整行展示。
+- 验证：`npm run build` 通过。
+
+### 快速使用上移为顶部横条（2026-08-08 跟进）
+- **Status:** complete
+- 用户反馈“快速使用放下面看不到”：将 `QuickAccess.vue` 改为紧凑横条卡（三步指引 + 快捷入口），置于页面标题下方、统计卡上方，一屏内直接可见。
+- 管理员底部恢复“最近调用动态”整行；生命周期卡保持在统计卡下方。
+- 验证：`npm run build` 通过。
+
+### 首页新增卡片与排版优化（2026-08-08 跟进）
+- **Status:** complete
+- 新增卡片（真实数据）：
+  - `TodoPanel.vue` 待办事项（管理员）：待审批订阅列表 + 未读通知提醒。
+  - `LatestNotifications.vue` 最新通知：最近 3 条，点击标记已读并跳转。
+  - `RateLimitStatus.vue` 限流状态（管理员）：接口/应用限流配置覆盖率进度条。
+- 新增占位卡 `ComingSoonCard.vue`（“即将上线”）：监控告警、API 文档与 SDK、压测报告，后续可填充。
+- 排版：趋势+排行 / 日志+待办 分栏；通知+限流 两列；即将上线 三列；普通用户视图：统计卡+生命周期+最新通知+即将上线。
+- 验证：`npm run build` 通过。
+
+### P1：列表导出补齐 + 接口发布版本/一键回滚（2026-08-08）
+- **Status:** complete
+- P1 清单第 1 项收尾：应用管理、接口管理补充“导出 CSV”（订阅/用户此前已有），统一分页/搜索/筛选/导出全部完成，清单已打勾。
+- P1 清单第 2 项（在线调试 JSON Body/Header/历史/多语言示例）确认已完成，清单已打勾。
+- 按推荐顺序实现 P1“发布版本/一键回滚”：
+  - 新增 `interface_version` 表（迁移 `db/migrations/2026-08-08-interface-version.sql`，已应用并同步 `init.sql`）。
+  - 后端：`InterfaceVersion` 实体/Mapper/Service；上线发布、在线更新自动生成版本快照；`GET /v1/interface/versions` 版本列表、`POST /v1/interface/rollback` 一键回滚（回滚本身也生成快照留痕）。
+  - 前端：接口管理新增“版本历史”按钮与弹窗（版本列表、发布状态、当前版本标记、与当前接口的字段差异、一键回滚）。
+- 验证：后端全链路实测（发布 v1 → 在线更新 v2 → 回滚 v1 还原并生成 v3）；`mvn package`、`npm run build` 通过；测试数据已清理。
+- P1 清单第 10 项已勾选，灰度发布标注“后续补充”。
+
+### P1：接口分组、标签 + OpenAPI 导入导出（2026-08-08）
+- **Status:** complete
+- 新增 `interface_group` / `interface_tag` / `interface_tag_relation` 表，`interface_info` 增加 `group_id`（迁移 `db/migrations/2026-08-08-interface-group-tag-openapi.sql`，已应用并同步 `init.sql`）。
+- 后端：分组/标签 CRUD（含接口数统计、占用校验）；接口分页支持 groupId/tagId 筛选；接口详情/列表富化 groupName + tags；`POST /v1/interface/openapi/import`（JSON/YAML 解析、按路径+方法导入、自动生成请求参数/响应示例、跳过重复）、`GET /v1/interface/openapi/export`（json/yaml）。
+- 前端：接口管理页新增分组/标签筛选、表格分组/标签列、表单分组/标签选择、分组标签管理弹窗、导入 OpenAPI 弹窗（粘贴/选文件）、导出 JSON/YAML。
+- 验证：分组/标签创建、YAML 导入（含 x-group/tags/参数/响应示例）、标签筛选、JSON/YAML 导出均实测通过；`mvn package`、`npm run build` 通过；测试数据已清理。
+- P1 清单第 3、12 项已勾选。
+
+### 网络异常页跳转与提示优化（2026-08-08）
+- **Status:** complete
+- 问题：后端不可达时 Vite 代理返回 500+HTML，被当成普通 HTTP 错误，每个请求各弹一条“网络异常” toast 堆叠。
+- 修复（`openapi-web/src/utils/request.ts`）：
+  - 非 JSON 错误体（代理/网关 HTML）按网络异常处理，统一跳转 `/network-error`，只跳转一次（模块内防重）。
+  - 普通错误 toast 去重（同消息 3 秒内只弹一次）；未知状态码提示“请求失败（xxx）”而非误导性的“网络异常”。
+  - 通知轮询等后台请求加 `skipNetworkRedirect`，失败静默不跳转。
+- 验证：`npm run build` 通过。
+
+### 接口管理按钮排版优化：互斥操作合并（2026-08-08）
+- **Status:** complete
+- 用户反馈“按钮太多”：批量操作栏将互斥操作合并为自适应按钮：
+  - 订阅/取消订阅 → 单个按钮（全选可订阅时显示“订阅”，全选已订阅时显示“取消订阅”，状态混杂时禁用“订阅/取消”）。
+  - 上线/下线 → 单个按钮（按选中接口状态自适应文案与颜色，混杂时禁用）。
+- 工具栏导出收敛：导出 OpenAPI JSON / YAML + 接口 CSV 合并为“导出”下拉，减少按钮数量；分组标签改为文字按钮弱化视觉。
+- 验证：`npm run build` 通过。
+
+### 接口管理改为左树右表布局（2026-08-08）
+- **Status:** complete
+- 用户要求“有分组就改成左树右表”：接口管理页左侧新增分组树面板（全部接口/各分组/未分组，带数量），右侧为筛选、批量操作与表格。
+- 后端：`GET /v1/interface/groups` 返回 `{groups, total, ungrouped}`；分页接口新增 `ungrouped=true` 筛选（groupId IS NULL）。
+- 前端：移除工具栏分组下拉（由左侧树承担）；树节点点击筛选表格，支持全部/分组/未分组；窄屏下分组树变为横向排列。
+- 验证：分组树数据、未分组筛选、分组筛选均实测通过；`mvn package`、`npm run build` 通过；后端已重启。
+
+### 接口管理页重新设计（frontend-ui-engineering，2026-08-08）
+- **Status:** complete
+- 用户反馈“按钮和留白太多、上下不一致、按钮与过滤条件同行”：按 frontend-ui-engineering 技能重新分区：
+  - 标题行：仅放页面级操作（分组标签 / 导入 OpenAPI / 导出下拉 / 新增接口）。
+  - 过滤行：状态 Tab + 搜索 + 标签筛选，不再与按钮混排。
+  - 批量操作行：统一 small plain 按钮（详情/调试、订阅、上线/下线、编辑、版本历史，删除靠右），去掉“批量操作：”标签前缀，间距收紧（8px/10px 内边距、12px 间隙）。
+  - 移除原 toolbar 底部边框与 18px 大留白。
+- 验证：`npm run build` 通过。
+
+### 修复：全页面分页控件消失（2026-08-08）
+- **Status:** complete
+- 现象：所有页面的 `el-pagination` 渲染为空。
+- 根因：node_modules 中 Element Plus 实际为 2.14.3（package.json 为 ^2.9.1）。2.14 起 Pagination 增加严格校验 `isAbsent = (v) => typeof v !== "number"`，不满足时直接 return null；后端 Jackson 全局把 Long 序列化为字符串（防雪花 ID 精度丢失），`total` 以 `"10"` 字符串返回，导致校验失败、分页整体不渲染。
+- 修复：所有分页页面对 `total` 做 `Number(...)` 强转（AppManage / InterfaceManage / SubscribeManage×3 / UserManage / NotificationCenter；LogManage 已有、RateLimitManage 为本地计数）。
+- 验证：浏览器实测 /users(共16条)、/apps(共5条)、/subscribes(共11条)、/interfaces(共11条) 分页全部恢复；`npm run build` 通过。
+
+### 分页移入按钮区右侧 + 接口分组层级树（2026-08-08）
+- **Status:** complete
+- 分页布局：全部列表页分页控件移入批量操作按钮区最右侧（`bar-left` 按钮组居左 + `bar-pagination` 靠右、`size="small"` 紧凑）；去掉“批量操作：”前缀；涉及 AppManage / InterfaceManage / SubscribeManage×3 / UserManage / LogManage / NotificationCenter / RateLimitManage×2，共享样式收进 `base.css`。
+- 接口分组层级化：
+  - `interface_group` 新增 `parent_id`（迁移 `db/migrations/2026-08-08-interface-group-parent.sql`，已应用并同步 `init.sql`）。
+  - 后端：`groupTree()` 返回嵌套树 `{tree, total, ungrouped}`；新建分组支持 `parentId`；删除分组校验子分组与接口占用。
+  - 前端：左树改为 `el-tree`（可展开/折叠、当前节点高亮）；新增分组搜索框，命中后过滤并展开路径、聚焦叶子节点（Element Plus 2.14 无 `expand` 方法，改为直接设置节点 `expanded`）。
+  - 左树可拖拽缩放（160~360px，宽度持久化到 localStorage）；分组管理弹窗支持选择父分组创建子分组、显示父分组列。
+- 验证：层级树接口实测（父/子分组、接口计数）；浏览器实测搜索过滤+聚焦叶子、清空恢复、拖拽缩放持久化；`mvn package`、`npm run build` 通过；测试数据已清理。
+
+### 分组面板拖拽手柄显性化 + 隐藏/展开左树（2026-08-08）
+- **Status:** complete
+- 拖拽手柄改为可见：面板与内容区间一条竖线 + 中间圆点抓手，悬停高亮变蓝，拖拽缩放 160~360px 仍记忆宽度。
+- 分组面板头部新增收起按钮（Fold 图标）；收起后内容区左侧出现“展开分组面板”竖条按钮（Expand 图标）可恢复。
+- 收起/展开状态持久化到 localStorage（`openapi-group-panel-visible`）。
+- 验证：DOM 实测收起→面板隐藏/展开按钮出现/记忆保存，展开→面板恢复；`npm run build` 通过。（后续浏览器验证由用户负责）
+
+### 按钮风格统一为现代 SaaS（2026-08-08）
+- **Status:** complete
+- 用户要求统一按钮风格并提供风格图选择，最终选择“现代 SaaS”风格，全局落地于 `base.css`：
+  - 次级/批量按钮统一「白底 + 细灰描边 + 深灰文字」，hover 轻微加深；主操作（新增/新建等）唯一实心蓝。
+  - 语义色统一为描边弱化（上线绿、删除红、警告黄），禁用态统一浅灰无边框、`opacity:1`。
+  - 筛选 Tab 改为分段控件（灰底轨道 + 白色浮起选中段）。
+  - 移除原 action-bar 内按钮的特殊覆盖（action-primary/action-secondary/danger-right 等），全部走统一体系。
+- 预览页 `docs/ui-button-style-preview.html` 新增“方案 D · 现代 SaaS（推荐）”，保留 A/B/C 供对比。
+- 验证：`npm run build` 通过；刷新页面生效。
+
 ### P0 安全与质量改造
 
 - **Status:** complete

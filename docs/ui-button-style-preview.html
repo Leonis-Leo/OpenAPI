@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>按钮风格方案预览 - OpenAPI 开放平台</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #059669;
+      --danger: #dc2626;
+      --warning: #b45309;
+      --text: #172033;
+      --muted: #64748b;
+      --border: #dbe3ee;
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 40px 64px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .page-title { margin: 0 0 6px; font-size: 24px; font-weight: 700; }
+    .page-desc { margin: 0 0 28px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+    .variants { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; align-items: start; }
+    .variant {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .variant-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: #fbfcfe;
+    }
+    .variant-head strong { font-size: 15px; }
+    .variant-head span { color: var(--muted); font-size: 12px; }
+    .variant-body { padding: 18px; display: flex; flex-direction: column; gap: 18px; }
+    .sample-label { margin: 0 0 8px; color: var(--muted); font-size: 12px; font-weight: 600; }
+    .row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+    /* ---------- base button ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 32px;
+      padding: 0 12px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: border-color .15s ease, background-color .15s ease, color .15s ease, box-shadow .15s ease;
+    }
+    .btn.big { height: 36px; padding: 0 14px; }
+    .btn:disabled { cursor: not-allowed; }
+
+    /* ---------- 风格 A：统一描边 ---------- */
+    .style-a .btn.secondary {
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+    }
+    .style-a .btn.secondary:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); background: #f8fbff; }
+    .style-a .btn.secondary:disabled { background: #f3f5f8; border-color: #e2e8f0; color: #94a3b8; }
+    .style-a .btn.primary {
+      background: var(--primary);
+      border: 1px solid var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, .16);
+    }
+    .style-a .btn.primary:hover:not(:disabled) { background: var(--primary-dark); border-color: var(--primary-dark); }
+    .style-a .btn.danger { background: #fff; border: 1px solid #fca5a5; color: var(--danger); }
+    .style-a .btn.danger:hover:not(:disabled) { background: #fff7f7; border-color: #f87171; }
+    .style-a .btn.danger:disabled { background: #f3f5f8; border-color: #e2e8f0; color: #94a3b8; }
+    .style-a .btn.text {
+      background: transparent; border: 1px solid transparent; color: var(--primary);
+    }
+    .style-a .btn.text:hover { background: #eff6ff; }
+    .style-a .btn.success-text { color: var(--success); }
+    .style-a .btn.warning-text { color: var(--warning); }
+    .style-a .count-pill { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; background: #eff6ff; color: var(--primary); font-size: 12px; font-weight: 600; }
+    .style-a .tab { display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 7px; background: transparent; border: 1px solid transparent; color: var(--muted); font-size: 13px; font-weight: 500; cursor: pointer; }
+    .style-a .tab.active { background: var(--primary); color: #fff; font-weight: 600; }
+    .style-a .tab.inactive:hover { background: #eef2f7; color: var(--text); }
+
+    /* ---------- 风格 B：浅色填充 ---------- */
+    .style-b .btn.secondary {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+    }
+    .style-b .btn.secondary:hover:not(:disabled) { background: #e8eef5; color: var(--text); }
+    .style-b .btn.secondary:disabled { background: #f6f8fa; border-color: #eef1f5; color: #a8b3c2; }
+    .style-b .btn.primary {
+      background: var(--primary);
+      border: 1px solid var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, .16);
+    }
+    .style-b .btn.primary:hover:not(:disabled) { background: var(--primary-dark); border-color: var(--primary-dark); }
+    .style-b .btn.danger { background: #fff1f2; border: 1px solid #fecdd3; color: var(--danger); }
+    .style-b .btn.danger:hover:not(:disabled) { background: #ffe4e6; border-color: #fda4af; }
+    .style-b .btn.danger:disabled { background: #f6f8fa; border-color: #eef1f5; color: #a8b3c2; }
+    .style-b .btn.tone-success { background: #ecfdf5; border-color: #bbf7d0; color: var(--success); }
+    .style-b .btn.tone-success:hover:not(:disabled) { background: #d1fae5; }
+    .style-b .btn.tone-warning { background: #fffbeb; border-color: #fde68a; color: var(--warning); }
+    .style-b .btn.tone-warning:hover:not(:disabled) { background: #fef3c7; }
+    .style-b .btn.tone-danger { background: #fff1f2; border-color: #fecdd3; color: var(--danger); }
+    .style-b .btn.tone-danger:hover:not(:disabled) { background: #ffe4e6; }
+    .style-b .count-pill { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: 12px; font-weight: 700; }
+    .style-b .tab { display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 7px; background: #f1f5f9; border: 1px solid transparent; color: var(--muted); font-size: 13px; font-weight: 500; cursor: pointer; }
+    .style-b .tab.active { background: var(--primary); color: #fff; font-weight: 600; }
+    .style-b .tab.inactive:hover { background: #e8eef5; color: var(--text); }
+
+    /* ---------- 风格 C：文字按钮 + 主操作 ---------- */
+    .style-c .btn.secondary {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #475569;
+    }
+    .style-c .btn.secondary:hover:not(:disabled) { background: #eef2f7; color: var(--text); }
+    .style-c .btn.secondary:disabled { background: transparent; color: #b6c0ce; }
+    .style-c .btn.primary {
+      background: var(--primary);
+      border: 1px solid var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, .16);
+    }
+    .style-c .btn.primary:hover:not(:disabled) { background: var(--primary-dark); border-color: var(--primary-dark); }
+    .style-c .btn.danger { background: transparent; border: 1px solid transparent; color: var(--danger); }
+    .style-c .btn.danger:hover:not(:disabled) { background: #fff1f2; }
+    .style-c .btn.danger:disabled { background: transparent; color: #b6c0ce; }
+    .style-c .btn.tone-success { color: var(--success); }
+    .style-c .btn.tone-success:hover:not(:disabled) { background: #ecfdf5; }
+    .style-c .btn.tone-warning { color: var(--warning); }
+    .style-c .btn.tone-warning:hover:not(:disabled) { background: #fffbeb; }
+    .style-c .count-pill { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 7px; background: #eff6ff; color: var(--primary); font-size: 12px; font-weight: 700; }
+    .style-c .tab { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 7px; background: transparent; border: 1px solid transparent; color: var(--muted); font-size: 13px; font-weight: 500; cursor: pointer; }
+    .style-c .tab.active { background: #eff6ff; color: var(--primary); font-weight: 700; }
+    .style-c .tab.inactive:hover { background: #eef2f7; color: var(--text); }
+
+    /* ---------- 现代 SaaS（推荐） ---------- */
+    .style-saas .btn.secondary {
+      background: #fff;
+      border: 1px solid #d0d5dd;
+      color: #344054;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+    }
+    .style-saas .btn.secondary:hover:not(:disabled) {
+      background: #f9fafb;
+      border-color: #98a2b3;
+      color: #1d2939;
+    }
+    .style-saas .btn.secondary:disabled {
+      background: #f2f4f7;
+      border-color: #eaecf0;
+      color: #98a2b3;
+    }
+    .style-saas .btn.primary {
+      background: #2563eb;
+      border: 1px solid #2563eb;
+      color: #fff;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .06);
+    }
+    .style-saas .btn.primary:hover:not(:disabled) { background: #1d4ed8; border-color: #1d4ed8; }
+    .style-saas .btn.danger {
+      background: #fff;
+      border: 1px solid #fda29b;
+      color: #b42318;
+    }
+    .style-saas .btn.danger:hover:not(:disabled) { background: #fef3f2; border-color: #f97066; }
+    .style-saas .btn.danger:disabled {
+      background: #f2f4f7;
+      border-color: #eaecf0;
+      color: #98a2b3;
+    }
+    .style-saas .btn.success-text {
+      background: #fff;
+      border: 1px solid #a6f4c5;
+      color: #027a48;
+    }
+    .style-saas .btn.success-text:hover:not(:disabled) { background: #ecfdf3; border-color: #6ce9a6; }
+    .style-saas .count-pill {
+      display: inline-flex;
+      align-items: center;
+      height: 26px;
+      padding: 0 10px;
+      border-radius: 7px;
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .style-saas .tab {
+      display: inline-flex;
+      align-items: center;
+      height: 28px;
+      padding: 0 14px;
+      border-radius: 7px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: #667085;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .style-saas .tab.active {
+      background: #fff;
+      color: #344054;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .08);
+    }
+    .style-saas .tab.inactive:hover { background: #e9edf2; color: #344054; }
+    .style-saas .tab-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 2px;
+      border-radius: 9px;
+      background: #f2f4f7;
+    }
+
+    /* 示例容器 */
+    .demo-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+    }
+    .demo-bar .left { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .demo-bar .right { display: flex; align-items: center; gap: 10px; }
+    .pager { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+    .pager .page { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #fff; color: var(--text); font-size: 12px; }
+    .pager .page.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .pager .arrow { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; }
+    .pager .size { padding: 2px 8px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--text); font-size: 12px; }
+    .note { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+  </style>
+</head>
+<body>
+  <h1 class="page-title">按钮风格方案预览</h1>
+  <p class="page-desc">
+    三个方案统一了「标题区操作按钮、筛选 Tab、批量操作按钮」的形态与状态反馈。
+    每行展示：① 标题区次要/主操作 ② 筛选 Tab ③ 批量栏禁用态 ④ 批量栏选中态（含危险操作）⑤ 分页。
+    请选择其中一个方案，我会按它统一全部页面的按钮样式。
+  </p>
+
+  <div class="variants">
+    <!-- 现代 SaaS（推荐） -->
+    <section class="variant style-saas">
+      <div class="variant-head">
+        <strong>方案 D · 现代 SaaS（推荐）</strong>
+        <span>Modern SaaS</span>
+      </div>
+      <div class="variant-body">
+        <div>
+          <p class="sample-label">标题区操作</p>
+          <div class="row">
+            <button class="btn secondary">分组标签</button>
+            <button class="btn secondary">导入 OpenAPI</button>
+            <button class="btn secondary">导出 ▾</button>
+            <button class="btn primary big">新增接口</button>
+          </div>
+        </div>
+        <div>
+          <p class="sample-label">筛选 Tab（分段控件）</p>
+          <div class="row">
+            <span class="tab-wrap">
+              <button class="tab active">全部</button>
+              <button class="tab inactive">已上线</button>
+              <button class="tab inactive">已订阅</button>
+              <button class="tab inactive">未订阅</button>
+            </span>
+          </div>
+        </div>
+        <div>
+          <p class="sample-label">批量栏 · 未选中（禁用）</p>
+          <div class="demo-bar">
+            <div class="left">
+              <button class="btn secondary" disabled>详情/调试</button>
+              <button class="btn secondary" disabled>订阅</button>
+              <button class="btn success-text" disabled>上线</button>
+              <button class="btn secondary" disabled>编辑</button>
+              <button class="btn danger" disabled>删除</button>
+            </div>
+            <div class="right pager"><span>共 11 条</span><span class="size">10条/页</span><span class="arrow">‹</span><span class="page active">1</span><span class="page">2</span><span class="arrow">›</span></div>
+          </div>
+        </div>
+        <div>
+          <p class="sample-label">批量栏 · 已选中（启用）</p>
+          <div class="demo-bar">
+            <div class="left">
+              <span class="count-pill">已选 1 项</span>
+              <button class="btn secondary">详情/调试</button>
+              <button class="btn secondary">订阅</button>
+              <button class="btn success-text">上线</button>
+              <button class="btn secondary">编辑</button>
+              <button class="btn danger">删除</button>
+            </div>
+            <div class="right pager"><span>共 11 条</span><span class="size">10条/页</span><span class="arrow">‹</span><span class="page active">1</span><span class="page">2</span><span class="arrow">›</span></div>
+          </div>
+        </div>
+        <p class="note">特点：次级按钮统一「白底 + 细灰描边 + 深灰文字」，hover 轻微加深；主操作唯一实心蓝；语义色描边弱化（上线绿、删除红）；Tab 用灰底分段控件，选中段白底浮起；禁用统一浅灰。整体克制、留白舒适，接近 Linear / Stripe 等现代 SaaS 后台。</p>
+      </div>
+    </section>
+
+    <!-- 风格 A -->
+    <section class="variant style-a">
+      <div class="variant-head">
+        <strong>方案 A · 统一描边</strong>
+        <span>Outline Unified</span>
+      </div>
+      <div class="variant-body">
+        <div>
+          <p class="sample-label">标题区操作</p>
+          <div class="row">
+            <button class="btn text">分组标签</button>
+            <button class="btn secondary">导入 OpenAPI</button>
+            <button class="btn secondary">导出 ▾</button>
+            <button class="btn primary big">新增接口</button>
+          </div>
+        </div>
+        <div>
+          <p class="sample-label">筛选 Tab</p>
+          <div class="row">
+            <button class="tab active">全部</button>
+            <button class="tab inactive">已上线</button>
+            <button class="tab inactive">已订阅</button>
+            <button class="tab inactive">未订阅</button>
+          </div>
+        </div>
+        <div>
+          <p class="sample-label">批量栏 · 未选中（禁用）</p>
+          <div class="demo-bar">
+            <div class="left">
+              <button class="btn secondary" disabled>详情/调试</button>
+              <button class="btn secondary" disabled>订阅</button>
+              <button class="btn secondary" disabled>上线</button>
+              <button class="btn secondary" disabled>编辑</button>
+              <button class="btn danger" disabled>删除</button>
+            </div>
+            <div class="right pager"><span>共 11 条</span><span class="size">10条/页</span><span class="arrow">‹</span><span class="page active">1</span><span class="page">2</span><span class="arrow">›</span></div>
+          </div>
+        </div>
+        <div>
+          <p class="sample-label">批量栏 · 已选中（启用）</p>
+          <div class="demo-bar">
+            <div class="left">
+              <span class="count-pill">已选 1 项</span>
+              <button class="btn secondary">详情/调试</button>
+              <button class="btn secondary">订阅</button>
+              <button class="btn success-text secondary">上线</button>
+              <button class="btn secondary">编辑</button>
+              <button class="btn danger">删除</button>
+            </div>
+            <div class="right pager"><span>共 11 条</span><span class="size">10条/页</span><span class="arrow">‹</span><span class="page active">1</span><span class="page">2</span><span class="arrow">›</span></div>
+          </div>
+        </div>
+        <p class="note">特点：所有次级/批量按钮统一为「白底 + 灰描边 + 深色文字」；语义只通过文字色提示（上线绿、删除红）；主操作实心蓝；禁用统一浅灰。</p>
+      </div>
+    </section>
+
+    <!-- 风格 B -->
+    <section class="variant style-b">
+      <div class="variant-head">
+        <strong>方案 B · 浅色填充</strong>
+        <span>Tinted Fill</span>
+      </div>
+      <div class="variant-body">
+        <div>
+          <p class="sample-label">标题区操作</p>
+          <div class="row">
+            <button class="btn secondary">分组标签</button>
+            <button class="btn secondary">导入 OpenAPI</button>
+            <button class="btn secondary">导出 ▾</button>
+            <button class="btn primary big">新增接口</button>
+          </div>
+        </div>
+        <div>
+          <p class="sample-label">筛选 Tab</p>
+          <div class="row">
+            <button class="tab active">全部</button>
+            <button class="tab inactive">已上线</button>
+            <button class="tab inactive">已订阅</button>
+            <button class="tab inactive">未订阅</button>
+          </div>
+        </div>
+        <div>
+          <p class="sample-label">批量栏 · 未选中（禁用）</p>
+          <div class="demo-bar">
+            <div class="left">
+              <button class="btn secondary" disabled>详情/调试</button>
+              <button class="btn secondary" disabled>订阅</button>
+              <button class="btn tone-success" disabled>上线</button>
+              <button class="btn secondary" disabled>编辑</button>
+              <button class="btn tone-danger" disabled>删除</button>
+            </div>
+            <div class="right pager"><span>共 11 条</span><span class="size">10条/页</span><span class="arrow">‹</span><span class="page active">1</span><span class="page">2</span><span class="arrow">›</span></div>
+          </div>
+        </div>
+        <div>
+          <p class="sample-label">批量栏 · 已选中（启用）</p>
+          <div class="demo-bar">
+            <div class="left">
+              <span class="count-pill">已选 1 项</span>
+              <button class="btn secondary">详情/调试</button>
+              <button class="btn secondary">订阅</button>
+              <button class="btn tone-success">上线</button>
+              <button class="btn secondary">编辑</button>
+              <button class="btn tone-danger">删除</button>
+            </div>
+            <div class="right pager"><span>共 11 条</span><span class="size">10条/页</span><span class="arrow">‹</span><span class="page active">1</span><span class="page">2</span><span class="arrow">›</span></div>
+          </div>
+        </div>
+        <p class="note">特点：按钮统一为浅色填充（灰/绿/红），语义通过底色 + 文字色双重提示，选中后色块加深；主操作实心蓝；禁用统一极浅灰。</p>
+      </div>
+    </section>
+
+    <!-- 风格 C -->
+    <section class="variant style-c">
+      <div class="variant-head">
+        <strong>方案 C · 文字按钮 + 主操作</strong>
+        <span>Text + Primary</span>
+      </div>
+      <div class="variant-body">
+        <div>
+          <p class="sample-label">标题区操作</p>
+          <div class="row">
+            <button class="btn secondary">分组标签</button>
+            <button class="btn secondary">导入 OpenAPI</button>
+            <button class="btn secondary">导出 ▾</button>
+            <button class="btn primary big">新增接口</button>
+          </div>
+        </div>
+        <div>
+          <p class="sample-label">筛选 Tab</p>
+          <div class="row">
+            <button class="tab active">全部</button>
+            <button class="tab inactive">已上线</button>
+            <button class="tab inactive">已订阅</button>
+            <button class="tab inactive">未订阅</button>
+          </div>
+        </div>
+        <div>
+          <p class="sample-label">批量栏 · 未选中（禁用）</p>
+          <div class="demo-bar">
+            <div class="left">
+              <button class="btn secondary" disabled>详情/调试</button>
+              <button class="btn secondary" disabled>订阅</button>
+              <button class="btn tone-success" disabled>上线</button>
+              <button class="btn secondary" disabled>编辑</button>
+              <button class="btn danger" disabled>删除</button>
+            </div>
+            <div class="right pager"><span>共 11 条</span><span class="size">10条/页</span><span class="arrow">‹</span><span class="page active">1</span><span class="page">2</span><span class="arrow">›</span></div>
+          </div>
+        </div>
+        <div>
+          <p class="sample-label">批量栏 · 已选中（启用）</p>
+          <div class="demo-bar">
+            <div class="left">
+              <span class="count-pill">已选 1 项</span>
+              <button class="btn secondary">详情/调试</button>
+              <button class="btn secondary">订阅</button>
+              <button class="btn tone-success">上线</button>
+              <button class="btn secondary">编辑</button>
+              <button class="btn danger">删除</button>
+            </div>
+            <div class="right pager"><span>共 11 条</span><span class="size">10条/页</span><span class="arrow">‹</span><span class="page active">1</span><span class="page">2</span><span class="arrow">›</span></div>
+          </div>
+        </div>
+        <p class="note">特点：次级/批量按钮为纯文字（无边框），hover 浅灰底；语义通过文字色提示；主操作实心蓝；选中态文字变蓝加粗；最克制、最省空间。</p>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

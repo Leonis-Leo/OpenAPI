@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS `interface_info`
     `url`              VARCHAR(256) NOT NULL COMMENT '接口路径',
     `request_params`   TEXT COMMENT '请求参数说明（JSON）',
     `response_example` TEXT COMMENT '响应示例（JSON）',
+    `group_id`         BIGINT       DEFAULT NULL COMMENT '所属分组',
     `status`           TINYINT      DEFAULT 0 COMMENT '状态：0下线 1上线',
     `create_time`      DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time`      DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -55,6 +56,42 @@ CREATE TABLE IF NOT EXISTS `interface_info`
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='接口信息表';
+
+-- 接口分组
+CREATE TABLE IF NOT EXISTS `interface_group` (
+    `id`          BIGINT      NOT NULL COMMENT '主键（雪花）',
+    `name`        VARCHAR(64) NOT NULL COMMENT '分组名称',
+    `parent_id`   BIGINT      DEFAULT NULL COMMENT '父分组 ID（NULL 为顶级分组）',
+    `sort_order`  INT         DEFAULT 0 COMMENT '排序',
+    `create_time` DATETIME    DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `is_delete`   TINYINT     DEFAULT 0 COMMENT '是否删除：0 否 1 是',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_group_name` (`name`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='接口分组';
+
+-- 接口标签
+CREATE TABLE IF NOT EXISTS `interface_tag` (
+    `id`          BIGINT      NOT NULL COMMENT '主键（雪花）',
+    `name`        VARCHAR(32) NOT NULL COMMENT '标签名称',
+    `color`       VARCHAR(16) DEFAULT '#2563eb' COMMENT '标签颜色',
+    `create_time` DATETIME    DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `is_delete`   TINYINT     DEFAULT 0 COMMENT '是否删除：0 否 1 是',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_tag_name` (`name`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='接口标签';
+
+-- 接口-标签关联（多对多）
+CREATE TABLE IF NOT EXISTS `interface_tag_relation` (
+    `id`           BIGINT   NOT NULL COMMENT '主键（雪花）',
+    `interface_id` BIGINT   NOT NULL COMMENT '接口 ID',
+    `tag_id`       BIGINT   NOT NULL COMMENT '标签 ID',
+    `create_time`  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_interface_tag` (`interface_id`, `tag_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='接口-标签关联';
 
 -- 接口订阅表（开发者申请订阅接口，管理员审批后才有调用权限）
 CREATE TABLE IF NOT EXISTS `interface_subscribe`
@@ -150,3 +187,41 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
     `success` TINYINT DEFAULT 0, `detail` TEXT, `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`), KEY `idx_audit_user_time` (`user_id`, `create_time`), KEY `idx_audit_resource_time` (`resource`, `create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='管理员及用户操作审计日志';
+
+-- 站内通知表（订阅申请 / 审批结果）
+CREATE TABLE IF NOT EXISTS `notification` (
+    `id`          BIGINT       NOT NULL COMMENT '主键（雪花）',
+    `user_id`     BIGINT       NOT NULL COMMENT '接收人用户 ID',
+    `type`        VARCHAR(32)  NOT NULL COMMENT '类型：SUBSCRIBE_APPLY / SUBSCRIBE_APPROVED / SUBSCRIBE_REJECTED',
+    `title`       VARCHAR(128) NOT NULL COMMENT '标题',
+    `content`     VARCHAR(512) DEFAULT NULL COMMENT '内容',
+    `biz_id`      BIGINT       DEFAULT NULL COMMENT '关联业务 ID（订阅记录 ID）',
+    `link`        VARCHAR(256) DEFAULT NULL COMMENT '跳转路由',
+    `is_read`     TINYINT      DEFAULT 0 COMMENT '是否已读：0 未读 1 已读',
+    `create_time` DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `is_delete`   TINYINT      DEFAULT 0 COMMENT '是否删除：0 否 1 是',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_read_time` (`user_id`, `is_read`, `create_time`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='站内通知';
+
+-- 接口发布版本快照（发布/更新生成，支持变更 diff 与一键回滚）
+CREATE TABLE IF NOT EXISTS `interface_version` (
+    `id`              BIGINT       NOT NULL COMMENT '主键（雪花）',
+    `interface_id`    BIGINT       NOT NULL COMMENT '接口 ID',
+    `version_no`      INT          NOT NULL COMMENT '版本号（从 1 递增）',
+    `name`            VARCHAR(64)  NOT NULL COMMENT '接口名称快照',
+    `description`     VARCHAR(512) DEFAULT NULL COMMENT '描述快照',
+    `method`          VARCHAR(8)   NOT NULL COMMENT '请求方式快照',
+    `url`             VARCHAR(256) NOT NULL COMMENT '路径快照',
+    `request_params`  TEXT COMMENT '请求参数快照',
+    `response_example` TEXT COMMENT '响应示例快照',
+    `status`          TINYINT      DEFAULT 0 COMMENT '接口状态快照：0 下线 1 上线',
+    `change_note`     VARCHAR(256) DEFAULT NULL COMMENT '变更说明',
+    `create_by`       BIGINT       DEFAULT NULL COMMENT '操作人用户 ID',
+    `create_time`     DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `is_delete`       TINYINT      DEFAULT 0 COMMENT '是否删除：0 否 1 是',
+    PRIMARY KEY (`id`),
+    KEY `idx_interface_version` (`interface_id`, `version_no`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='接口发布版本快照';

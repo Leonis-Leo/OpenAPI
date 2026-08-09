@@ -47,15 +47,28 @@
 
     <div class="table-card content-card">
       <div class="table-heading"><div><strong>调用记录</strong><span>共 {{ total }} 条记录</span></div><div class="action-bar">
-      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
-        查看详情
-      </el-button>
-      <el-button class="danger-right" size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">
-        删除
-      </el-button>
-      <el-divider direction="vertical" />
-      <el-button size="small" type="danger" plain @click="handleClear">清空日志</el-button>
-      <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
+      <div class="bar-left">
+        <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
+          查看详情
+        </el-button>
+        <el-button class="danger-right" size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">
+          删除
+        </el-button>
+        <el-divider direction="vertical" />
+        <el-button size="small" type="danger" plain @click="handleClear">清空日志</el-button>
+        <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
+      </div>
+      <el-pagination
+        class="bar-pagination"
+        size="small"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+        :page-sizes="[10, 20, 50, 100]"
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        @size-change="handleSizeChange"
+        @current-change="handlePageChange"
+      />
       </div></div>
 
     <el-table
@@ -93,17 +106,6 @@
       </el-table-column>
       <el-table-column prop="costMs" label="耗时(ms)" width="90" sortable />
     </el-table>
-
-    <el-pagination
-      class="pagination"
-      layout="total, sizes, prev, pager, next, jumper"
-      :total="total"
-      :page-sizes="[10, 20, 50, 100]"
-      v-model:current-page="currentPage"
-      v-model:page-size="pageSize"
-      @size-change="handleSizeChange"
-      @current-change="handlePageChange"
-    />
     </div>
 
     <el-drawer v-model="detailVisible" :title="`日志详情 #${detail?.id ?? ''}`" size="560px">

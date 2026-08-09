@@ -4,9 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.openapi.backend.entity.InterfaceSubscribe;
 import com.openapi.backend.entity.InterfaceInfo;
+import com.openapi.backend.entity.InterfaceVersion;
 import com.openapi.backend.entity.User;
 import com.openapi.backend.service.InterfaceInfoService;
 import com.openapi.backend.service.InterfaceSubscribeService;
+import com.openapi.backend.service.InterfaceVersionService;
+import com.openapi.backend.service.InterfaceGroupService;
+import com.openapi.backend.service.InterfaceTagService;
 import com.openapi.backend.service.UserService;
 import com.openapi.common.exception.BusinessException;
 import com.openapi.common.model.ApiResponse;
@@ -38,19 +42,22 @@ public class InterfaceInfoController {
 
     private final InterfaceInfoService interfaceInfoService;
     private final InterfaceSubscribeService subscribeService;
+    private final InterfaceVersionService versionService;
+    private final InterfaceGroupService groupService;
+    private final InterfaceTagService tagService;
     private final UserService userService;
 
     @GetMapping("/list")
     @Operation(summary = "查询已上线接口")
     public ApiResponse<List<InterfaceInfo>> listOnline() {
-        return ApiResponse.ok(interfaceInfoService.listOnline());
+        return ApiResponse.ok(interfaceInfoService.listOnline().stream().map(interfaceInfoService::enrich).toList());
     }
 
     @GetMapping("/list-all")
     @Operation(summary = "全部接口列表（管理员）")
     public ApiResponse<List<InterfaceInfo>> listAll(HttpServletRequest request) {
         requireAdmin(request);
-        return ApiResponse.ok(interfaceInfoService.listAll());
+        return ApiResponse.ok(interfaceInfoService.listAll().stream().map(interfaceInfoService::enrich).toList());
     }
 
     @GetMapping("/page")
@@ -60,6 +67,9 @@ public class InterfaceInfoController {
             @RequestParam(defaultValue = "10") long size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Long groupId,
+            @RequestParam(required = false) Boolean ungrouped,
+            @RequestParam(required = false) Long tagId,
             HttpServletRequest request) {
         User currentUser = userService.getById((Long) request.getAttribute("openapi.userId"));
         boolean admin = currentUser != null && "admin".equals(currentUser.getUserRole());
@@ -72,8 +82,18 @@ public class InterfaceInfoController {
         } else if (!admin) {
             wrapper.eq(InterfaceInfo::getStatus, 1);
         }
+        if (Boolean.TRUE.equals(ungrouped)) {
+            wrapper.isNull(InterfaceInfo::getGroupId);
+        } else if (groupId != null) {
+            wrapper.eq(InterfaceInfo::getGroupId, groupId);
+        }
+        if (tagId != null) {
+            List<Long> ids = interfaceInfoService.interfaceIdsByTag(tagId);
+            wrapper.in(InterfaceInfo::getId, ids.isEmpty() ? List.of(-1L) : ids);
+        }
         wrapper.orderByDesc(InterfaceInfo::getId);
         Page<InterfaceInfo> page = interfaceInfoService.page(new Page<>(Math.max(1, current), Math.min(Math.max(1, size), 100)), wrapper);
+        page.setRecords(page.getRecords().stream().map(interfaceInfoService::enrich).toList());
         Map<String, Object> result = new HashMap<>();
         result.put("records", page.getRecords());
         result.put("total", page.getTotal());
@@ -88,14 +108,14 @@ public class InterfaceInfoController {
         if (info == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "接口不存在");
         }
-        return ApiResponse.ok(info);
+        return ApiResponse.ok(interfaceInfoService.enrich(info));
     }
 
     @PostMapping("/online")
     @Operation(summary = "接口上线（管理员）")
     public ApiResponse<Void> online(@RequestParam Long id, HttpServletRequest request) {
         requireAdmin(request);
-        interfaceInfoService.online(id);
+        interfaceInfoService.online(id, (Long) request.getAttribute("openapi.userId"));
         return ApiResponse.ok();
     }
 
@@ -189,6 +209,8 @@ public class InterfaceInfoController {
             @RequestParam String url,
             @RequestParam(required = false) String requestParams,
             @RequestParam(required = false) String responseExample,
+            @RequestParam(required = false) Long groupId,
+            @RequestParam(required = false) String tags,
             HttpServletRequest request) {
         requireAdmin(request);
         InterfaceInfo info = new InterfaceInfo();
@@ -198,9 +220,13 @@ public class InterfaceInfoController {
         info.setUrl(url);
         info.setRequestParams(requestParams);
         info.setResponseExample(responseExample);
+        info.setGroupId(groupId);
         info.setStatus(0);
         info.setIsDelete(0);
         interfaceInfoService.save(info);
+        if (tags != null) {
+            interfaceInfoService.updateWithVersion(info, tags, "创建", (Long) request.getAttribute("openapi.userId"));
+        }
         return ApiResponse.ok(info);
     }
 
@@ -214,6 +240,8 @@ public class InterfaceInfoController {
             @RequestParam(required = false) String url,
             @RequestParam(required = false) String requestParams,
             @RequestParam(required = false) String responseExample,
+            @RequestParam(required = false) Long groupId,
+            @RequestParam(required = false) String tags,
             HttpServletRequest request) {
         requireAdmin(request);
         InterfaceInfo info = interfaceInfoService.getById(id);
@@ -238,7 +266,102 @@ public class InterfaceInfoController {
         if (responseExample != null) {
             info.setResponseExample(responseExample);
         }
-        interfaceInfoService.updateById(info);
+        if (groupId != null) {
+            info.setGroupId(groupId);
+        }
+        interfaceInfoService.updateWithVersion(info, tags, "在线更新", (Long) request.getAttribute("openapi.userId"));
+        return ApiResponse.ok();
+    }
+
+    @GetMapping("/groups")
+    @Operation(summary = "接口分组树（含总数与未分组数）")
+    public ApiResponse<Map<String, Object>> groups() {
+        return ApiResponse.ok(groupService.groupTree());
+    }
+
+    @PostMapping("/group/create")
+    @Operation(summary = "新建分组（管理员）")
+    public ApiResponse<Void> createGroup(
+            @RequestParam String name,
+            @RequestParam(required = false) Long parentId,
+            HttpServletRequest request) {
+        requireAdmin(request);
+        groupService.createGroup(name, parentId);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/group/update")
+    @Operation(summary = "重命名分组（管理员）")
+    public ApiResponse<Void> updateGroup(@RequestParam Long id, @RequestParam String name, HttpServletRequest request) {
+        requireAdmin(request);
+        groupService.updateGroup(id, name);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/group/delete")
+    @Operation(summary = "删除分组（管理员）")
+    public ApiResponse<Void> deleteGroup(@RequestParam Long id, HttpServletRequest request) {
+        requireAdmin(request);
+        groupService.deleteGroup(id);
+        return ApiResponse.ok();
+    }
+
+    @GetMapping("/tags")
+    @Operation(summary = "接口标签列表")
+    public ApiResponse<List<Map<String, Object>>> tags() {
+        return ApiResponse.ok(tagService.listWithCounts());
+    }
+
+    @PostMapping("/tag/create")
+    @Operation(summary = "新建标签（管理员）")
+    public ApiResponse<com.openapi.backend.entity.InterfaceTag> createTag(
+            @RequestParam String name, HttpServletRequest request) {
+        requireAdmin(request);
+        return ApiResponse.ok(tagService.createTag(name));
+    }
+
+    @PostMapping("/tag/delete")
+    @Operation(summary = "删除标签（管理员）")
+    public ApiResponse<Void> deleteTag(@RequestParam Long id, HttpServletRequest request) {
+        requireAdmin(request);
+        tagService.deleteTag(id);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/openapi/import")
+    @Operation(summary = "导入 OpenAPI JSON/YAML（管理员）")
+    public ApiResponse<Map<String, Object>> openapiImport(
+            @RequestParam String spec, HttpServletRequest request) {
+        requireAdmin(request);
+        return ApiResponse.ok(interfaceInfoService.openapiImport(spec, (Long) request.getAttribute("openapi.userId")));
+    }
+
+    @GetMapping("/openapi/export")
+    @Operation(summary = "导出 OpenAPI 文档（json/yaml）")
+    public ApiResponse<String> openapiExport(
+            @RequestParam(defaultValue = "json") String format,
+            HttpServletRequest request) {
+        requireAdmin(request);
+        return ApiResponse.ok(interfaceInfoService.openapiExport(format));
+    }
+
+    @GetMapping("/versions")
+    @Operation(summary = "接口发布版本列表（管理员）")
+    public ApiResponse<List<InterfaceVersion>> versions(
+            @RequestParam Long interfaceId,
+            HttpServletRequest request) {
+        requireAdmin(request);
+        return ApiResponse.ok(versionService.listByInterface(interfaceId));
+    }
+
+    @PostMapping("/rollback")
+    @Operation(summary = "一键回滚到指定版本（管理员）")
+    public ApiResponse<Void> rollback(
+            @RequestParam Long interfaceId,
+            @RequestParam Long versionId,
+            HttpServletRequest request) {
+        requireAdmin(request);
+        interfaceInfoService.rollback(interfaceId, versionId, (Long) request.getAttribute("openapi.userId"));
         return ApiResponse.ok();
     }
 

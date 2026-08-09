@@ -12,10 +12,12 @@ import com.openapi.backend.mapper.InterfaceInfoMapper;
 import com.openapi.backend.mapper.InterfaceSubscribeMapper;
 import com.openapi.backend.mapper.UserMapper;
 import com.openapi.backend.service.InterfaceSubscribeService;
+import com.openapi.backend.service.NotificationService;
 import com.openapi.common.exception.BusinessException;
 import com.openapi.common.model.enums.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
@@ -29,8 +31,10 @@ public class InterfaceSubscribeServiceImpl extends ServiceImpl<InterfaceSubscrib
     private final AppMapper appMapper;
     private final InterfaceInfoMapper interfaceInfoMapper;
     private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public InterfaceSubscribe subscribe(Long userId, Long interfaceId, Long appId) {
         InterfaceInfo interfaceInfo = interfaceInfoMapper.selectById(interfaceId);
         if (interfaceInfo == null) {
@@ -60,6 +64,14 @@ public class InterfaceSubscribeServiceImpl extends ServiceImpl<InterfaceSubscrib
         subscribe.setStatus(0);
         subscribe.setIsDelete(0);
         save(subscribe);
+        User user = userMapper.selectById(userId);
+        String userAccount = user == null ? String.valueOf(userId) : user.getUserAccount();
+        notificationService.notifyAdmins(
+                "SUBSCRIBE_APPLY",
+                "新的订阅申请",
+                "开发者 " + userAccount + " 申请订阅接口「" + interfaceInfo.getName() + "」（应用：" + app.getAppName() + "）",
+                subscribe.getId(),
+                "/subscribes");
         return subscribe;
     }
 
@@ -95,6 +107,7 @@ public class InterfaceSubscribeServiceImpl extends ServiceImpl<InterfaceSubscrib
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void approve(Long subscribeId, boolean approved) {
         InterfaceSubscribe subscribe = getById(subscribeId);
         if (subscribe == null) {
@@ -102,6 +115,15 @@ public class InterfaceSubscribeServiceImpl extends ServiceImpl<InterfaceSubscrib
         }
         subscribe.setStatus(approved ? 1 : 2);
         updateById(subscribe);
+        InterfaceInfo interfaceInfo = interfaceInfoMapper.selectById(subscribe.getInterfaceId());
+        String interfaceName = interfaceInfo == null ? "-" : interfaceInfo.getName();
+        notificationService.notifyUser(
+                subscribe.getUserId(),
+                approved ? "SUBSCRIBE_APPROVED" : "SUBSCRIBE_REJECTED",
+                approved ? "订阅申请已通过" : "订阅申请被拒绝",
+                "您申请的接口「" + interfaceName + "」已" + (approved ? "通过审批，现在可以调用" : "被拒绝"),
+                subscribe.getId(),
+                "/interfaces");
     }
 
     @Override

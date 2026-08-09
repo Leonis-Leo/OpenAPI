@@ -14,18 +14,32 @@
           <el-option label="启用" :value="1" />
           <el-option label="禁用" :value="0" />
         </el-select>
+        <el-button type="primary" plain @click="exportApps">导出 CSV</el-button>
         <el-button type="primary" @click="openCreate">新建应用</el-button>
       </div>
     </div>
 
-            <div class="action-bar">
-      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="copySelected">复制AK</el-button>
-      <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openRename(selectedRow)">重命名</el-button>
-      <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="handleResetSecret">重置密钥</el-button>
-      <el-button size="small" type="success" :disabled="selected.length === 0" @click="toggleOne(true)">启用</el-button>
-      <el-button size="small" type="warning" :disabled="selected.length === 0" @click="toggleOne(false)">禁用</el-button>
-      <el-button class="danger-right" size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">删除</el-button>
-      <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
+    <div class="action-bar">
+      <div class="bar-left">
+        <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="copySelected">复制AK</el-button>
+        <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openRename(selectedRow)">重命名</el-button>
+        <el-button size="small" type="warning" plain :disabled="selected.length === 0" @click="handleResetSecret">重置密钥</el-button>
+        <el-button size="small" type="success" :disabled="selected.length === 0" @click="toggleOne(true)">启用</el-button>
+        <el-button size="small" type="warning" :disabled="selected.length === 0" @click="toggleOne(false)">禁用</el-button>
+        <el-button class="danger-right" size="small" type="danger" :disabled="selected.length === 0" @click="handleDelete">删除</el-button>
+        <span v-if="selected.length" class="batch-tip">已选 {{ selected.length }} 项</span>
+      </div>
+      <el-pagination
+        class="bar-pagination"
+        size="small"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+        :page-sizes="[10, 20, 50, 100]"
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        @current-change="handlePageChange"
+        @size-change="handlePageChange"
+      />
     </div>
 
     <el-table
@@ -68,17 +82,6 @@
       </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="170" />
     </el-table>
-
-    <el-pagination
-      class="pagination"
-      layout="total, sizes, prev, pager, next, jumper"
-      :total="total"
-      :page-sizes="[10, 20, 50, 100]"
-      v-model:current-page="currentPage"
-      v-model:page-size="pageSize"
-      @current-change="handlePageChange"
-      @size-change="handlePageChange"
-    />
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '重命名应用' : '新建应用'" width="420px">
       <el-form label-width="80px">
@@ -208,6 +211,25 @@ const selectedRow = computed(() => (selected.value.length === 1 ? selected.value
 const indexMethod = (i: number) => (currentPage.value - 1) * pageSize.value + i + 1
 let keywordTimer: ReturnType<typeof setTimeout> | undefined
 
+function exportApps() {
+  const header = ['应用名称', 'AccessKey', '状态', '创建时间']
+  const rows = apps.value.map((app) => [
+    app.appName,
+    app.accessKey,
+    app.status === 1 ? '启用' : '禁用',
+    app.createTime
+  ])
+  const escape = (value: string) => `"${String(value).replace(/"/g, '""')}"`
+  const csv = '\uFEFF' + [header, ...rows].map((row) => row.map(escape).join(',')).join('\r\n')
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `apps-${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success('CSV 已导出当前页数据')
+}
+
 function onKeywordInput() {
   clearTimeout(keywordTimer)
   keywordTimer = setTimeout(() => {
@@ -240,7 +262,7 @@ async function load() {
         status: statusFilter.value
       })
       apps.value = result.records
-      total.value = result.total
+    total.value = Number(result.total)
     }
   } finally {
     loading.value = false

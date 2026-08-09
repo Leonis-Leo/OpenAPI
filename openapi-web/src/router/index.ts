@@ -68,6 +68,12 @@ const router = createRouter({
           name: 'logs',
           component: () => import('@/views/LogManage.vue'),
           meta: { title: 'API 日志' }
+        },
+        {
+          path: 'notifications',
+          name: 'notifications',
+          component: () => import('@/views/NotificationCenter.vue'),
+          meta: { title: '通知中心' }
         }
       ]
     },

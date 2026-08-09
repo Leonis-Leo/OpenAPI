@@ -4,8 +4,10 @@ import { useUserStore } from '@/store/user'
 import {
   listApps, mySubscribes, listInterfaces, listSubscribes,
   statsOverview, statsDaily, statsTopInterfaces, statsTopApps, listApiLogs,
-  type ApiLog, type TopStat
+  listRateLimitConfigs, listAppRateLimitConfigs, pageNotifications, unreadNotificationCount,
+  type ApiLog, type TopStat, type SubscribeInfo, type NotificationItem
 } from '@/api'
+import { DataLine, Document, Odometer } from '@element-plus/icons-vue'
 import {
   buildOverviewSeries, buildStatCards,
   type DashboardStatItem, type OverviewSeries
@@ -15,6 +17,11 @@ import TrendChart from '@/components/dashboard/TrendChart.vue'
 import RankList from '@/components/dashboard/RankList.vue'
 import RecentLogs from '@/components/dashboard/RecentLogs.vue'
 import QuickStart from '@/components/dashboard/QuickStart.vue'
+import QuickAccess from '@/components/dashboard/QuickAccess.vue'
+import TodoPanel from '@/components/dashboard/TodoPanel.vue'
+import LatestNotifications from '@/components/dashboard/LatestNotifications.vue'
+import RateLimitStatus from '@/components/dashboard/RateLimitStatus.vue'
+import ComingSoonCard from '@/components/dashboard/ComingSoonCard.vue'
 
 const userStore = useUserStore()
 const isAdmin = userStore.user?.userRole === 'admin'
@@ -23,12 +30,21 @@ const today = new Date().toLocaleDateString('zh-CN', {
 })
 
 const cards = ref<DashboardStatItem[]>([])
+const appCount = ref(0)
+const interfaceCount = ref(0)
+const subscribeCount = ref(0)
+const pendingCount = ref(0)
 const series = ref<OverviewSeries>({ days: [], total: [], ok: [], fail: [] })
 const chartDays = ref(7)
 const topInterfaces = ref<TopStat[]>([])
 const topApps = ref<TopStat[]>([])
 const logs = ref<ApiLog[]>([])
+const pendingList = ref<SubscribeInfo[]>([])
+const notifications = ref<NotificationItem[]>([])
+const unreadNotifications = ref(0)
+const rateLimit = reactive({ interfaceTotal: 0, interfaceConfigured: 0, appTotal: 0, appConfigured: 0 })
 const loading = reactive({ cards: false, trend: false, ranks: false, logs: false })
+const loadingExtras = reactive({ todo: false, notifications: false, ratelimit: false })
 const failed = reactive({ trend: false, ranks: false, logs: false })
 
 async function loadCards() {
@@ -44,15 +60,20 @@ async function loadCards() {
       const overview = await statsOverview()
       total = overview.total
       successRate = overview.successRate
-      pending = (await listSubscribes(0)).length
+      pendingList.value = await listSubscribes(0)
+      pending = pendingList.value.length
     }
+    appCount.value = apps.length
+    interfaceCount.value = infos.length
+    subscribeCount.value = subscribes.filter((s) => s.status === 1).length
+    pendingCount.value = pending
     cards.value = buildStatCards({
-      appCount: apps.length,
-      subscribeCount: subscribes.filter((s) => s.status === 1).length,
-      interfaceCount: infos.length,
+      appCount: appCount.value,
+      subscribeCount: subscribeCount.value,
+      interfaceCount: interfaceCount.value,
       total,
       successRate,
-      pendingCount: pending,
+      pendingCount: pendingCount.value,
       isAdmin
     })
   } finally {
@@ -101,8 +122,44 @@ async function loadLogs() {
   }
 }
 
+async function loadTodo() {
+  if (!isAdmin) return
+  loadingExtras.todo = true
+  try {
+    unreadNotifications.value = await unreadNotificationCount()
+  } finally {
+    loadingExtras.todo = false
+  }
+}
+
+async function loadNotifications() {
+  loadingExtras.notifications = true
+  try {
+    notifications.value = (await pageNotifications({ current: 1, size: 3 })).records
+  } finally {
+    loadingExtras.notifications = false
+  }
+}
+
+async function loadRateLimit() {
+  if (!isAdmin) return
+  loadingExtras.ratelimit = true
+  try {
+    const [interfaces, apps] = await Promise.all([listRateLimitConfigs(), listAppRateLimitConfigs()])
+    rateLimit.interfaceTotal = interfaces.length
+    rateLimit.interfaceConfigured = interfaces.filter((c) => c.configured).length
+    rateLimit.appTotal = apps.length
+    rateLimit.appConfigured = apps.filter((c) => c.configured).length
+  } finally {
+    loadingExtras.ratelimit = false
+  }
+}
+
 async function reload() {
-  await Promise.allSettled([loadCards(), loadTrend(), loadRanks(), loadLogs()])
+  await Promise.allSettled([
+    loadCards(), loadTodo(), loadNotifications(), loadRateLimit(),
+    loadTrend(), loadRanks(), loadLogs()
+  ])
 }
 
 function onDaysChange(days: number) {
@@ -124,8 +181,23 @@ onActivated(reload)
       <el-button type="primary" plain @click="reload">刷新</el-button>
     </div>
 
+    <div class="quick-access-section">
+      <QuickAccess :is-admin="isAdmin" />
+    </div>
+
     <div class="card-grid">
       <StatCard v-for="item in cards" :key="item.key" :item="item" :loading="loading.cards" />
+    </div>
+
+    <div class="lifecycle-section">
+      <QuickStart
+        :app-count="appCount"
+        :interface-count="interfaceCount"
+        :subscribe-count="subscribeCount"
+        :pending-count="pendingCount"
+        :is-admin="isAdmin"
+        :loading="loading.cards"
+      />
     </div>
 
     <template v-if="isAdmin">
@@ -155,15 +227,52 @@ onActivated(reload)
           </div>
         </div>
         <div class="col-side">
-          <QuickStart />
+          <TodoPanel
+            :pending="pendingList"
+            :unread-notifications="unreadNotifications"
+            :loading="loadingExtras.todo"
+          />
         </div>
+      </div>
+
+      <div class="info-row">
+        <LatestNotifications
+          :notifications="notifications"
+          :loading="loadingExtras.notifications"
+        />
+        <RateLimitStatus
+          :interface-total="rateLimit.interfaceTotal"
+          :interface-configured="rateLimit.interfaceConfigured"
+          :app-total="rateLimit.appTotal"
+          :app-configured="rateLimit.appConfigured"
+          :loading="loadingExtras.ratelimit"
+        />
       </div>
     </template>
 
-    <div v-else class="row">
-      <div class="col-main">
-        <QuickStart />
-      </div>
+    <div v-else class="notify-section">
+      <LatestNotifications
+        :notifications="notifications"
+        :loading="loadingExtras.notifications"
+      />
+    </div>
+
+    <div class="coming-row">
+      <ComingSoonCard
+        :icon="Odometer"
+        title="监控告警"
+        desc="JVM 指标、调用量波动与限流命中率监控"
+      />
+      <ComingSoonCard
+        :icon="Document"
+        title="API 文档与 SDK"
+        desc="接入文档、多语言 SDK 与示例代码下载"
+      />
+      <ComingSoonCard
+        :icon="DataLine"
+        title="压测报告"
+        desc="QPS / 响应时间基准与容量评估报告"
+      />
     </div>
   </div>
 </template>
@@ -207,5 +316,34 @@ onActivated(reload)
   border-radius: var(--el-border-radius-base);
   color: var(--el-text-color-secondary);
   font-size: 13px;
+}
+.lifecycle-section {
+  margin-top: 16px;
+}
+.quick-access-section {
+  margin-bottom: 16px;
+}
+.info-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+.notify-section {
+  margin-top: 16px;
+}
+.coming-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+@media (min-width: 1200px) {
+  .info-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .coming-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 </style>
