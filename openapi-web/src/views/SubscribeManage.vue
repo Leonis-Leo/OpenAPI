@@ -2,7 +2,6 @@
   <div>
     <div class="toolbar">
       <h2>订阅审批</h2>
-      <el-button type="primary" plain @click="exportCurrent">导出 CSV</el-button>
     </div>
     <CollapsibleFilter @search="resetSearch" @reset="resetFilters">
       <el-input
@@ -16,8 +15,10 @@
     <el-tabs v-model="activeTab">
       <el-tab-pane v-if="isAdmin" label="全部订阅" name="all">
         <div class="action-bar">
-          <div class="bar-left">
-            <el-button class="danger-right" size="small" type="danger" plain :disabled="selectedAll.length === 0" @click="handleDeleteAll">删除记录</el-button>
+        <div class="bar-left">
+          <el-button size="small" type="primary" plain @click="exportCurrent">导出 CSV</el-button>
+          <el-divider direction="vertical" />
+          <el-button class="danger-right" size="small" type="danger" plain :disabled="selectedAll.length === 0" @click="handleDeleteAll">删除记录</el-button>
             <span v-if="selectedAll.length" class="batch-tip">已选 {{ selectedAll.length }} 项</span>
           </div>
           <el-pagination
@@ -64,6 +65,8 @@
       <el-tab-pane v-if="isAdmin" label="待审批" name="pending">
     <div class="action-bar">
       <div class="bar-left">
+        <el-button size="small" type="primary" plain @click="exportCurrent">导出 CSV</el-button>
+        <el-divider direction="vertical" />
         <el-button size="small" type="success" :disabled="selectedPending.length === 0" @click="handleApprove(true)">通过</el-button>
         <el-button class="danger-right" size="small" type="danger" :disabled="selectedPending.length === 0" @click="handleApprove(false)">拒绝</el-button>
         <span v-if="selectedPending.length" class="batch-tip">已选 {{ selectedPending.length }} 项</span>
@@ -105,6 +108,8 @@
       <el-tab-pane label="我的订阅" name="mine">
     <div class="action-bar">
       <div class="bar-left">
+        <el-button size="small" type="primary" plain @click="exportCurrent">导出 CSV</el-button>
+        <el-divider direction="vertical" />
         <el-button class="danger-right" size="small" type="danger" plain :disabled="selectedMine.length === 0" @click="handleUnsubscribe">取消订阅</el-button>
         <span v-if="selectedMine.length" class="batch-tip">已选 {{ selectedMine.length }} 项</span>
       </div>

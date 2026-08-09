@@ -2,21 +2,6 @@
   <div>
     <div class="toolbar">
       <h2>应用管理</h2>
-      <div class="toolbar-right">
-        <el-dropdown @command="handleExportCommand">
-          <el-button type="primary" plain>
-            导出
-            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="csv">应用 CSV</el-dropdown-item>
-              <el-dropdown-item command="json">应用 JSON</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-        <el-button type="primary" @click="openCreate">新建应用</el-button>
-      </div>
     </div>
     <CollapsibleFilter @search="applySearch" @reset="resetFilters">
       <el-input
@@ -36,6 +21,20 @@
 
     <div class="action-bar">
       <div class="bar-left">
+        <el-dropdown @command="handleExportCommand">
+          <el-button size="small" type="primary" plain>
+            导出
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="csv">应用 CSV</el-dropdown-item>
+              <el-dropdown-item command="json">应用 JSON</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <el-button size="small" type="primary" @click="openCreate">新建应用</el-button>
+        <el-divider direction="vertical" />
         <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="copySelected">复制AK</el-button>
         <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openRename(selectedRow)">重命名</el-button>
         <el-button

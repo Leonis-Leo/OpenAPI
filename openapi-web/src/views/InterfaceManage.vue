@@ -84,24 +84,6 @@
     <section class="interface-content">
       <div class="page-header">
         <h2 class="page-title">接口管理</h2>
-        <div class="page-actions">
-          <el-button v-if="isAdmin" text type="primary" @click="openGroupTagManage">分组标签</el-button>
-          <el-button v-if="isAdmin" plain @click="importVisible = true">导入 OpenAPI</el-button>
-          <el-dropdown v-if="isAdmin" @command="handleExportCommand">
-            <el-button plain>
-              导出
-              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="openapi-json">OpenAPI JSON</el-dropdown-item>
-                <el-dropdown-item command="openapi-yaml">OpenAPI YAML</el-dropdown-item>
-                <el-dropdown-item command="csv">接口 CSV</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-          <el-button v-if="isAdmin" type="primary" @click="openCreateForm">新增接口</el-button>
-        </div>
       </div>
 
       <CollapsibleFilter @search="applyFilters" @reset="resetFilters">
@@ -125,6 +107,25 @@
 
       <div class="row-actions">
         <div class="row-actions-left">
+          <template v-if="isAdmin">
+            <el-button size="small" text type="primary" @click="openGroupTagManage">分组标签</el-button>
+            <el-button size="small" plain @click="importVisible = true">导入 OpenAPI</el-button>
+            <el-dropdown @command="handleExportCommand">
+              <el-button size="small" plain>
+                导出
+                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="openapi-json">OpenAPI JSON</el-dropdown-item>
+                  <el-dropdown-item command="openapi-yaml">OpenAPI YAML</el-dropdown-item>
+                  <el-dropdown-item command="csv">接口 CSV</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+            <el-button size="small" type="primary" @click="openCreateForm">新增接口</el-button>
+            <el-divider direction="vertical" />
+          </template>
           <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
             详情/调试
           </el-button>

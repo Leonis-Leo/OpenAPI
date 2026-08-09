@@ -2,7 +2,6 @@
   <div class="logs-page">
     <div class="page-heading">
       <div><h1 class="page-title">API 日志</h1><p class="page-subtitle">追踪接口调用状态，快速定位异常请求和性能瓶颈</p></div>
-      <el-button plain @click="exportCsv"><el-icon><Download /></el-icon>导出 CSV</el-button>
     </div>
     <CollapsibleFilter @search="reload" @reset="resetFilters">
       <el-input
@@ -58,6 +57,8 @@
     <div class="table-card content-card">
       <div class="action-bar">
         <div class="bar-left">
+          <el-button size="small" plain @click="exportCsv"><el-icon><Download /></el-icon>导出 CSV</el-button>
+          <el-divider direction="vertical" />
           <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openDetail(selectedRow)">
             查看详情
           </el-button>

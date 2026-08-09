@@ -7,12 +7,13 @@
           <el-radio-button value="all">全部</el-radio-button>
           <el-radio-button value="unread">未读</el-radio-button>
         </el-radio-group>
-        <el-button plain @click="handleReadAll">全部已读</el-button>
-        <el-button type="danger" plain :disabled="total === 0" @click="handleClearAll">清空</el-button>
       </div>
     </div>
     <div class="action-bar">
       <div class="bar-left">
+        <el-button size="small" plain @click="handleReadAll">全部已读</el-button>
+        <el-button size="small" type="danger" plain :disabled="total === 0" @click="handleClearAll">清空</el-button>
+        <el-divider direction="vertical" />
         <el-button size="small" type="primary" plain :disabled="selected.length === 0" @click="handleMarkSelected">
           标记已读
         </el-button>

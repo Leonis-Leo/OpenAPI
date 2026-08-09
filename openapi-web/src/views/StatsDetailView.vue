@@ -5,7 +5,6 @@
         <h2>调用明细</h2>
         <p class="page-subtitle">按天 / 应用 / 接口维度查看调用量、成功率与平均耗时，点击行可跳转当日日志</p>
       </div>
-      <el-button @click="reload">刷新</el-button>
     </div>
     <CollapsibleFilter @search="reload" @reset="resetFilters">
       <el-select v-model="dimension" style="width: 130px" @change="onDimensionChange">
@@ -32,6 +31,23 @@
       />
     </CollapsibleFilter>
     <div class="table-card content-card">
+      <div class="action-bar">
+        <div class="bar-left">
+          <el-button size="small" plain @click="exportCsv">导出 CSV</el-button>
+          <el-button size="small" @click="reload">刷新</el-button>
+        </div>
+        <el-pagination
+          class="bar-pagination"
+          size="small"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          @current-change="load"
+          @size-change="load"
+        />
+      </div>
       <el-table
         :data="list"
         border
@@ -62,16 +78,6 @@
         </el-table-column>
       </el-table>
       <el-empty v-if="!list.length && !loading" description="暂无明显数据" :image-size="60" />
-      <el-pagination
-        class="pagination"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        @current-change="load"
-        @size-change="load"
-      />
     </div>
   </div>
 </template>
@@ -164,6 +170,31 @@ function reload() {
   load()
 }
 
+function exportCsv() {
+  if (!list.value.length) return
+  const header = dimension.value === 'day'
+    ? ['日期', '调用量', '成功', '失败', '成功率%', '平均耗时(ms)']
+    : dimension.value === 'app'
+      ? ['应用', '调用量', '成功', '失败', '成功率%', '平均耗时(ms)']
+      : ['接口', '调用量', '成功', '失败', '成功率%', '平均耗时(ms)']
+  const rows = list.value.map((row) => [
+    row.day ?? row.appName ?? row.interfaceName ?? '',
+    row.total,
+    row.success,
+    row.fail,
+    row.successRate,
+    row.avgCostMs
+  ])
+  const escape = (value: unknown) => `"${String(value).replace(/"/g, '""')}"`
+  const csv = '\uFEFF' + [header, ...rows].map((line) => line.map(escape).join(',')).join('\r\n')
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `stats-detail-${dimension.value}-${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 onActivated(load)
 </script>
 
@@ -182,9 +213,5 @@ onActivated(load)
 }
 .table-card {
   overflow: hidden;
-}
-.pagination {
-  justify-content: flex-end;
-  padding: 14px 16px;
 }
 </style>

@@ -2,10 +2,6 @@
   <div>
     <div class="toolbar">
       <h2>用户管理</h2>
-      <div class="toolbar-right">
-        <el-button type="primary" plain @click="exportUsers">导出 CSV</el-button>
-        <el-button type="primary" @click="openCreate">新增用户</el-button>
-      </div>
     </div>
     <CollapsibleFilter @search="applySearch" @reset="resetFilters">
       <el-input
@@ -19,6 +15,9 @@
 
     <div class="action-bar">
       <div class="bar-left">
+        <el-button size="small" type="primary" plain @click="exportUsers">导出 CSV</el-button>
+        <el-button size="small" type="primary" @click="openCreate">新增用户</el-button>
+        <el-divider direction="vertical" />
         <el-button size="small" type="primary" plain :disabled="!selectedRow" @click="openEdit(selectedRow)">编辑</el-button>
         <el-button
           size="small"
