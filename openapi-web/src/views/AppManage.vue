@@ -183,7 +183,7 @@
         <el-descriptions-item label="创建时间">{{ detailRow?.createTime }}</el-descriptions-item>
       </el-descriptions>
       <h4>已订阅接口</h4>
-      <el-table v-if="appSubscribes.length" :data="appSubscribes" border stripe size="small">
+      <el-table v-if="appSubscribes.length" :data="pagedSubscribes" border stripe size="small">
         <el-table-column prop="interfaceName" label="接口名称" />
         <el-table-column prop="interfaceUrl" label="路径" min-width="160" />
         <el-table-column label="状态" width="100">
@@ -195,6 +195,15 @@
         </el-table-column>
         <el-table-column prop="createTime" label="申请时间" width="170" />
       </el-table>
+      <el-pagination
+        v-if="appSubscribes.length > detailPageSize"
+        class="dialog-pagination"
+        size="small"
+        layout="total, prev, pager, next"
+        :total="appSubscribes.length"
+        :page-size="detailPageSize"
+        v-model:current-page="detailPage"
+      />
       <el-empty v-else description="暂无订阅" :image-size="60" />
     </el-dialog>
   </div>
@@ -234,6 +243,12 @@ const tableRef = ref<TableInstance>()
 const detailVisible = ref(false)
 const detailRow = ref<AppInfo | null>(null)
 const appSubscribes = ref<SubscribeInfo[]>([])
+const detailPage = ref(1)
+const detailPageSize = ref(5)
+const pagedSubscribes = computed(() => {
+  const start = (detailPage.value - 1) * detailPageSize.value
+  return appSubscribes.value.slice(start, start + detailPageSize.value)
+})
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const appName = ref('')
@@ -511,6 +526,7 @@ function handleRowClick(row: AppInfo) {
 function openDetail(row: AppInfo) {
   detailRow.value = row
   appSubscribes.value = []
+  detailPage.value = 1
   detailVisible.value = true
   loadSubscribes(row.id)
 }
@@ -593,5 +609,9 @@ onMounted(load)
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+.dialog-pagination {
+  justify-content: flex-end;
+  margin-top: 10px;
 }
 </style>

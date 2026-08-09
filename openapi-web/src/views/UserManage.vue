@@ -143,7 +143,7 @@
         <el-descriptions-item label="创建时间">{{ detailRow?.createTime }}</el-descriptions-item>
       </el-descriptions>
       <h4>所属应用</h4>
-      <el-table v-if="detailApps.length" :data="detailApps" border stripe size="small">
+      <el-table v-if="detailApps.length" :data="pagedDetailApps" border stripe size="small">
         <el-table-column prop="appName" label="应用名称" />
         <el-table-column prop="accessKey" label="AccessKey" min-width="200" show-overflow-tooltip />
         <el-table-column label="状态" width="90">
@@ -155,9 +155,18 @@
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" />
       </el-table>
+      <el-pagination
+        v-if="detailApps.length > appDetailPageSize"
+        class="dialog-pagination"
+        size="small"
+        layout="total, prev, pager, next"
+        :total="detailApps.length"
+        :page-size="appDetailPageSize"
+        v-model:current-page="appDetailPage"
+      />
       <el-empty v-else description="暂无应用" :image-size="60" />
       <h4>订阅记录</h4>
-      <el-table v-if="detailSubscribes.length" :data="detailSubscribes" border stripe size="small">
+      <el-table v-if="detailSubscribes.length" :data="pagedDetailSubscribes" border stripe size="small">
         <el-table-column prop="interfaceName" label="接口" />
         <el-table-column prop="interfaceUrl" label="路径" min-width="160" />
         <el-table-column prop="appName" label="应用" />
@@ -170,6 +179,15 @@
         </el-table-column>
         <el-table-column prop="createTime" label="申请时间" width="170" />
       </el-table>
+      <el-pagination
+        v-if="detailSubscribes.length > subDetailPageSize"
+        class="dialog-pagination"
+        size="small"
+        layout="total, prev, pager, next"
+        :total="detailSubscribes.length"
+        :page-size="subDetailPageSize"
+        v-model:current-page="subDetailPage"
+      />
       <el-empty v-else description="暂无订阅" :image-size="60" />
     </el-dialog>
 
@@ -227,6 +245,18 @@ const detailVisible = ref(false)
 const detailRow = ref<UserInfo | null>(null)
 const detailApps = ref<AppInfo[]>([])
 const detailSubscribes = ref<SubscribeInfo[]>([])
+const appDetailPage = ref(1)
+const appDetailPageSize = ref(5)
+const subDetailPage = ref(1)
+const subDetailPageSize = ref(5)
+const pagedDetailApps = computed(() => {
+  const start = (appDetailPage.value - 1) * appDetailPageSize.value
+  return detailApps.value.slice(start, start + appDetailPageSize.value)
+})
+const pagedDetailSubscribes = computed(() => {
+  const start = (subDetailPage.value - 1) * subDetailPageSize.value
+  return detailSubscribes.value.slice(start, start + subDetailPageSize.value)
+})
 const resetVisible = ref(false)
 const resetTargets = ref<UserInfo[]>([])
 const resetPassword = ref('')
@@ -442,6 +472,8 @@ function openDetail(row: UserInfo) {
   detailRow.value = row
   detailApps.value = []
   detailSubscribes.value = []
+  appDetailPage.value = 1
+  subDetailPage.value = 1
   detailVisible.value = true
   loadApps(row.id)
   loadSubscribes(row.id)
@@ -525,5 +557,9 @@ onMounted(load)
 .pagination {
   margin-top: 12px;
   justify-content: flex-end;
+}
+.dialog-pagination {
+  justify-content: flex-end;
+  margin-top: 10px;
 }
 </style>
