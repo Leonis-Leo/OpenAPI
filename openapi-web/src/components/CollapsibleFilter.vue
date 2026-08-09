@@ -38,6 +38,10 @@ const expanded = ref(false)
   flex-direction: column;
   gap: 10px;
   margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
 }
 .cf-main {
   display: flex;
