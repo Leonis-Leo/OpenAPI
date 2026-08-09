@@ -215,18 +215,30 @@
     width="560px"
     top="12vh"
     :close-on-click-modal="true"
-    @closed="searchKeyword = ''; searchResults = { interfaces: [], apps: [], users: [] }"
+    @closed="onGlobalSearchClosed"
   >
     <el-input
       ref="searchInputRef"
       v-model="searchKeyword"
-      placeholder="搜索接口 / 应用 / 用户，回车跳转"
+      placeholder="搜索页面 / 接口 / 应用 / 用户，回车跳转"
       clearable
       size="large"
       @input="onGlobalSearchInput"
       @keyup.enter="jumpFirstResult"
     />
-    <div v-loading="searchLoading" class="global-search-body">
+    <div class="global-search-body">
+      <template v-if="searchResults.pages.length">
+        <p class="gs-group">页面</p>
+        <button
+          v-for="item in searchResults.pages"
+          :key="`p-${item.name}`"
+          type="button"
+          class="gs-item"
+          @click="jump(item.route)"
+        >
+          <el-icon><component :is="item.icon" /></el-icon>{{ item.name }}<span>{{ item.planned ? '规划中' : '直达' }}</span>
+        </button>
+      </template>
       <template v-if="searchResults.interfaces.length">
         <p class="gs-group">接口</p>
         <button
@@ -263,8 +275,9 @@
           <el-icon><User /></el-icon>{{ item.userAccount }}
         </button>
       </template>
-      <p v-if="!searchKeyword" class="gs-empty">输入关键词搜索接口、应用或用户</p>
-      <p v-else-if="!searchLoading && !searchResults.interfaces.length && !searchResults.apps.length && !searchResults.users.length" class="gs-empty">
+      <p v-if="!searchKeyword" class="gs-empty">输入关键词搜索页面、接口、应用或用户</p>
+      <p v-else-if="searchLoading" class="gs-empty">正在搜索…</p>
+      <p v-else-if="!hasSearchResults" class="gs-empty">
         未找到匹配结果
       </p>
     </div>
@@ -272,8 +285,8 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, type Component, watch } from 'vue'
+import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   ArrowDown,
@@ -335,16 +348,53 @@ const searchKeyword = ref('')
 const searchLoading = ref(false)
 const searchInputRef = ref()
 const searchResults = reactive<{
+  pages: SearchPageItem[]
   interfaces: InterfaceInfo[]
   apps: AppInfo[]
   users: UserInfo[]
-}>({ interfaces: [], apps: [], users: [] })
+}>({ pages: [], interfaces: [], apps: [], users: [] })
 let searchTimer: ReturnType<typeof setTimeout> | undefined
+let searchSeq = 0
 const notificationVisible = ref(false)
 const notificationLoading = ref(false)
 const notifications = ref<NotificationItem[]>([])
 const unreadCount = ref(0)
 let notificationTimer: ReturnType<typeof setInterval> | undefined
+
+interface SearchPageItem {
+  name: string
+  route: RouteLocationRaw
+  keywords: string[]
+  icon: Component
+  adminOnly?: boolean
+  planned?: boolean
+}
+
+const plannedRoute = (name: string, desc: string): RouteLocationRaw => ({ path: '/coming-soon', query: { name, desc } })
+
+const SEARCH_PAGES: SearchPageItem[] = [
+  { name: '工作台', route: '/dashboard', keywords: ['首页', 'dashboard'], icon: HomeFilled },
+  { name: '应用管理', route: '/apps', keywords: ['应用', '密钥', 'app'], icon: Box },
+  { name: '接口管理', route: '/interfaces', keywords: ['接口', 'API', 'api', '分组', '标签', '文档'], icon: Connection },
+  { name: '订阅审批', route: '/subscribes', keywords: ['订阅', '审批', '申请'], icon: DocumentChecked },
+  { name: '服务目录', route: plannedRoute('服务目录', '按分组/标签/负责人浏览开放接口，支持开发者搜索与订阅申请入口'), keywords: ['服务', '目录', '发现'], icon: Files, planned: true },
+  { name: '调用统计', route: '/stats', keywords: ['统计', '趋势', '调用量'], icon: TrendCharts, adminOnly: true },
+  { name: '调用明细', route: '/stats/detail', keywords: ['明细', '天维度', '应用维度', '用量'], icon: DataLine, adminOnly: true },
+  { name: 'API 日志', route: '/logs', keywords: ['日志', '请求', '调用记录', 'trace'], icon: Document, adminOnly: true },
+  { name: '监控告警', route: plannedRoute('监控告警', 'JVM 指标、调用量波动与限流命中率监控，异常自动告警'), keywords: ['监控', '告警', 'jvm'], icon: Odometer, adminOnly: true, planned: true },
+  { name: '策略中心', route: plannedRoute('策略中心', '按应用/用户/IP/接口/方法/路径维度统一配置限流、黑白名单、缓存与改写'), keywords: ['策略', '限流', '黑名单', '白名单', '缓存'], icon: SetUp, adminOnly: true, planned: true },
+  { name: '灰度发布', route: plannedRoute('灰度发布', '按应用/用户/Header/IP 或比例路由到不同版本，保留流量与回滚记录'), keywords: ['灰度', '发布', '路由'], icon: Promotion, adminOnly: true, planned: true },
+  { name: '敏感脱敏', route: plannedRoute('敏感数据脱敏', '对请求参数/响应体/日志按字段配置脱敏策略，覆盖密码、Token、证件号等'), keywords: ['脱敏', '敏感', '加密'], icon: Lock, adminOnly: true, planned: true },
+  { name: 'API 文档', route: plannedRoute('API 文档', 'OpenAPI 导入校验、在线预览、多语言 SDK 与示例代码下载'), keywords: ['API 文档', 'openapi', '文档', '导入'], icon: Reading, adminOnly: true, planned: true },
+  { name: '用户管理', route: '/users', keywords: ['用户', '账号', '成员'], icon: User, adminOnly: true },
+  { name: '限流配置', route: '/ratelimit', keywords: ['限流', '配额', 'QPS'], icon: Timer, adminOnly: true },
+  { name: '团队与权限', route: plannedRoute('团队与权限', '组织/团队/成员与资源级 RBAC，细粒度授权'), keywords: ['团队', '权限', 'rbac', '角色'], icon: UserFilled, adminOnly: true, planned: true },
+  { name: '多租户', route: plannedRoute('多租户', '租户级数据隔离、独立密钥空间与配额'), keywords: ['租户', '隔离', 'tenant'], icon: OfficeBuilding, adminOnly: true, planned: true },
+  { name: '计费账单', route: plannedRoute('计费账单', '按应用/接口/天计费，套餐、订单与账单导出'), keywords: ['计费', '账单', '订单', '套餐', '费用'], icon: Money, adminOnly: true, planned: true },
+  { name: 'SDK 与示例', route: plannedRoute('SDK 与示例', '多语言 SDK、签名工具与接入示例'), keywords: ['sdk', '示例', '接入', '签名'], icon: Platform, adminOnly: true, planned: true },
+  { name: '压测报告', route: plannedRoute('压测报告', 'QPS / 响应时间基准与容量评估'), keywords: ['压测', '基准', 'qps', '容量'], icon: DataAnalysis, adminOnly: true, planned: true },
+  { name: '通知中心', route: '/notifications', keywords: ['通知', '消息', '提醒'], icon: Bell }
+]
 
 function toggleCollapse() { isCollapse.value = !isCollapse.value; localStorage.setItem('openapi-sidebar', isCollapse.value ? '1' : '0') }
 function toggleTheme() { isDark.value = !isDark.value; document.documentElement.classList.toggle('dark', isDark.value); localStorage.setItem('openapi-theme', isDark.value ? 'dark' : 'light') }
@@ -354,19 +404,40 @@ function openGlobalSearch() {
   nextTick(() => searchInputRef.value?.focus())
 }
 
+function onGlobalSearchClosed() {
+  searchKeyword.value = ''
+  searchLoading.value = false
+  searchResults.pages = []
+  searchResults.interfaces = []
+  searchResults.apps = []
+  searchResults.users = []
+}
+
 function onGlobalSearchInput() {
   clearTimeout(searchTimer)
+  searchSeq++
   const kw = searchKeyword.value.trim()
+  searchResults.pages = kw ? matchSearchPages(kw) : []
   if (!kw) {
     searchResults.interfaces = []
     searchResults.apps = []
     searchResults.users = []
+    searchLoading.value = false
     return
   }
   searchTimer = setTimeout(() => runGlobalSearch(kw), 250)
 }
 
+function matchSearchPages(kw: string): SearchPageItem[] {
+  const lower = kw.toLowerCase()
+  return SEARCH_PAGES.filter((item) => {
+    if (item.adminOnly && !isAdmin) return false
+    return item.name.toLowerCase().includes(lower) || item.keywords.some((key) => key.toLowerCase().includes(lower))
+  })
+}
+
 async function runGlobalSearch(kw: string) {
+  const seq = ++searchSeq
   searchLoading.value = true
   try {
     const [interfaces, apps, users] = await Promise.allSettled([
@@ -374,17 +445,24 @@ async function runGlobalSearch(kw: string) {
       pageApps({ current: 1, size: 5, keyword: kw }),
       pageUsers({ current: 1, size: 5, keyword: kw })
     ])
+    if (seq !== searchSeq) return
     searchResults.interfaces = interfaces.status === 'fulfilled' ? interfaces.value.records : []
     searchResults.apps = apps.status === 'fulfilled' ? apps.value.records : []
     searchResults.users = users.status === 'fulfilled' ? users.value.records : []
   } finally {
-    searchLoading.value = false
+    if (seq === searchSeq) searchLoading.value = false
   }
 }
 
+const hasSearchResults = computed(
+  () => searchResults.pages.length > 0 || searchResults.interfaces.length > 0 || searchResults.apps.length > 0 || searchResults.users.length > 0
+)
+
 function jumpFirstResult() {
   const kw = encodeURIComponent(searchKeyword.value.trim())
-  if (searchResults.interfaces.length) {
+  if (searchResults.pages.length) {
+    jump(searchResults.pages[0].route)
+  } else if (searchResults.interfaces.length) {
     jump(`/interfaces?keyword=${kw}`)
   } else if (searchResults.apps.length) {
     jump(`/apps?keyword=${kw}`)
@@ -393,7 +471,7 @@ function jumpFirstResult() {
   }
 }
 
-function jump(path: string) {
+function jump(path: string | RouteLocationRaw) {
   searchVisible.value = false
   router.push(path)
 }
@@ -502,7 +580,7 @@ onUnmounted(() => {
 .sidebar-footer { position: absolute; right: 16px; bottom: 20px; left: 16px; display: flex; align-items: center; gap: 8px; color: #64748b; font-size: 11px; white-space: nowrap; }.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,.12); }
 .main-shell { min-width: 0; }.topbar { display: flex; align-items: center; justify-content: space-between; height: 72px; padding: 0 28px; border-bottom: 1px solid var(--app-border); background: var(--app-surface); }.topbar-left,.topbar-right { display: flex; align-items: center; gap: 14px; }.icon-button { position: relative; display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--app-muted); cursor: pointer; }.icon-button:hover { background: var(--app-bg); color: var(--app-text); }.icon-button .el-icon { font-size: 18px; }.notification-badge :deep(.el-badge__content) { border: 0; font-size: 10px; line-height: 16px; height: 16px; min-width: 16px; padding: 0 4px; }.breadcrumb :deep(.el-breadcrumb__inner) { color: var(--app-muted); font-size: 13px; }.breadcrumb :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner) { color: var(--app-text); font-weight: 600; }.env-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 999px; background: #ecfdf5; color: #047857; font-size: 12px; }.env-pill i { width: 6px; height: 6px; border-radius: 50%; background: #10b981; }.profile-trigger { display: flex; align-items: center; gap: 9px; border: 0; background: transparent; color: var(--app-text); cursor: pointer; font-size: 13px; }.profile-trigger .el-icon { color: var(--app-muted); }
 .notification-panel { min-height: 120px; }.notification-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 10px; font-weight: 600; }.notification-body { max-height: 380px; overflow: auto; }.notification-item { position: relative; display: flex; gap: 8px; padding: 10px 8px; border-radius: 8px; cursor: pointer; }.notification-item:hover { background: var(--el-fill-color-light, #f5f7fa); }.notification-item.unread { background: #eff6ff; }.notification-item.unread:hover { background: #dbeafe; }.notification-dot-item { flex: 0 0 auto; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: #2563eb; }.notification-main { flex: 1; min-width: 0; }.notification-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary, #303133); }.notification-content { margin-top: 3px; font-size: 12px; line-height: 1.5; color: var(--el-text-color-regular, #606266); word-break: break-all; }.notification-time { margin-top: 4px; font-size: 11px; color: var(--el-text-color-secondary, #909399); }.notification-empty { padding: 32px 0; text-align: center; color: var(--el-text-color-secondary, #909399); font-size: 13px; }.notification-footer { padding: 6px 4px 0; border-top: 1px solid var(--el-border-color-lighter, #ebeef5); text-align: center; }
-.global-search-body { max-height: 420px; overflow: auto; margin-top: 12px; }.gs-group { margin: 10px 0 4px; color: var(--app-muted, #64748b); font-size: 12px; font-weight: 600; }.gs-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; color: var(--app-text, #172033); font-size: 13px; text-align: left; }.gs-item:hover { background: var(--el-fill-color-light, #f5f7fa); }.gs-item .el-icon { color: var(--app-muted, #64748b); }.gs-item span { margin-left: auto; color: var(--app-muted, #64748b); font-size: 12px; }.gs-empty { padding: 28px 0; text-align: center; color: var(--app-muted, #64748b); font-size: 13px; }
+.global-search-body { display: flex; flex-direction: column; height: 300px; overflow: auto; margin-top: 12px; }.gs-group { flex: 0 0 auto; margin: 10px 0 4px; color: var(--app-muted, #64748b); font-size: 12px; font-weight: 600; }.gs-item { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; color: var(--app-text, #172033); font-size: 13px; text-align: left; }.gs-item:hover { background: var(--el-fill-color-light, #f5f7fa); }.gs-item .el-icon { color: var(--app-muted, #64748b); }.gs-item span { margin-left: auto; color: var(--app-muted, #64748b); font-size: 12px; }.gs-empty { margin: auto; color: var(--app-muted, #64748b); font-size: 13px; }
 .page-main { overflow: auto; padding: 28px 32px 40px; background: var(--app-bg); }
 @media (max-width: 900px) { .page-main { padding: 20px; }.env-pill,.topbar-right > .icon-button:first-of-type { display: none; }.topbar { padding: 0 18px; } }
 </style>
