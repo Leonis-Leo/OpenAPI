@@ -180,6 +180,12 @@
   - 应用到 API 日志、应用管理、用户管理、订阅审批、调用明细五个列表页。
 - 验证：`npm run build` 通过。
 
+### API 日志 / 接口管理按钮区与筛选区对齐应用管理标准（2026-08-09）
+- **Status:** complete
+- API 日志：移除表格上方左侧“调用记录 共 X 条”标题，改为与应用管理一致的全宽按钮栏（按钮靠左：查看详情/删除/清空日志，分页靠右）。
+- 接口管理：旧式 tabs+搜索+标签 筛选行改为标准 `CollapsibleFilter` 筛选条（tabs/搜索/标签靠左，重置/查询靠右），新增 applyFilters/resetFilters。
+- 验证：`npm run build` 通过。
+
 ### P0 安全与质量改造
 
 - **Status:** complete

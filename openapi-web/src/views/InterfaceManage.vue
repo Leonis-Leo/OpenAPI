@@ -104,26 +104,24 @@
         </div>
       </div>
 
-      <div class="filter-bar">
+      <CollapsibleFilter @search="applyFilters" @reset="resetFilters">
         <el-radio-group v-model="filterStatus" size="small" @change="onFilterChange">
           <el-radio-button value="all">全部</el-radio-button>
           <el-radio-button value="online">已上线</el-radio-button>
           <el-radio-button value="subscribed">已订阅</el-radio-button>
           <el-radio-button value="unsubscribed">未订阅</el-radio-button>
         </el-radio-group>
-        <div class="filter-right">
-          <el-input
-            v-model="keywordInput"
-            placeholder="搜索名称 / 路径"
-            clearable
-            style="width: 200px"
-            @input="onKeywordInput"
-          />
-          <el-select v-model="tagFilter" clearable placeholder="全部标签" style="width: 120px" @change="onFilterChange">
-            <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
-          </el-select>
-        </div>
-      </div>
+        <el-input
+          v-model="keywordInput"
+          placeholder="搜索名称 / 路径"
+          clearable
+          style="width: 200px"
+          @input="onKeywordInput"
+        />
+        <el-select v-model="tagFilter" clearable placeholder="全部标签" style="width: 120px" @change="onFilterChange">
+          <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
+        </el-select>
+      </CollapsibleFilter>
 
       <div class="row-actions">
         <div class="row-actions-left">
@@ -549,6 +547,7 @@ import { computed, nextTick, onActivated, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { ArrowDown, Expand, Fold } from '@element-plus/icons-vue'
+import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import { useUserStore } from '@/store/user'
 import {
   listAppsForDebug,
@@ -816,6 +815,25 @@ function onKeywordInput() {
     currentPage.value = 1
     load()
   }, 300)
+}
+
+function applyFilters() {
+  clearTimeout(keywordTimer)
+  keyword.value = keywordInput.value
+  currentPage.value = 1
+  clearSelection()
+  load()
+}
+
+function resetFilters() {
+  clearTimeout(keywordTimer)
+  keywordInput.value = ''
+  keyword.value = ''
+  tagFilter.value = undefined
+  filterStatus.value = 'all'
+  currentPage.value = 1
+  clearSelection()
+  load()
 }
 
 function onFilterChange() {
@@ -2031,19 +2049,6 @@ onActivated(load)
   color: var(--app-text);
 }
 .page-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.filter-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-.filter-right {
   display: flex;
   align-items: center;
   gap: 8px;
