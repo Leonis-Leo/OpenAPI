@@ -112,17 +112,15 @@
           style="width: 200px"
           @input="onKeywordInput"
         />
+        <el-select v-model="filterStatus" style="width: 130px" @change="onFilterChange">
+          <el-option label="全部" value="all" />
+          <el-option label="已上线" value="online" />
+          <el-option label="已订阅" value="subscribed" />
+          <el-option label="未订阅" value="unsubscribed" />
+        </el-select>
         <el-select v-model="tagFilter" clearable placeholder="全部标签" style="width: 120px" @change="onFilterChange">
           <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
         </el-select>
-        <template #more>
-          <el-radio-group v-model="filterStatus" size="small" @change="onFilterChange">
-            <el-radio-button value="all">全部</el-radio-button>
-            <el-radio-button value="online">已上线</el-radio-button>
-            <el-radio-button value="subscribed">已订阅</el-radio-button>
-            <el-radio-button value="unsubscribed">未订阅</el-radio-button>
-          </el-radio-group>
-        </template>
       </CollapsibleFilter>
 
       <div class="row-actions">
