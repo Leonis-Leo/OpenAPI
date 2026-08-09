@@ -33,12 +33,14 @@
             @size-change="handleAllPageChange"
           />
         </div>
+        <TableSkeleton v-if="loading" :rows="5" />
         <el-table
+          v-else
           ref="allTableRef"
           :data="pagedAll"
           border
           stripe
-          v-loading="loading"
+          highlight-current-row
           @row-click="(row: SubscribeInfo) => allTableRef?.toggleRowSelection(row)"
           @selection-change="(rows: SubscribeInfo[]) => (selectedAll = rows)"
         >
@@ -94,12 +96,14 @@
         @size-change="handlePendingPageChange"
       />
     </div>
+        <TableSkeleton v-if="loading" :rows="5" />
         <el-table
+          v-else
           ref="pendingTableRef"
           :data="pagedPending"
           border
           stripe
-          v-loading="loading"
+          highlight-current-row
           @row-click="(row: SubscribeInfo) => pendingTableRef?.toggleRowSelection(row)"
           @selection-change="(rows: SubscribeInfo[]) => (selectedPending = rows)"
         >
@@ -136,12 +140,14 @@
         @size-change="handleMinePageChange"
       />
     </div>
+        <TableSkeleton v-if="loading" :rows="5" />
         <el-table
+          v-else
           ref="mineTableRef"
           :data="pagedMine"
           border
           stripe
-          v-loading="loading"
+          highlight-current-row
           @row-click="(row: SubscribeInfo) => mineTableRef?.toggleRowSelection(row)"
           @selection-change="(rows: SubscribeInfo[]) => (selectedMine = rows)"
         >
@@ -195,7 +201,9 @@
 import { computed, onActivated, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import TableSkeleton from '@/components/TableSkeleton.vue'
 import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import {
   pageSubscribes,
@@ -207,6 +215,8 @@ import {
 } from '@/api'
 
 const userStore = useUserStore()
+const route = useRoute()
+const router = useRouter()
 const isAdmin = userStore.user?.userRole === 'admin'
 const activeTab = ref('pending')
 const pendingList = ref<SubscribeInfo[]>([])
@@ -291,11 +301,24 @@ function resetSearch() {
   pendingPage.value = 1
   minePage.value = 1
   allPage.value = 1
+  syncRoute()
 }
 
 function resetFilters() {
   keyword.value = ''
   resetSearch()
+}
+
+function applyRouteFilters() {
+  if (typeof route.query.keyword === 'string') {
+    keyword.value = route.query.keyword
+  }
+}
+
+function syncRoute() {
+  const query: Record<string, string> = {}
+  if (keyword.value) query.keyword = keyword.value
+  router.replace({ query })
 }
 
 async function load() {
@@ -409,7 +432,10 @@ function openDetail(row: SubscribeInfo) {
   detailVisible.value = true
 }
 
-onActivated(load)
+onActivated(() => {
+  applyRouteFilters()
+  load()
+})
 </script>
 
 <style scoped>

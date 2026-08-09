@@ -76,12 +76,14 @@
       />
     </div>
 
+    <TableSkeleton v-if="loading" :rows="6" />
     <el-table
+      v-else
       ref="tableRef"
       :data="pagedApps"
       border
       stripe
-      v-loading="loading"
+      highlight-current-row
       @row-click="handleRowClick"
       @selection-change="handleSelectionChange"
     >
@@ -166,7 +168,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailVisible" :title="`应用详情 - ${detailRow?.appName ?? ''}`" width="640px">
+    <el-drawer v-model="detailVisible" :title="`应用详情 - ${detailRow?.appName ?? ''}`" size="640px">
       <el-descriptions :column="1" border>
         <el-descriptions-item label="应用名称">{{ detailRow?.appName }}</el-descriptions-item>
         <el-descriptions-item label="AccessKey">
@@ -225,7 +227,7 @@
         v-model:current-page="detailPage"
       />
       <el-empty v-else :description="appSubscribes.length ? '无匹配结果' : '暂无订阅'" :image-size="60" />
-    </el-dialog>
+    </el-drawer>
   </div>
 </template>
 
@@ -235,6 +237,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowDown, CopyDocument, Hide, View } from '@element-plus/icons-vue'
+import TableSkeleton from '@/components/TableSkeleton.vue'
 import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import { useUserStore } from '@/store/user'
 import {

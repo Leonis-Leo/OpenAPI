@@ -90,12 +90,12 @@
               <el-switch :model-value="row.enabled" @change="(v: boolean | string | number) => saveAppEnabled(row, v)" />
             </template>
           </el-table-column>
-          <el-table-column label="容量" prop="capacity" width="140" sortable>
+          <el-table-column label="容量" prop="capacity" width="140" sortable align="right">
             <template #default="{ row }">
               <el-input-number v-model="row.capacity" :min="1" :max="10000" @change="markDirtyApp(row)" />
             </template>
           </el-table-column>
-          <el-table-column label="补充速率(个/秒)" prop="refillRate" width="160" sortable>
+          <el-table-column label="补充速率(个/秒)" prop="refillRate" width="160" sortable align="right">
             <template #default="{ row }">
               <el-input-number v-model="row.refillRate" :min="1" :max="1000" @change="markDirtyApp(row)" />
             </template>
@@ -182,12 +182,12 @@
               <el-switch :model-value="row.enabled" @change="(v: boolean | string | number) => saveInterfaceEnabled(row, v)" />
             </template>
           </el-table-column>
-          <el-table-column label="容量" prop="capacity" width="140" sortable>
+          <el-table-column label="容量" prop="capacity" width="140" sortable align="right">
             <template #default="{ row }">
               <el-input-number v-model="row.capacity" :min="1" :max="10000" @change="markDirtyInterface(row)" />
             </template>
           </el-table-column>
-          <el-table-column label="补充速率(个/秒)" prop="refillRate" width="160" sortable>
+          <el-table-column label="补充速率(个/秒)" prop="refillRate" width="160" sortable align="right">
             <template #default="{ row }">
               <el-input-number v-model="row.refillRate" :min="1" :max="1000" @change="markDirtyInterface(row)" />
             </template>
@@ -199,9 +199,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onActivated, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
+import { useRoute, useRouter } from 'vue-router'
 import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import {
   listRateLimitConfigs,
@@ -215,6 +216,8 @@ import {
 } from '@/api'
 
 const activeTab = ref('app')
+const route = useRoute()
+const router = useRouter()
 const appList = ref<AppRateLimitConfig[]>([])
 const interfaceList = ref<RateLimitConfig[]>([])
 const appKeyword = ref('')
@@ -245,21 +248,41 @@ function clearDirty() {
 
 function applyAppFilter() {
   appPage.value = 1
+  syncRoute()
 }
 
 function resetAppFilter() {
   appKeyword.value = ''
   appPage.value = 1
+  syncRoute()
 }
 
 function applyInterfaceFilter() {
   interfacePage.value = 1
+  syncRoute()
 }
 
 function resetInterfaceFilter() {
   interfaceKeyword.value = ''
   interfacePage.value = 1
+  syncRoute()
 }
+
+function applyRouteFilters() {
+  if (route.query.tab === 'interface') activeTab.value = 'interface'
+  if (typeof route.query.appKeyword === 'string') appKeyword.value = route.query.appKeyword
+  if (typeof route.query.interfaceKeyword === 'string') interfaceKeyword.value = route.query.interfaceKeyword
+}
+
+function syncRoute() {
+  const query: Record<string, string> = {}
+  if (activeTab.value === 'interface') query.tab = 'interface'
+  if (appKeyword.value) query.appKeyword = appKeyword.value
+  if (interfaceKeyword.value) query.interfaceKeyword = interfaceKeyword.value
+  router.replace({ query })
+}
+
+watch(activeTab, () => syncRoute())
 
 function filterConfigStatus(value: boolean, row: { configured?: boolean }) {
   return row.configured === value
@@ -525,7 +548,15 @@ function summarizeResults(
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  applyRouteFilters()
+  load()
+})
+
+onActivated(() => {
+  applyRouteFilters()
+  load()
+})
 </script>
 
 <style scoped>

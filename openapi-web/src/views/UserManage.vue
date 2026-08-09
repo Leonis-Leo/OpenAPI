@@ -67,12 +67,14 @@
       />
     </div>
 
+    <TableSkeleton v-if="loading" :rows="6" />
     <el-table
+      v-else
       ref="tableRef"
       :data="pagedUsers"
       border
       stripe
-      v-loading="loading"
+      highlight-current-row
       @row-click="handleRowClick"
       @selection-change="handleSelectionChange"
     >
@@ -150,7 +152,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailVisible" :title="`用户详情 - ${detailRow?.userAccount ?? ''}`" width="980px" top="6vh">
+    <el-drawer v-model="detailVisible" :title="`用户详情 - ${detailRow?.userAccount ?? ''}`" size="880px">
       <el-descriptions :column="1" border>
         <el-descriptions-item label="账号">{{ detailRow?.userAccount }}</el-descriptions-item>
         <el-descriptions-item label="昵称">{{ detailRow?.userName }}</el-descriptions-item>
@@ -235,7 +237,7 @@
           <el-empty v-else :description="detailSubscribes.length ? '无匹配结果' : '暂无订阅'" :image-size="56" />
         </div>
       </div>
-    </el-dialog>
+    </el-drawer>
 
     <el-dialog v-model="resetVisible" :title="`重置密码（${resetTargets.length} 人）`" width="420px">
       <el-form label-width="90px">
@@ -257,11 +259,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { ArrowDown } from '@element-plus/icons-vue'
+import TableSkeleton from '@/components/TableSkeleton.vue'
 import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import {
   pageUsers,
@@ -278,6 +282,8 @@ import {
 } from '@/api'
 
 const userStore = useUserStore()
+const route = useRoute()
+const router = useRouter()
 const users = ref<UserInfo[]>([])
 const loading = ref(false)
 const keyword = ref('')
@@ -371,6 +377,7 @@ function applySearch() {
   keyword.value = keywordInput.value
   currentPage.value = 1
   load()
+  syncRoute()
 }
 
 function resetFilters() {
@@ -379,6 +386,20 @@ function resetFilters() {
   keyword.value = ''
   currentPage.value = 1
   load()
+  syncRoute()
+}
+
+function applyRouteFilters() {
+  if (typeof route.query.keyword === 'string') {
+    keywordInput.value = route.query.keyword
+    keyword.value = route.query.keyword
+  }
+}
+
+function syncRoute() {
+  const query: Record<string, string> = {}
+  if (keyword.value) query.keyword = keyword.value
+  router.replace({ query })
 }
 
 function filterUserRole(value: string, row: UserInfo) {
@@ -610,7 +631,15 @@ function subscribeText(status: number) {
 
 
 
-onMounted(load)
+onMounted(() => {
+  applyRouteFilters()
+  load()
+})
+
+onActivated(() => {
+  applyRouteFilters()
+  load()
+})
 </script>
 
 <style scoped>

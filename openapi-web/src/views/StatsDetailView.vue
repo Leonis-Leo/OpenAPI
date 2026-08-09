@@ -61,17 +61,17 @@
         <el-table-column v-if="dimension === 'day'" prop="day" label="日期" min-width="120" />
         <el-table-column v-else-if="dimension === 'app'" prop="appName" label="应用" min-width="150" />
         <el-table-column v-else prop="interfaceName" label="接口" min-width="170" />
-        <el-table-column prop="total" label="调用量" width="90" sortable />
-        <el-table-column prop="success" label="成功" width="80" />
-        <el-table-column prop="fail" label="失败" width="80" />
-        <el-table-column label="成功率" prop="successRate" width="90" sortable>
+        <el-table-column prop="total" label="调用量" width="90" sortable align="right" />
+        <el-table-column prop="success" label="成功" width="80" align="right" />
+        <el-table-column prop="fail" label="失败" width="80" align="right" />
+        <el-table-column label="成功率" prop="successRate" width="90" sortable align="right">
           <template #default="{ row }">
             <el-tag :type="row.successRate >= 90 ? 'success' : row.total ? 'warning' : 'info'" size="small">
               {{ row.successRate }}%
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="avgCostMs" label="平均耗时(ms)" width="110" sortable />
+        <el-table-column prop="avgCostMs" label="平均耗时(ms)" width="110" sortable align="right" />
         <el-table-column label="操作" width="90">
           <template #default="{ row }">
             <el-button size="small" text type="primary" @click.stop="openDetailLogs(row)">查看日志</el-button>
@@ -85,11 +85,12 @@
 
 <script setup lang="ts">
 import { computed, onActivated, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import { statsDailyPage, type StatsDetailItem } from '@/api'
 
 const router = useRouter()
+const route = useRoute()
 const dimension = ref<'day' | 'app' | 'interface'>('day')
 const list = ref<StatsDetailItem[]>([])
 const total = ref(0)
@@ -130,6 +131,7 @@ function resetFilters() {
   dateRange.value = null
   currentPage.value = 1
   load()
+  syncRoute()
 }
 
 function onDatePresetChange() {
@@ -145,11 +147,29 @@ function onDatePresetChange() {
   }
   currentPage.value = 1
   load()
+  syncRoute()
 }
 
 function onDimensionChange() {
   currentPage.value = 1
   load()
+  syncRoute()
+}
+
+function applyRouteFilters() {
+  if (route.query.dimension === 'app' || route.query.dimension === 'interface') {
+    dimension.value = route.query.dimension
+  }
+  if (['7', '30', '90', 'custom'].includes(String(route.query.range))) {
+    datePreset.value = String(route.query.range) as '7' | '30' | '90' | 'custom'
+  }
+}
+
+function syncRoute() {
+  const query: Record<string, string> = {}
+  if (dimension.value !== 'day') query.dimension = dimension.value
+  if (datePreset.value !== 'all') query.range = datePreset.value
+  router.replace({ query })
 }
 
 function openDetailLogs(row: StatsDetailItem) {
@@ -196,7 +216,10 @@ function exportCsv() {
   URL.revokeObjectURL(url)
 }
 
-onActivated(load)
+onActivated(() => {
+  applyRouteFilters()
+  load()
+})
 </script>
 
 <style scoped>

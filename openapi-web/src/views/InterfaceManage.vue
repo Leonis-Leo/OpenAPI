@@ -176,12 +176,14 @@
         </div>
       </div>
 
+    <TableSkeleton v-if="loading" :rows="8" />
     <el-table
+      v-else
       ref="tableRef"
       :data="pagedInterfaces"
       border
       stripe
-      v-loading="loading"
+      highlight-current-row
       @row-click="handleRowClick"
       @selection-change="handleSelectionChange"
     >
@@ -573,6 +575,8 @@ import { computed, nextTick, onActivated, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { ArrowDown, Expand, Fold } from '@element-plus/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
+import TableSkeleton from '@/components/TableSkeleton.vue'
 import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import { useUserStore } from '@/store/user'
 import {
@@ -610,6 +614,8 @@ import {
 import { hmacSha256Hex, buildSignContent, type SignParams } from '@/utils/sign'
 
 const userStore = useUserStore()
+const route = useRoute()
+const router = useRouter()
 const isAdmin = userStore.user?.userRole === 'admin'
 const interfaces = ref<InterfaceInfo[]>([])
 const loading = ref(false)
@@ -849,6 +855,7 @@ function applyFilters() {
   currentPage.value = 1
   clearSelection()
   load()
+  syncRoute()
 }
 
 function filterInterfaceMethod(value: string, row: InterfaceInfo) {
@@ -868,11 +875,35 @@ function resetFilters() {
   currentPage.value = 1
   clearSelection()
   load()
+  syncRoute()
 }
 
 function onFilterChange() {
   currentPage.value = 1
   load()
+  syncRoute()
+}
+
+function applyRouteFilters() {
+  const query = route.query
+  if (typeof query.keyword === 'string') {
+    keywordInput.value = query.keyword
+    keyword.value = query.keyword
+  }
+  if (typeof query.status === 'string' && ['all', 'online', 'subscribed', 'unsubscribed'].includes(query.status)) {
+    filterStatus.value = query.status as 'all' | 'online' | 'subscribed' | 'unsubscribed'
+  }
+  if (typeof query.tag === 'string') {
+    tagFilter.value = Number(query.tag) || undefined
+  }
+}
+
+function syncRoute() {
+  const query: Record<string, string> = {}
+  if (keyword.value) query.keyword = keyword.value
+  if (filterStatus.value !== 'all') query.status = filterStatus.value
+  if (tagFilter.value !== undefined) query.tag = String(tagFilter.value)
+  router.replace({ query })
 }
 
 function handlePageChange() {
@@ -1696,7 +1727,10 @@ function handleRowClick(row: InterfaceInfo) {
 
 
 
-onActivated(load)
+onActivated(() => {
+  applyRouteFilters()
+  load()
+})
 </script>
 
 <style scoped>

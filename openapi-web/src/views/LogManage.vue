@@ -82,12 +82,14 @@
     </div>
 
     <div class="table-card content-card">
+      <TableSkeleton v-if="loading" :rows="6" />
       <el-table
+      v-else
       ref="tableRef"
       :data="logs"
       border
       stripe
-      v-loading="loading"
+      highlight-current-row
       @row-click="handleRowClick"
       @selection-change="(rows: ApiLog[]) => (selected = rows)"
     >
@@ -120,14 +122,14 @@
       <el-table-column prop="appName" label="应用" width="120" sortable />
       <el-table-column prop="userAccount" label="用户" width="120" sortable />
       <el-table-column prop="ip" label="IP" width="130" sortable />
-      <el-table-column prop="statusCode" label="状态码" width="90" sortable>
+      <el-table-column prop="statusCode" label="状态码" width="90" sortable align="right">
         <template #default="{ row }">
           <el-tag :type="row.statusCode < 400 ? 'success' : 'danger'" size="small">
             {{ row.statusCode }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="costMs" label="耗时(ms)" width="90" sortable />
+      <el-table-column prop="costMs" label="耗时(ms)" width="90" sortable align="right" />
     </el-table>
     </div>
 
@@ -167,6 +169,7 @@ import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
+import TableSkeleton from '@/components/TableSkeleton.vue'
 import CollapsibleFilter from '@/components/CollapsibleFilter.vue'
 import {
   listApiLogs,

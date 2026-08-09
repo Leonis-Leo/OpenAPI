@@ -142,7 +142,9 @@
         <div class="topbar-right">
           <button class="icon-button" aria-label="切换主题" @click="toggleTheme"><el-icon><Sunny v-if="isDark" /><Moon v-else /></el-icon></button>
           <span class="env-pill"><i></i> 本地开发环境</span>
-          <button class="icon-button" aria-label="搜索"><el-icon><Search /></el-icon></button>
+          <button class="icon-button" aria-label="全局搜索" title="全局搜索（/）" @click="openGlobalSearch">
+            <el-icon><Search /></el-icon>
+          </button>
           <el-popover
             v-model:visible="notificationVisible"
             placement="bottom-end"
@@ -206,10 +208,71 @@
     </el-form>
     <template #footer><el-button @click="profileVisible = false">取消</el-button><el-button type="primary" :loading="savingProfile" @click="handleSaveProfile">保存</el-button></template>
   </el-dialog>
+
+  <el-dialog
+    v-model="searchVisible"
+    title="全局搜索"
+    width="560px"
+    top="12vh"
+    :close-on-click-modal="true"
+    @closed="searchKeyword = ''; searchResults = { interfaces: [], apps: [], users: [] }"
+  >
+    <el-input
+      ref="searchInputRef"
+      v-model="searchKeyword"
+      placeholder="搜索接口 / 应用 / 用户，回车跳转"
+      clearable
+      size="large"
+      @input="onGlobalSearchInput"
+      @keyup.enter="jumpFirstResult"
+    />
+    <div v-loading="searchLoading" class="global-search-body">
+      <template v-if="searchResults.interfaces.length">
+        <p class="gs-group">接口</p>
+        <button
+          v-for="item in searchResults.interfaces"
+          :key="`i-${item.id}`"
+          type="button"
+          class="gs-item"
+          @click="jump(`/interfaces?keyword=${encodeURIComponent(item.name)}`)"
+        >
+          <el-icon><Connection /></el-icon>{{ item.name }}<span>{{ item.url }}</span>
+        </button>
+      </template>
+      <template v-if="searchResults.apps.length">
+        <p class="gs-group">应用</p>
+        <button
+          v-for="item in searchResults.apps"
+          :key="`a-${item.id}`"
+          type="button"
+          class="gs-item"
+          @click="jump(`/apps?keyword=${encodeURIComponent(item.appName)}`)"
+        >
+          <el-icon><Box /></el-icon>{{ item.appName }}
+        </button>
+      </template>
+      <template v-if="searchResults.users.length">
+        <p class="gs-group">用户</p>
+        <button
+          v-for="item in searchResults.users"
+          :key="`u-${item.id}`"
+          type="button"
+          class="gs-item"
+          @click="jump(`/users?keyword=${encodeURIComponent(item.userAccount)}`)"
+        >
+          <el-icon><User /></el-icon>{{ item.userAccount }}
+        </button>
+      </template>
+      <p v-if="!searchKeyword" class="gs-empty">输入关键词搜索接口、应用或用户</p>
+      <p v-else-if="!searchLoading && !searchResults.interfaces.length && !searchResults.apps.length && !searchResults.users.length" class="gs-empty">
+        未找到匹配结果
+      </p>
+    </div>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
@@ -249,7 +312,13 @@ import {
   unreadNotificationCount,
   readNotification,
   readAllNotifications,
-  type NotificationItem
+  type NotificationItem,
+  pageInterfaces,
+  pageApps,
+  pageUsers,
+  type InterfaceInfo,
+  type AppInfo,
+  type UserInfo
 } from '@/api'
 
 const route = useRoute()
@@ -261,6 +330,16 @@ const isDark = ref(document.documentElement.classList.contains('dark'))
 const profileVisible = ref(false)
 const savingProfile = ref(false)
 const profileForm = reactive({ userName: '', userPassword: '' })
+const searchVisible = ref(false)
+const searchKeyword = ref('')
+const searchLoading = ref(false)
+const searchInputRef = ref()
+const searchResults = reactive<{
+  interfaces: InterfaceInfo[]
+  apps: AppInfo[]
+  users: UserInfo[]
+}>({ interfaces: [], apps: [], users: [] })
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 const notificationVisible = ref(false)
 const notificationLoading = ref(false)
 const notifications = ref<NotificationItem[]>([])
@@ -269,6 +348,64 @@ let notificationTimer: ReturnType<typeof setInterval> | undefined
 
 function toggleCollapse() { isCollapse.value = !isCollapse.value; localStorage.setItem('openapi-sidebar', isCollapse.value ? '1' : '0') }
 function toggleTheme() { isDark.value = !isDark.value; document.documentElement.classList.toggle('dark', isDark.value); localStorage.setItem('openapi-theme', isDark.value ? 'dark' : 'light') }
+
+function openGlobalSearch() {
+  searchVisible.value = true
+  nextTick(() => searchInputRef.value?.focus())
+}
+
+function onGlobalSearchInput() {
+  clearTimeout(searchTimer)
+  const kw = searchKeyword.value.trim()
+  if (!kw) {
+    searchResults.interfaces = []
+    searchResults.apps = []
+    searchResults.users = []
+    return
+  }
+  searchTimer = setTimeout(() => runGlobalSearch(kw), 250)
+}
+
+async function runGlobalSearch(kw: string) {
+  searchLoading.value = true
+  try {
+    const [interfaces, apps, users] = await Promise.allSettled([
+      pageInterfaces({ current: 1, size: 5, keyword: kw }),
+      pageApps({ current: 1, size: 5, keyword: kw }),
+      pageUsers({ current: 1, size: 5, keyword: kw })
+    ])
+    searchResults.interfaces = interfaces.status === 'fulfilled' ? interfaces.value.records : []
+    searchResults.apps = apps.status === 'fulfilled' ? apps.value.records : []
+    searchResults.users = users.status === 'fulfilled' ? users.value.records : []
+  } finally {
+    searchLoading.value = false
+  }
+}
+
+function jumpFirstResult() {
+  const kw = encodeURIComponent(searchKeyword.value.trim())
+  if (searchResults.interfaces.length) {
+    jump(`/interfaces?keyword=${kw}`)
+  } else if (searchResults.apps.length) {
+    jump(`/apps?keyword=${kw}`)
+  } else if (searchResults.users.length) {
+    jump(`/users?keyword=${kw}`)
+  }
+}
+
+function jump(path: string) {
+  searchVisible.value = false
+  router.push(path)
+}
+
+function onGlobalKeydown(event: KeyboardEvent) {
+  const target = event.target as HTMLElement
+  const typing = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')
+  if (event.key === '/' && !typing) {
+    event.preventDefault()
+    openGlobalSearch()
+  }
+}
 
 async function refreshUnreadCount() {
   try {
@@ -344,10 +481,12 @@ watch(
 onMounted(() => {
   refreshUnreadCount()
   notificationTimer = setInterval(refreshUnreadCount, 30000)
+  window.addEventListener('keydown', onGlobalKeydown)
 })
 
 onUnmounted(() => {
   if (notificationTimer) clearInterval(notificationTimer)
+  window.removeEventListener('keydown', onGlobalKeydown)
 })
 </script>
 
@@ -363,6 +502,7 @@ onUnmounted(() => {
 .sidebar-footer { position: absolute; right: 16px; bottom: 20px; left: 16px; display: flex; align-items: center; gap: 8px; color: #64748b; font-size: 11px; white-space: nowrap; }.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,.12); }
 .main-shell { min-width: 0; }.topbar { display: flex; align-items: center; justify-content: space-between; height: 72px; padding: 0 28px; border-bottom: 1px solid var(--app-border); background: var(--app-surface); }.topbar-left,.topbar-right { display: flex; align-items: center; gap: 14px; }.icon-button { position: relative; display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--app-muted); cursor: pointer; }.icon-button:hover { background: var(--app-bg); color: var(--app-text); }.icon-button .el-icon { font-size: 18px; }.notification-badge :deep(.el-badge__content) { border: 0; font-size: 10px; line-height: 16px; height: 16px; min-width: 16px; padding: 0 4px; }.breadcrumb :deep(.el-breadcrumb__inner) { color: var(--app-muted); font-size: 13px; }.breadcrumb :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner) { color: var(--app-text); font-weight: 600; }.env-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 999px; background: #ecfdf5; color: #047857; font-size: 12px; }.env-pill i { width: 6px; height: 6px; border-radius: 50%; background: #10b981; }.profile-trigger { display: flex; align-items: center; gap: 9px; border: 0; background: transparent; color: var(--app-text); cursor: pointer; font-size: 13px; }.profile-trigger .el-icon { color: var(--app-muted); }
 .notification-panel { min-height: 120px; }.notification-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 10px; font-weight: 600; }.notification-body { max-height: 380px; overflow: auto; }.notification-item { position: relative; display: flex; gap: 8px; padding: 10px 8px; border-radius: 8px; cursor: pointer; }.notification-item:hover { background: var(--el-fill-color-light, #f5f7fa); }.notification-item.unread { background: #eff6ff; }.notification-item.unread:hover { background: #dbeafe; }.notification-dot-item { flex: 0 0 auto; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: #2563eb; }.notification-main { flex: 1; min-width: 0; }.notification-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary, #303133); }.notification-content { margin-top: 3px; font-size: 12px; line-height: 1.5; color: var(--el-text-color-regular, #606266); word-break: break-all; }.notification-time { margin-top: 4px; font-size: 11px; color: var(--el-text-color-secondary, #909399); }.notification-empty { padding: 32px 0; text-align: center; color: var(--el-text-color-secondary, #909399); font-size: 13px; }.notification-footer { padding: 6px 4px 0; border-top: 1px solid var(--el-border-color-lighter, #ebeef5); text-align: center; }
+.global-search-body { max-height: 420px; overflow: auto; margin-top: 12px; }.gs-group { margin: 10px 0 4px; color: var(--app-muted, #64748b); font-size: 12px; font-weight: 600; }.gs-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; color: var(--app-text, #172033); font-size: 13px; text-align: left; }.gs-item:hover { background: var(--el-fill-color-light, #f5f7fa); }.gs-item .el-icon { color: var(--app-muted, #64748b); }.gs-item span { margin-left: auto; color: var(--app-muted, #64748b); font-size: 12px; }.gs-empty { padding: 28px 0; text-align: center; color: var(--app-muted, #64748b); font-size: 13px; }
 .page-main { overflow: auto; padding: 28px 32px 40px; background: var(--app-bg); }
 @media (max-width: 900px) { .page-main { padding: 20px; }.env-pill,.topbar-right > .icon-button:first-of-type { display: none; }.topbar { padding: 0 18px; } }
 </style>

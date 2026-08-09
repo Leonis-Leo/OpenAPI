@@ -41,6 +41,14 @@ body {
 .el-pagination { --el-pagination-button-bg-color: var(--app-surface); }
 .dark { --app-bg: #0f172a; --app-surface: #172033; --app-text: #e2e8f0; --app-muted: #94a3b8; --app-border: #263449; --nav-bg: #0b1324; }
 .dark .el-table { --el-table-header-bg-color: #1d293d; --el-table-tr-bg-color: var(--app-surface); --el-table-row-hover-bg-color: #22314a; }
+.dark body .el-table { border-color: #263449; }
+.dark body .el-table th.el-table__cell { background: #1d293d; }
+.dark body .el-table--border .el-table__cell { border-right-color: #263449; }
+.dark body .el-table__body tr.current-row > td.el-table__cell { background: #1e3a5f !important; }
+.dark body .el-table__body tr:hover > td.el-table__cell { background: #1b293f !important; }
+.dark body .action-bar .batch-tip { background: #1e3a5f; color: #93c5fd; }
+.dark body .action-bar { border-color: #263449; }
+.dark body .collapsible-filter, .dark body .content-card { border-color: #263449; }
 
 /* Shared SaaS page primitives: existing views can adopt the same rhythm without changing business logic. */
 body .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 0; margin-bottom: 12px; padding: 0; border: 0; }

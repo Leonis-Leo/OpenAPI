@@ -78,6 +78,7 @@
 <script setup lang="ts">
 import { onActivated, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TableInstance } from 'element-plus'
 import {
@@ -90,6 +91,7 @@ import {
 } from '@/api'
 
 const router = useRouter()
+const route = useRoute()
 const filterStatus = ref<'all' | 'unread'>('all')
 const list = ref<NotificationItem[]>([])
 const loading = ref(false)
@@ -120,6 +122,19 @@ function handleFilterChange() {
   currentPage.value = 1
   clearSelection()
   load()
+  syncRoute()
+}
+
+function applyRouteFilters() {
+  if (route.query.filter === 'unread') {
+    filterStatus.value = 'unread'
+  }
+}
+
+function syncRoute() {
+  const query: Record<string, string> = {}
+  if (filterStatus.value === 'unread') query.filter = 'unread'
+  router.replace({ query })
 }
 
 function handlePageChange() {
@@ -219,7 +234,10 @@ function summarizeResults(
   }
 }
 
-onActivated(load)
+onActivated(() => {
+  applyRouteFilters()
+  load()
+})
 </script>
 
 <style scoped>
