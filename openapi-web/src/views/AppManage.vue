@@ -104,7 +104,7 @@
             <View v-if="showSecretIds.has(row.id)" />
             <Hide v-else />
           </el-icon>
-          <el-button class="inline-copy" text circle size="small" @click.stop="copyText(row.secretKey)">
+          <el-button class="inline-copy" text circle size="small" @click.stop="copySecret(row)">
             <el-icon><CopyDocument /></el-icon>
           </el-button>
         </template>
@@ -186,7 +186,7 @@
               <View v-if="showSecretIds.has(detailRow!.id)" />
               <Hide v-else />
             </el-icon>
-            <el-button size="small" plain @click="copyText(detailRow?.secretKey)">复制</el-button>
+            <el-button size="small" plain @click="copySecret(detailRow)">复制</el-button>
           </span>
         </el-descriptions-item>
         <el-descriptions-item label="状态">
@@ -531,6 +531,31 @@ async function toggleSecret(id: number) {
     next.add(id)
   }
   showSecretIds.value = next
+}
+
+async function copySecret(row: AppInfo | null) {
+  if (!row) return
+  let secret = row.secretKey
+  if (!secret) {
+    try {
+      const revealed = await revealAppSecret(row.id)
+      secret = revealed.secretKey
+      if (secret) row.secretKey = secret
+    } catch {
+      ElMessage.error('获取密钥失败')
+      return
+    }
+  }
+  if (!secret) {
+    ElMessage.error('获取密钥失败')
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(secret)
+    ElMessage.success('SecretKey 已复制')
+  } catch {
+    ElMessage.error('复制失败')
+  }
 }
 
 async function toggleOne(enabled: boolean) {
