@@ -45,6 +45,8 @@ springdoc:
     path: /swagger-ui.html
 
 openapi:
+  # 生产模式开关：true 时若检测到默认凭据将拒绝启动
+  production-mode: ${OPENAPI_PRODUCTION_MODE:false}
   sign:
     # 允许的最大请求时间偏差（毫秒）
     max-clock-skew-millis: 300000
