@@ -213,6 +213,9 @@ public class InterfaceInfoController {
             @RequestParam String url,
             @RequestParam(required = false) String requestParams,
             @RequestParam(required = false) String responseExample,
+            @RequestParam(required = false) String upstream,
+            @RequestParam(required = false) Integer timeoutMs,
+            @RequestParam(required = false) Integer retryCount,
             @RequestParam(required = false) Long groupId,
             @RequestParam(required = false) String tags,
             HttpServletRequest request) {
@@ -224,6 +227,9 @@ public class InterfaceInfoController {
         info.setUrl(url);
         info.setRequestParams(requestParams);
         info.setResponseExample(responseExample);
+        info.setUpstream(upstream);
+        info.setTimeoutMs(timeoutMs);
+        info.setRetryCount(retryCount);
         info.setGroupId(groupId);
         info.setStatus(0);
         info.setIsDelete(0);
@@ -244,6 +250,9 @@ public class InterfaceInfoController {
             @RequestParam(required = false) String url,
             @RequestParam(required = false) String requestParams,
             @RequestParam(required = false) String responseExample,
+            @RequestParam(required = false) String upstream,
+            @RequestParam(required = false) Integer timeoutMs,
+            @RequestParam(required = false) Integer retryCount,
             @RequestParam(required = false) Long groupId,
             @RequestParam(required = false) String tags,
             HttpServletRequest request) {
@@ -269,6 +278,15 @@ public class InterfaceInfoController {
         }
         if (responseExample != null) {
             info.setResponseExample(responseExample);
+        }
+        if (upstream != null) {
+            info.setUpstream(upstream);
+        }
+        if (timeoutMs != null) {
+            info.setTimeoutMs(timeoutMs);
+        }
+        if (retryCount != null) {
+            info.setRetryCount(retryCount);
         }
         if (groupId != null) {
             info.setGroupId(groupId);

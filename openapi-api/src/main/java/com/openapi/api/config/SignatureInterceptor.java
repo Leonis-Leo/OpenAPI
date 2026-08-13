@@ -80,6 +80,7 @@ public class SignatureInterceptor implements HandlerInterceptor {
         request.setAttribute("openapi.app", app);
         request.setAttribute("openapi.startTime", System.currentTimeMillis());
         request.setAttribute("openapi.interfaceId", info == null ? null : info.getId());
+        request.setAttribute("openapi.interfaceInfo", info);
         return true;
     }
 

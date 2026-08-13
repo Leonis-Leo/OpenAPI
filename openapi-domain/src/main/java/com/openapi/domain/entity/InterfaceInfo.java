@@ -39,6 +39,15 @@ public class InterfaceInfo implements Serializable {
 
     private String responseExample;
 
+    /** 上游服务地址（配置后 /api/** 请求代理到上游） */
+    private String upstream;
+
+    /** 上游调用超时（毫秒） */
+    private Integer timeoutMs;
+
+    /** 失败重试次数 */
+    private Integer retryCount;
+
     /** 所属分组 */
     private Long groupId;
 
