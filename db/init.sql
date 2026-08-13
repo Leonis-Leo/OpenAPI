@@ -127,7 +127,10 @@ CREATE TABLE IF NOT EXISTS `invoke_log`
     `cost_ms`      BIGINT   DEFAULT 0 COMMENT '调用耗时（毫秒）',
     `create_time`  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
-    KEY `idx_interface_time` (`interface_id`, `create_time`)
+    KEY `idx_interface_time` (`interface_id`, `create_time`),
+    KEY `idx_app_time` (`app_id`, `create_time`),
+    KEY `idx_user_time` (`user_id`, `create_time`),
+    KEY `idx_create_time` (`create_time`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='接口调用日志表';
 

@@ -9,6 +9,14 @@ spring:
     url: jdbc:mysql://localhost:3306/openapi?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: ${OPENAPI_DB_USERNAME:root}
     password: ${OPENAPI_DB_PASSWORD:123456}
+    hikari:
+      # 显式配置连接池，避免机器休眠/时钟跳变后借用陈旧连接导致请求挂起
+      maximum-pool-size: ${OPENAPI_DB_POOL_MAX:20}
+      minimum-idle: ${OPENAPI_DB_POOL_MIN_IDLE:5}
+      connection-timeout: ${OPENAPI_DB_CONN_TIMEOUT_MS:10000}
+      validation-timeout: ${OPENAPI_DB_VALIDATION_TIMEOUT_MS:3000}
+      max-lifetime: ${OPENAPI_DB_MAX_LIFETIME_MS:1500000}
+      keepalive-time: ${OPENAPI_DB_KEEPALIVE_MS:300000}
   data:
     redis:
       host: ${OPENAPI_REDIS_HOST:localhost}
@@ -48,3 +56,8 @@ openapi:
   cookie:
     # Local HTTP keeps this false; production should set OPENAPI_COOKIE_SECURE=true.
     secure: ${OPENAPI_COOKIE_SECURE:false}
+  log:
+    # invoke_log 明细日志保留天数（聚合统计表永久保留）
+    retention-days: ${OPENAPI_LOG_RETENTION_DAYS:30}
+    # 清理任务 cron（默认每天凌晨 3 点）
+    cleanup-cron: ${OPENAPI_LOG_CLEANUP_CRON:0 0 3 * * ?}

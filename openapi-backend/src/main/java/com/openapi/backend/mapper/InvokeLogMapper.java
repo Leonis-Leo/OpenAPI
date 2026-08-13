@@ -2,6 +2,7 @@ package com.openapi.backend.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.openapi.backend.entity.InvokeLog;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
@@ -13,6 +14,9 @@ public interface InvokeLogMapper extends BaseMapper<InvokeLog> {
 
     @Select("SELECT COUNT(*) FROM invoke_log")
     Long countAll();
+
+    @Delete("DELETE FROM invoke_log WHERE create_time < #{cutoff}")
+    int deleteOlderThan(@Param("cutoff") LocalDateTime cutoff);
 
     @Select("SELECT COUNT(*) FROM invoke_log WHERE success = 1")
     Long countSuccess();

@@ -11,6 +11,7 @@ import com.openapi.backend.service.InterfaceSubscribeService;
 import com.openapi.common.constant.SignConstant;
 import com.openapi.common.model.ApiResponse;
 import com.openapi.common.model.enums.ErrorCode;
+import com.openapi.common.utils.SignatureHeaderValidator;
 import com.openapi.common.utils.SignatureUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,7 +21,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 import java.io.IOException;
@@ -53,8 +53,8 @@ public class SignatureInterceptor implements HandlerInterceptor {
         String timestamp = request.getHeader(SignConstant.HEADER_TIMESTAMP);
         String nonce = request.getHeader(SignConstant.HEADER_NONCE);
         String signature = request.getHeader(SignConstant.HEADER_SIGNATURE);
-        if (!StringUtils.hasText(accessKey) || !StringUtils.hasText(timestamp) || !StringUtils.hasText(nonce) || !StringUtils.hasText(signature)) return reject(response, ErrorCode.SIGN_HEADER_MISSING);
-        if (SignatureUtils.isTimestampExpired(timestamp, maxClockSkewMillis)) return reject(response, ErrorCode.TIMESTAMP_EXPIRED);
+        ErrorCode headerError = SignatureHeaderValidator.validate(accessKey, timestamp, nonce, signature, maxClockSkewMillis);
+        if (headerError != null) return reject(response, headerError);
         App app = appMapper.selectOne(new LambdaQueryWrapper<App>().eq(App::getAccessKey, accessKey));
         if (app == null || !Integer.valueOf(1).equals(app.getStatus())) return reject(response, ErrorCode.INVALID_ACCESS_KEY);
         try {

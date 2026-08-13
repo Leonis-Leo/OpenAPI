@@ -6,7 +6,7 @@
 
 ## Next Step
 
-完成 Phase 3 前端全功能回归测试（应用管理/接口管理/订阅审批/调用统计/用户管理/限流配置/API 日志）。已复核排除「重置密钥弹窗 SecretKey 截断」（非缺陷，见 findings.md），并修复「SecretKey 复制按钮复制空值」问题。
+完成 Phase 3 剩余项：前端全功能回归测试、JMeter 压测（需先定 QPS/P95 目标）、数据库定时备份。
 
 ## Current Phase
 
@@ -41,20 +41,21 @@ Phase 3
 
 - [x] CI 启用单测执行（移除 -DskipTests）
 - [x] 密码哈希单元测试（PasswordUtilsTest，6 用例）
-- [ ] 单元/集成测试补齐（签名工具、限流 Lua、鉴权拦截链路）
+- [x] 单元/集成测试补齐（签名工具、限流 Lua、鉴权拦截链路）
 - [ ] 前端全功能回归测试（应用 / 接口 / 订阅 / 统计 / 日志 / 限流 / 用户管理）
 - [x] 修复回归发现的前端缺陷（SecretKey 复制按钮复制空值已修复；「重置密钥弹窗截断」经复核非缺陷）
 - [ ] JMeter 压测产出 QPS / RT 数据
-- [ ] DB 索引优化（invoke_log 按 user/app 维度组合索引）与定时备份
-- [ ] 稳定性排查：后端线程饥饿 / 挂起（HikariPool housekeeper 告警）
+- [x] DB 索引优化（invoke_log 按 user/app/时间维度组合索引，迁移 2026-08-13）
+- [ ] 数据库定时备份
+- [x] 稳定性排查：后端线程饥饿 / 挂起（HikariPool housekeeper 告警 → 定位为机器休眠 clock leap，显式配置 HikariCP 加固）
 - **Status:** in_progress
 
 ### Phase 4: 可观测性与稳定性
 
 - [ ] 统一日志与链路追踪（TraceId 贯穿网关→后端→MQ）
 - [ ] 监控告警（JVM / 接口调用 / 限流命中指标）
-- [ ] 日志保留与归档策略（invoke_log 清理任务）
-- [ ] 网关签名校验与后端校验一致性收敛
+- [x] 日志保留与归档策略（invoke_log 清理任务，InvokeLogCleanupTask）
+- [x] 网关签名校验与后端校验一致性收敛（抽取 SignatureHeaderValidator 共用）
 - **Status:** pending
 
 ### Phase 5: 微服务演进（可选）

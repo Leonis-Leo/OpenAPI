@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openapi.common.constant.SignConstant;
 import com.openapi.common.model.ApiResponse;
 import com.openapi.common.model.enums.ErrorCode;
-import com.openapi.common.utils.SignatureUtils;
+import com.openapi.common.utils.SignatureHeaderValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -16,7 +16,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
@@ -46,12 +45,10 @@ public class SignatureGuardFilter implements GlobalFilter, Ordered {
         String nonce = request.getHeaders().getFirst(SignConstant.HEADER_NONCE);
         String signature = request.getHeaders().getFirst(SignConstant.HEADER_SIGNATURE);
 
-        if (!StringUtils.hasText(accessKey) || !StringUtils.hasText(timestamp)
-                || !StringUtils.hasText(nonce) || !StringUtils.hasText(signature)) {
-            return writeJson(exchange, ErrorCode.SIGN_HEADER_MISSING);
-        }
-        if (SignatureUtils.isTimestampExpired(timestamp, maxClockSkewMillis)) {
-            return writeJson(exchange, ErrorCode.TIMESTAMP_EXPIRED);
+        ErrorCode headerError = SignatureHeaderValidator.validate(
+                accessKey, timestamp, nonce, signature, maxClockSkewMillis);
+        if (headerError != null) {
+            return writeJson(exchange, headerError);
         }
 
         // Redis + Lua 令牌桶限流（按接口配置，未配置时按 AccessKey）
