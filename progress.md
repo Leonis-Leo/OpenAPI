@@ -358,3 +358,31 @@
 - 排行卡片增加相对调用量进度，列表页统一批量操作栏和表格密度。
 - SecretKey 增加行内复制入口，技术字段统一等宽字体，补充 hover、分页、空状态细节。
 - 验证：`npm.cmd run build`、`git diff --check` 通过。
+
+## Session: 2026-08-13 ~ 08-14（控制面/数据面分离 + 上游代理 + 多实例准备）
+
+### 本次完成（大致按提交顺序）
+- 修复 SecretKey 复制空值 + 复核排除「截断」疑点（`aa146a3`）
+- P0 生产配置启动自检 + 文档合并（`c1e65fc` / `7432a7d`）
+- 工程化 4 项：测试补齐 / invoke_log 索引+定时清理 / HikariCP 加固 / 签名校验收敛（`330a1d4`）
+- 多实例准备：雪花 ID 唯一化 + ShedLock 分布式锁 + 网关 uri 环境变量化（`0cf0ca3`）
+- 合并 P0/P1/P2 待办清单到 task_plan.md（`3ce2fb1`）
+- **控制面/数据面分离**：抽 `openapi-domain` 共享领域层 + 新增 `openapi-api` 数据面（`ec3c960`）
+- P1 上游服务配置/超时/重试/熔断 + 同步架构文档（`0adf940`）
+- 上游代理入门文档 + `order-demo-service` 演示服务 + 前端表单/详情展示（`066eeea` / `458ec1f` / `33d797a` / `5d3b9f1`）
+
+### 当前架构（下次续接必须了解）
+- **模块**：`openapi-common` / `openapi-domain`(实体+Mapper+MQ契约) / `openapi-sdk` / `openapi-backend`(控制面 :8101) / `openapi-api`(数据面 :8102) / `openapi-gateway`(:8080) / `order-demo-service`(演示上游 :8103) / `openapi-web`(:5173)
+- **数据面代理**：`interface_info` 新增 `upstream`/`timeout_ms`/`retry_count`；配了 upstream 的 `/api/**` 请求由 `ProxyController` → `UpstreamProxyService` 转发，带超时/重试/`CircuitBreaker` 熔断
+- **多实例已备**：雪花 ID workerId/datacenterId 可环境变量注入、定时任务走 ShedLock(Redis)、网关路由 uri 环境变量化；JWT 黑名单/登录失败锁/nonce 防重放/限流全部走 Redis（无状态）
+- **启动**：`scripts/start-all.ps1 -Build`（已含 order-demo）
+
+### 下次续接（Next）
+1. **Phase 4 可观测性**：TraceId 链路追踪（网关→数据面→MQ→控制面）+ 监控告警
+2. P1 备选：策略中心 / 敏感字段脱敏 / API 生命周期状态机 / 服务目录
+3. Phase 3 剩余：前端回归、JMeter 压测（需先定 QPS/P95）、数据库定时备份
+
+### 已知遗留
+- `CircuitBreaker` 是进程内实现，多实例需换 Redis / Resilience4j
+- 代理是「路径透传」（upstream + 原路径），未做路径改写/前缀映射
+- `images/img.png` 与 `docs/.obsidian/*` 有意未提交（截图敏感 + Obsidian 自动生成）
