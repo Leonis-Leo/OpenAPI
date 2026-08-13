@@ -273,6 +273,9 @@
             <el-descriptions-item label="方式">{{ debugInterface?.method }}</el-descriptions-item>
             <el-descriptions-item label="路径" :span="2">{{ debugInterface?.url }}</el-descriptions-item>
             <el-descriptions-item label="描述" :span="2">{{ debugInterface?.description }}</el-descriptions-item>
+            <el-descriptions-item label="上游地址" :span="2">{{ debugInterface?.upstream || '未配置（走本地实现）' }}</el-descriptions-item>
+            <el-descriptions-item label="超时">{{ debugInterface?.timeoutMs ?? 3000 }} ms</el-descriptions-item>
+            <el-descriptions-item label="重试次数">{{ debugInterface?.retryCount ?? 0 }}</el-descriptions-item>
           </el-descriptions>
           <div class="block-toolbar">
             <span>请求参数说明</span>
