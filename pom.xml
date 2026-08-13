@@ -18,6 +18,7 @@
         <module>openapi-backend</module>
         <module>openapi-api</module>
         <module>openapi-gateway</module>
+        <module>order-demo-service</module>
     </modules>
 
     <parent>

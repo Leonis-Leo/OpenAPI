@@ -22,6 +22,7 @@ $RabbitServer = Join-Path $RabbitSbin 'rabbitmq-server.bat'
 $BackendJar = Join-Path $ProjectRoot 'openapi-backend\target\openapi-backend-0.0.1-SNAPSHOT.jar'
 $ApiJar = Join-Path $ProjectRoot 'openapi-api\target\openapi-api-0.0.1-SNAPSHOT.jar'
 $GatewayJar = Join-Path $ProjectRoot 'openapi-gateway\target\openapi-gateway-0.0.1-SNAPSHOT.jar'
+$OrderJar = Join-Path $ProjectRoot 'order-demo-service\target\order-demo-service-0.0.1-SNAPSHOT.jar'
 $LogRoot = Join-Path $ProjectRoot 'runtime-logs'
 
 New-Item -ItemType Directory -Path $LogRoot -Force | Out-Null
@@ -82,6 +83,7 @@ if ($Build) {
     Write-Host '[BUILD] mvn package -DskipTests' -ForegroundColor Cyan
     Stop-ProjectProcess 8101 'openapi-backend-0.0.1-SNAPSHOT.jar'
     Stop-ProjectProcess 8102 'openapi-api-0.0.1-SNAPSHOT.jar'
+    Stop-ProjectProcess 8103 'order-demo-service-0.0.1-SNAPSHOT.jar'
     Stop-ProjectProcess 8080 'openapi-gateway-0.0.1-SNAPSHOT.jar'
     Push-Location $ProjectRoot
     try {
@@ -134,6 +136,7 @@ else {
 
 Start-ManagedProcess 'backend' $JavaExe @('-jar', $BackendJar) $ProjectRoot 8101
 Start-ManagedProcess 'api' $JavaExe @('-jar', $ApiJar) $ProjectRoot 8102
+Start-ManagedProcess 'order-demo' $JavaExe @('-jar', $OrderJar) $ProjectRoot 8103
 Start-ManagedProcess 'gateway' $JavaExe @('-jar', $GatewayJar) $ProjectRoot 8080
 Start-ManagedProcess 'frontend' $NpmCmd @('run', 'dev', '--', '--host', '127.0.0.1') `
     (Join-Path $ProjectRoot 'openapi-web') 5173

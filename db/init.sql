@@ -216,10 +216,18 @@ VALUES (1, '随机名称', '随机返回一个英文名', 'GET', '/api/demo/name
        (2, '参数回显', '原样返回表单参数', 'POST', '/api/demo/echo', '{"任意参数":"原样回显"}',
         '{"code":0,"data":{}}', 1);
 
--- 演示应用默认已订阅两个演示接口（审批通过），保证 CI 测试可直接调用
+-- 订单查询演示接口：代理转发到 order-demo-service 上游（演示超时/重试/熔断）
+INSERT INTO `interface_info` (`id`, `name`, `description`, `method`, `url`, `request_params`, `response_example`, `upstream`, `timeout_ms`, `retry_count`, `status`)
+VALUES (100, '订单查询（上游演示）', '代理转发到 order-demo-service 的订单查询', 'GET', '/api/order/query',
+        '{"id":"订单ID(可选)","delay":"模拟上游慢的毫秒数","fail":"true 模拟 500"}',
+        '{"id":1001,"orderNo":"ORD-...","status":"PAID","amount":99.9}',
+        'http://localhost:8103', 3000, 1, 1);
+
+-- 演示应用默认已订阅演示接口（审批通过），保证 CI 测试可直接调用
 INSERT INTO `interface_subscribe` (`id`, `interface_id`, `app_id`, `user_id`, `status`)
 VALUES (1, 1, 1, 1, 1),
-       (2, 2, 1, 1, 1);
+       (2, 2, 1, 1, 1),
+       (100, 100, 1, 1, 1);
 
 CREATE TABLE IF NOT EXISTS `audit_log` (
     `id` BIGINT NOT NULL, `user_id` BIGINT DEFAULT NULL, `action` VARCHAR(16) NOT NULL,
