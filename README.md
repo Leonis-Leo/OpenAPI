@@ -30,9 +30,11 @@ flowchart LR
 ```text
 openapi-platform
 ├── openapi-common    # 公共模块：常量、签名工具、统一响应体、错误码
+├── openapi-domain    # 共享领域层：实体、Mapper、数据访问配置、MQ 契约
 ├── openapi-sdk       # 开发者调用 SDK：自动完成请求签名
-├── openapi-backend   # 业务后端：用户/应用/接口管理 + 签名校验 + JWT 登录
-├── openapi-gateway   # 网关：统一入口、签名头校验、限流扩展点
+├── openapi-backend   # 控制面：用户/应用/接口/订阅/统计管理 + JWT 登录（:8101）
+├── openapi-api       # 数据面：对外 API 服务端 + 签名鉴权 + 调用日志生产（:8102）
+├── openapi-gateway   # 网关：统一入口、签名头校验、限流（:8080）
 ├── openapi-web       # 管理后台前端：Vue3 + Element Plus
 ├── db                # 数据库初始化脚本
 └── docker-compose.yml # MySQL + Redis 一键启动

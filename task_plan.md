@@ -81,7 +81,8 @@ Phase 3
 - [ ] 多语言 SDK 自动生成（Java/Python/Go/TS，独立服务）【P2】
 - [ ] AI Provider、模型 Key、余额和 Token 成本管理【P2】
 - [ ] MCP 工具暴露、协议转换插件、可插拔网关策略【P2】
-- [ ] 控制面/数据面分离、集群健康检查、配置版本下发【P2】
+- [x] 控制面/数据面分离（openapi-backend 控制面 + openapi-api 数据面 + openapi-domain 共享领域层）
+- [ ] 集群节点健康检查、配置版本下发【P2】
 - [ ] 国际化与开放平台门户【P2】
 - **Status:** pending
 
