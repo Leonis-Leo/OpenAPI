@@ -6,7 +6,7 @@
 
 ## Next Step
 
-完成 Phase 3 剩余项：前端全功能回归测试、JMeter 压测（需先定 QPS/P95 目标）、数据库定时备份。
+先收尾 P0 唯一剩余项「生产配置启动自检」，再按推荐顺序做 P1「上游服务配置/超时/重试/熔断降级」；并行推进 Phase 3 剩余（前端回归、JMeter 压测、数据库定时备份）。
 
 ## Current Phase
 
@@ -48,21 +48,41 @@ Phase 3
 - [x] DB 索引优化（invoke_log 按 user/app/时间维度组合索引，迁移 2026-08-13）
 - [ ] 数据库定时备份
 - [x] 稳定性排查：后端线程饥饿 / 挂起（HikariPool housekeeper 告警 → 定位为机器休眠 clock leap，显式配置 HikariCP 加固）
+- [ ] 生产配置启动自检【P0】：启动时校验 JWT 密钥 / DB 密码 / Cookie Secure 等默认凭据，发现默认值告警或拒绝生产启动
 - **Status:** in_progress
 
-### Phase 4: 可观测性与稳定性
+### Phase 4: 可观测性、稳定性与平台能力（吸收 P1）
 
-- [ ] 统一日志与链路追踪（TraceId 贯穿网关→后端→MQ）
-- [ ] 监控告警（JVM / 接口调用 / 限流命中指标）
 - [x] 日志保留与归档策略（invoke_log 清理任务，InvokeLogCleanupTask）
 - [x] 网关签名校验与后端校验一致性收敛（抽取 SignatureHeaderValidator 共用）
+- [ ] 统一日志与链路追踪（TraceId 贯穿网关→后端→MQ）【P1】
+- [ ] RabbitMQ 可靠投递：重试、死信、幂等与积压监控【P1】
+- [ ] 监控告警（JVM / 接口调用 / 限流命中指标）【P1】
+- [ ] 上游服务配置：upstream、超时、重试、健康检查、熔断降级【P1 · 推荐顺序第 1】
+- [ ] 请求/响应敏感字段脱敏策略 + 审计日志查询导出【P1】
+- [ ] 策略中心：按应用/用户/IP/接口/方法/路径维度的限流与黑白名单【P1】
+- [ ] 应用配额、订阅有效期、Scope 和 IP 白名单【P1】
+- [ ] API 生命周期状态机（CREATED→PROTOTYPED→PUBLISHED→DEPRECATED→RETIRED）【P1】
+- [ ] 服务目录 + 标签 + 开发者搜索 + 订阅申请入口【P1】
+- [ ] 接口文档导出增强（Word/PDF、模块化分组）【P1】
+- [ ] 证书管理（HTTPS/TLS 证书、过期提醒）【P1】
+- [ ] 应用成员协作和更细粒度 RBAC【P1】
 - **Status:** pending
 
-### Phase 5: 微服务演进（可选）
+### Phase 5: 规模化与商业化（原微服务演进 + P2）
 
-- [ ] Spring Cloud Alibaba：Nacos 服务发现 + Sentinel 熔断限流
-- [ ] 网关 lb:// 负载均衡与服务拆分
-- [ ] 配置中心与多实例部署
+- [ ] 服务发现 + 配置中心 + 多实例部署（Spring Cloud Alibaba Nacos/Sentinel、网关 lb://）【P2】
+- [ ] 多租户隔离【P2】
+- [ ] 测试环境与生产环境分离【P2】
+- [ ] 团队、组织、成员和资源级 RBAC【P2】
+- [ ] API 套餐、配额计费、订单和账单【P2】
+- [ ] 多认证方式（API Key/Basic/JWT/OAuth2）+ OAuth2 授权码/客户端凭证流程【P2】
+- [ ] 网关插件 SPI 化重构（借鉴 ShenYu 插件链思想，不整体引入）【P2】
+- [ ] 多语言 SDK 自动生成（Java/Python/Go/TS，独立服务）【P2】
+- [ ] AI Provider、模型 Key、余额和 Token 成本管理【P2】
+- [ ] MCP 工具暴露、协议转换插件、可插拔网关策略【P2】
+- [ ] 控制面/数据面分离、集群健康检查、配置版本下发【P2】
+- [ ] 国际化与开放平台门户【P2】
 - **Status:** pending
 
 ## Key Questions
@@ -94,6 +114,8 @@ Phase 3
 | CDP DOM.getBoxModel backendNodeId 反序列化失败 | 1 | 改用 JS getBoundingClientRect 取坐标 |
 
 ## Notes
+
+- 2026-08-13：`task_plan.md` 已合并《OpenAPI 平台改造清单》的 P0/P1/P2 剩余待办，作为唯一待办清单来源（原 docs 清单保留「参考项目速查」与「推荐实施顺序」）。重叠项已去重：TraceId / 日志归档 / 异常告警 归入 Phase 4，不再在 P1 与 Phase 4 重复。
 
 ## 2026-08-08 P0 安全与质量改造
 
