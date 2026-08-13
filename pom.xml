@@ -13,8 +13,10 @@
 
     <modules>
         <module>openapi-common</module>
+        <module>openapi-domain</module>
         <module>openapi-sdk</module>
         <module>openapi-backend</module>
+        <module>openapi-api</module>
         <module>openapi-gateway</module>
     </modules>
 
@@ -44,6 +46,11 @@
             <dependency>
                 <groupId>com.openapi</groupId>
                 <artifactId>openapi-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.openapi</groupId>
+                <artifactId>openapi-domain</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

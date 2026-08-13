@@ -1,8 +1,8 @@
 package com.openapi.backend.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.openapi.backend.entity.App;
-import com.openapi.backend.mapper.AppMapper;
+import com.openapi.domain.entity.App;
+import com.openapi.domain.mapper.AppMapper;
 import com.openapi.backend.service.AppService;
 import com.openapi.common.utils.KeyGeneratorUtils;
 import org.springframework.stereotype.Service;

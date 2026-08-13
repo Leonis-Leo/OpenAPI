@@ -1,6 +1,6 @@
 package com.openapi.backend.dto;
 
-import com.openapi.backend.entity.App;
+import com.openapi.domain.entity.App;
 import lombok.Data;
 
 import java.time.LocalDateTime;

@@ -1,6 +1,6 @@
 package com.openapi.backend.controller;
 
-import com.openapi.backend.entity.User;
+import com.openapi.domain.entity.User;
 import com.openapi.backend.service.RateLimitConfigService;
 import com.openapi.backend.service.UserService;
 import com.openapi.common.exception.BusinessException;

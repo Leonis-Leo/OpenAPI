@@ -1,7 +1,7 @@
 package com.openapi.backend.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.openapi.backend.entity.Notification;
+import com.openapi.domain.entity.Notification;
 import com.openapi.backend.service.NotificationService;
 import com.openapi.common.model.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;

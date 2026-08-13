@@ -1,9 +1,10 @@
 package com.openapi.backend.mq;
 
-import com.openapi.backend.config.RabbitConstant;
-import com.openapi.backend.entity.InvokeLog;
-import com.openapi.backend.mapper.InvokeLogMapper;
-import com.openapi.backend.mapper.InvokeStatsMapper;
+import com.openapi.domain.mq.InvokeLogMessage;
+import com.openapi.domain.mq.RabbitConstant;
+import com.openapi.domain.entity.InvokeLog;
+import com.openapi.domain.mapper.InvokeLogMapper;
+import com.openapi.domain.mapper.InvokeStatsMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;

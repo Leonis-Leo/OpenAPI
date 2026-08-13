@@ -1,7 +1,7 @@
 package com.openapi.backend.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.openapi.backend.entity.AuditLog;
-import com.openapi.backend.mapper.AuditLogMapper;
+import com.openapi.domain.entity.AuditLog;
+import com.openapi.domain.mapper.AuditLogMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

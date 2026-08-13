@@ -1,7 +1,7 @@
 package com.openapi.backend.controller;
 
 import com.openapi.backend.dto.AppResponse;
-import com.openapi.backend.entity.App;
+import com.openapi.domain.entity.App;
 import com.openapi.backend.service.AppService;
 import com.openapi.backend.service.UserService;
 import com.openapi.common.exception.BusinessException;

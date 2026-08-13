@@ -1,11 +1,11 @@
 package com.openapi.backend.controller;
 
-import com.openapi.backend.mapper.InterfaceInfoMapper;
-import com.openapi.backend.mapper.AppMapper;
-import com.openapi.backend.mapper.InvokeStatsMapper;
-import com.openapi.backend.entity.InterfaceInfo;
-import com.openapi.backend.entity.App;
-import com.openapi.backend.entity.User;
+import com.openapi.domain.mapper.InterfaceInfoMapper;
+import com.openapi.domain.mapper.AppMapper;
+import com.openapi.domain.mapper.InvokeStatsMapper;
+import com.openapi.domain.entity.InterfaceInfo;
+import com.openapi.domain.entity.App;
+import com.openapi.domain.entity.User;
 import com.openapi.backend.service.UserService;
 import com.openapi.common.model.ApiResponse;
 import com.openapi.common.exception.BusinessException;

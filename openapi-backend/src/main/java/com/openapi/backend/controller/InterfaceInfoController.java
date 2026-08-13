@@ -2,10 +2,10 @@ package com.openapi.backend.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.openapi.backend.entity.InterfaceSubscribe;
-import com.openapi.backend.entity.InterfaceInfo;
-import com.openapi.backend.entity.InterfaceVersion;
-import com.openapi.backend.entity.User;
+import com.openapi.domain.entity.InterfaceSubscribe;
+import com.openapi.domain.entity.InterfaceInfo;
+import com.openapi.domain.entity.InterfaceVersion;
+import com.openapi.domain.entity.User;
 import com.openapi.backend.service.InterfaceInfoService;
 import com.openapi.backend.service.InterfaceSubscribeService;
 import com.openapi.backend.service.InterfaceVersionService;
@@ -318,7 +318,7 @@ public class InterfaceInfoController {
 
     @PostMapping("/tag/create")
     @Operation(summary = "新建标签（管理员）")
-    public ApiResponse<com.openapi.backend.entity.InterfaceTag> createTag(
+    public ApiResponse<com.openapi.domain.entity.InterfaceTag> createTag(
             @RequestParam String name, HttpServletRequest request) {
         requireAdmin(request);
         return ApiResponse.ok(tagService.createTag(name));

@@ -9,14 +9,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
-    private final SignatureInterceptor signatureInterceptor;
     private final AuthInterceptor authInterceptor;
     private final CsrfInterceptor csrfInterceptor;
     private final AuditLogInterceptor auditLogInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(signatureInterceptor).addPathPatterns("/api/**");
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/v1/**")
                 .excludePathPatterns("/v1/user/login", "/v1/user/register");

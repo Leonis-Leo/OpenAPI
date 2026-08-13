@@ -2,8 +2,8 @@ package com.openapi.backend.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.openapi.backend.common.PasswordUtils;
-import com.openapi.backend.entity.User;
-import com.openapi.backend.mapper.UserMapper;
+import com.openapi.domain.entity.User;
+import com.openapi.domain.mapper.UserMapper;
 import com.openapi.backend.service.UserService;
 import com.openapi.common.exception.BusinessException;
 import com.openapi.common.model.enums.ErrorCode;

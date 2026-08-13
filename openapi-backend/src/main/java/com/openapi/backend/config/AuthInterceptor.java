@@ -2,7 +2,7 @@ package com.openapi.backend.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openapi.backend.common.JwtUtils;
-import com.openapi.backend.entity.User;
+import com.openapi.domain.entity.User;
 import com.openapi.backend.service.UserService;
 import com.openapi.backend.service.JwtTokenBlacklistService;
 import com.openapi.common.model.ApiResponse;

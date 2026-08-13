@@ -1,7 +1,7 @@
 package com.openapi.backend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.openapi.backend.entity.App;
+import com.openapi.domain.entity.App;
 
 import java.util.List;
 

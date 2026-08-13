@@ -2,7 +2,7 @@ package com.openapi.backend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.openapi.backend.entity.InterfaceSubscribe;
+import com.openapi.domain.entity.InterfaceSubscribe;
 
 import java.util.List;
 import java.util.Map;

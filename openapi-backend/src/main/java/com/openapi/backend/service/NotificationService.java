@@ -2,7 +2,7 @@ package com.openapi.backend.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.openapi.backend.entity.Notification;
+import com.openapi.domain.entity.Notification;
 
 public interface NotificationService extends IService<Notification> {
 

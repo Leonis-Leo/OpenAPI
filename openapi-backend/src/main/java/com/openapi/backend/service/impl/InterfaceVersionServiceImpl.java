@@ -2,8 +2,8 @@ package com.openapi.backend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.openapi.backend.entity.InterfaceVersion;
-import com.openapi.backend.mapper.InterfaceVersionMapper;
+import com.openapi.domain.entity.InterfaceVersion;
+import com.openapi.domain.mapper.InterfaceVersionMapper;
 import com.openapi.backend.service.InterfaceVersionService;
 import com.openapi.common.exception.BusinessException;
 import com.openapi.common.model.enums.ErrorCode;

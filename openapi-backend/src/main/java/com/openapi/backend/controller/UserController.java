@@ -3,7 +3,7 @@ package com.openapi.backend.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.openapi.backend.common.JwtUtils;
-import com.openapi.backend.entity.User;
+import com.openapi.domain.entity.User;
 import com.openapi.backend.service.UserService;
 import com.openapi.backend.service.LoginSecurityService;
 import com.openapi.backend.service.JwtTokenBlacklistService;

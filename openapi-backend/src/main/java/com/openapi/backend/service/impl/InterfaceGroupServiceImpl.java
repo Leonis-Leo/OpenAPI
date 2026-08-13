@@ -2,10 +2,10 @@ package com.openapi.backend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.openapi.backend.entity.InterfaceGroup;
-import com.openapi.backend.entity.InterfaceInfo;
-import com.openapi.backend.mapper.InterfaceGroupMapper;
-import com.openapi.backend.mapper.InterfaceInfoMapper;
+import com.openapi.domain.entity.InterfaceGroup;
+import com.openapi.domain.entity.InterfaceInfo;
+import com.openapi.domain.mapper.InterfaceGroupMapper;
+import com.openapi.domain.mapper.InterfaceInfoMapper;
 import com.openapi.backend.service.InterfaceGroupService;
 import com.openapi.common.exception.BusinessException;
 import com.openapi.common.model.enums.ErrorCode;

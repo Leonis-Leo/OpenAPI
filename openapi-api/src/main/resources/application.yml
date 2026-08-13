@@ -1,0 +1,34 @@
+server:
+  port: 8102
+
+spring:
+  application:
+    name: openapi-api
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/openapi?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${OPENAPI_DB_USERNAME:root}
+    password: ${OPENAPI_DB_PASSWORD:123456}
+  data:
+    redis:
+      host: ${OPENAPI_REDIS_HOST:localhost}
+      port: ${OPENAPI_REDIS_PORT:6379}
+      database: 0
+  rabbitmq:
+    host: ${OPENAPI_RABBITMQ_HOST:localhost}
+    port: ${OPENAPI_RABBITMQ_PORT:5672}
+    username: ${OPENAPI_RABBITMQ_USERNAME:guest}
+    password: ${OPENAPI_RABBITMQ_PASSWORD:guest}
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      logic-delete-field: isDelete
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+openapi:
+  sign:
+    max-clock-skew-millis: 300000
