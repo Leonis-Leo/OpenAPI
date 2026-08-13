@@ -10,8 +10,8 @@ spring:
     gateway:
       routes:
         - id: openapi-api-route
-          # 骨架阶段使用静态地址，后续可接入 Nacos 后改为 lb://openapi-backend
-          uri: http://localhost:8101
+          # 多实例部署时改为 lb://openapi-backend（配合 Nacos 服务发现）
+          uri: ${OPENAPI_BACKEND_URI:http://localhost:8101}
           predicates:
             - Path=/api/**
 

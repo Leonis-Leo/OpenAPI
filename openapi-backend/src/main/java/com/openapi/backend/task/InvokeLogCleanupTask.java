@@ -3,6 +3,7 @@ package com.openapi.backend.task;
 import com.openapi.backend.mapper.InvokeLogMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ public class InvokeLogCleanupTask {
     private int retentionDays;
 
     @Scheduled(cron = "${openapi.log.cleanup-cron:0 0 3 * * ?}")
+    @SchedulerLock(name = "invokeLogCleanup", lockAtMostFor = "PT10M", lockAtLeastFor = "PT30S")
     public void cleanupExpiredLogs() {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
         try {
