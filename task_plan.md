@@ -6,7 +6,7 @@
 
 ## Next Step
 
-先收尾 P0 唯一剩余项「生产配置启动自检」，再按推荐顺序做 P1「上游服务配置/超时/重试/熔断降级」；并行推进 Phase 3 剩余（前端回归、JMeter 压测、数据库定时备份）。
+P0 已全部完成。下一步按推荐顺序做 P1「上游服务配置/超时/重试/熔断降级」；并行推进 Phase 3 剩余（前端回归、JMeter 压测、数据库定时备份）。
 
 ## Current Phase
 
@@ -48,7 +48,7 @@ Phase 3
 - [x] DB 索引优化（invoke_log 按 user/app/时间维度组合索引，迁移 2026-08-13）
 - [ ] 数据库定时备份
 - [x] 稳定性排查：后端线程饥饿 / 挂起（HikariPool housekeeper 告警 → 定位为机器休眠 clock leap，显式配置 HikariCP 加固）
-- [ ] 生产配置启动自检【P0】：启动时校验 JWT 密钥 / DB 密码 / Cookie Secure 等默认凭据，发现默认值告警或拒绝生产启动
+- [x] 生产配置启动自检【P0】：启动时校验 JWT 密钥 / DB 密码 / Cookie Secure 等默认凭据，发现默认值告警或拒绝生产启动
 - **Status:** in_progress
 
 ### Phase 4: 可观测性、稳定性与平台能力（吸收 P1）
