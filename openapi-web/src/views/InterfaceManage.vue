@@ -415,6 +415,16 @@
         <el-form-item label="响应示例">
           <el-input v-model="interfaceForm.responseExample" type="textarea" :rows="3" placeholder="JSON 响应示例" />
         </el-form-item>
+        <el-divider content-position="left">上游配置（可选，留空则走本地实现）</el-divider>
+        <el-form-item label="上游地址">
+          <el-input v-model="interfaceForm.upstream" placeholder="如 http://localhost:8103" />
+        </el-form-item>
+        <el-form-item label="超时(ms)">
+          <el-input-number v-model="interfaceForm.timeoutMs" :min="1" :step="500" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="重试次数">
+          <el-input-number v-model="interfaceForm.retryCount" :min="0" :max="10" style="width: 100%" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false">取消</el-button>
@@ -1127,7 +1137,10 @@ const interfaceForm = ref<InterfaceForm>({
   method: 'GET',
   url: '',
   requestParams: '',
-  responseExample: ''
+  responseExample: '',
+  upstream: '',
+  timeoutMs: 3000,
+  retryCount: 0
 })
 
 async function load() {
@@ -1469,6 +1482,9 @@ function openCreateForm() {
     url: '',
     requestParams: '',
     responseExample: '',
+    upstream: '',
+    timeoutMs: 3000,
+    retryCount: 0,
     groupId: undefined,
     tags: []
   }
@@ -1512,6 +1528,9 @@ function openEditForm(row: InterfaceInfo | null) {
     url: row.url,
     requestParams: row.requestParams ?? '',
     responseExample: row.responseExample ?? '',
+    upstream: row.upstream ?? '',
+    timeoutMs: row.timeoutMs ?? 3000,
+    retryCount: row.retryCount ?? 0,
     groupId: row.groupId,
     tags: (row.tags ?? []).map((t) => t.id)
   }

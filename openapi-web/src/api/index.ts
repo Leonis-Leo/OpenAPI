@@ -40,6 +40,9 @@ export interface InterfaceInfo {
   status: number
   requestParams?: string
   responseExample?: string
+  upstream?: string
+  timeoutMs?: number
+  retryCount?: number
 }
 
 export interface SubscribeInfo {
@@ -156,6 +159,9 @@ export interface InterfaceForm {
   url: string
   requestParams?: string
   responseExample?: string
+  upstream?: string
+  timeoutMs?: number
+  retryCount?: number
   groupId?: number
   tags?: number[]
 }
