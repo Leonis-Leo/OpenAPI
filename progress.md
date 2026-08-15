@@ -409,7 +409,7 @@
 
 ### 验证
 
-- 使用 `demo-access-key / demo-secret-key` 签名调用 `GET /api/demo/name` 成功。
+- 使用 `DEMO_ACCESS_KEY / DEMO_SECRET_KEY` 签名调用 `GET /api/demo/name` 成功。
 - 同一 TraceId 在 `gateway.log`、`api.log`、`backend.log` 中均命中。
 - 响应头 `X-Trace-Id` 已调整为仅网关返回给客户端，避免与数据面重复。
 - 受影响模块测试通过：`mvn -q -pl openapi-common,openapi-gateway,openapi-api,openapi-backend -am test`。
@@ -451,7 +451,7 @@
 
 ### 完成内容
 
-- 连接腾讯云服务器 `129.204.33.174`，安装 `docker.io` 与 `docker-compose-v2`。
+- 连接腾讯云服务器 `YOUR_SERVER_IP`，安装 `docker.io` 与 `docker-compose-v2`。
 - 配置 Docker 镜像加速：`https://mirror.ccs.tencentyun.com`。
 - 新增 `deploy/` 部署目录，包含 4 个 Java 服务 Dockerfile、前端 Nginx Dockerfile、`nginx.conf` 与 `docker-compose.yml`。
 - 调整 `openapi-backend` / `openapi-api` 的 JDBC URL，使用 `OPENAPI_DB_HOST` 环境变量。
@@ -460,7 +460,7 @@
 ### 部署结果
 
 - 8 个容器全部启动成功。
-- 前端 `http://129.204.33.174/` 返回 200。
+- 前端 `http://YOUR_SERVER_IP/` 返回 200。
 - 服务器内部网关 8080、后端 Swagger 8101 均可访问。
 - 外网 8080 / 8101 当前超时，需在腾讯云安全组放行对应端口。
 
@@ -473,10 +473,10 @@
 ### 放行端口后验证
 
 - 外部访问结果：
-  - `http://129.204.33.174/` → 200
-  - `http://129.204.33.174:8080/` → 404（根路径无路由，符合预期）
-  - `http://129.204.33.174:8101/swagger-ui.html` → 200
-  - `http://129.204.33.174:15672/` → 200
+  - `http://YOUR_SERVER_IP/` → 200
+  - `http://YOUR_SERVER_IP:8080/` → 404（根路径无路由，符合预期）
+  - `http://YOUR_SERVER_IP:8101/swagger-ui.html` → 200
+  - `http://YOUR_SERVER_IP:15672/` → 200
 - 云端签名调用 `GET /api/demo/name` 成功返回 200。
 - 修复网关容器 Redis 连接地址：`openapi-gateway` 的 `spring.data.redis.host` 改为 `${OPENAPI_REDIS_HOST:localhost}`，并重新构建网关容器。
 
@@ -491,6 +491,6 @@
 ### 使用方式
 
 1. 先开 SSH 隧道：
-   `ssh -N -L 3306:127.0.0.1:3306 -L 6379:127.0.0.1:6379 -L 5672:127.0.0.1:5672 ubuntu@129.204.33.174`
+   `ssh -N -L 3306:127.0.0.1:3306 -L 6379:127.0.0.1:6379 -L 5672:127.0.0.1:5672 ubuntu@YOUR_SERVER_IP`
 2. 再启动本地服务：
    `.\scripts\start-remote-dev.ps1`

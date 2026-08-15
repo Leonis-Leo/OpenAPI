@@ -1,8 +1,14 @@
 param(
-    [switch]$Build
+    [switch]$Build,
+    [string]$ServerHost = $env:OPENAPI_DEV_SERVER_HOST
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($ServerHost)) {
+    Write-Host '[ERROR] Missing server host. Set OPENAPI_DEV_SERVER_HOST or pass -ServerHost.' -ForegroundColor Red
+    exit 1
+}
 
 $env:OPENAPI_DB_HOST = '127.0.0.1'
 $env:OPENAPI_REDIS_HOST = '127.0.0.1'
@@ -24,7 +30,7 @@ if ($missing.Count -gt 0) {
     Write-Host ($missing -join ', ') -ForegroundColor Red
     Write-Host ''
     Write-Host 'Please start the SSH tunnel in another terminal first:'
-    Write-Host '  ssh -N -L 3306:127.0.0.1:3306 -L 6379:127.0.0.1:6379 -L 5672:127.0.0.1:5672 ubuntu@129.204.33.174'
+    Write-Host "  ssh -N -L 3306:127.0.0.1:3306 -L 6379:127.0.0.1:6379 -L 5672:127.0.0.1:5672 ubuntu@$ServerHost"
     exit 1
 }
 

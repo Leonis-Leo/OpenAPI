@@ -112,7 +112,7 @@ Phase 3
 | mvn package 无法 repackage（jar 被运行中进程占用） | 1 | 停止占用 jar 的后端进程后重试成功 |
 | browser-use 子代理消息不送达（PROBE 均无响应） | 1 | 改本会话内联执行 / 直接控制浏览器 |
 | PowerShell 管道中文乱码 | 1 | 脚本内使用 \uXXXX 转义，避免中文走 stdin |
-| mysql -p123456 短参数被 PowerShell 解析错误 | 1 | 改用 --password= 长参数形式 |
+| mysql -pLOCAL_DB_PASSWORD 短参数被 PowerShell 解析错误 | 1 | 改用 --password= 长参数形式 |
 | CDP DOM.getBoxModel backendNodeId 反序列化失败 | 1 | 改用 JS getBoundingClientRect 取坐标 |
 
 ## Notes
@@ -196,12 +196,12 @@ Phase 3
 
 ### 部署信息
 
-- 服务器：`129.204.33.174`（Ubuntu 24.04.4 LTS，Docker 29.1.3，Compose 2.40.3）
+- 服务器：`YOUR_SERVER_IP`（Ubuntu 24.04.4 LTS，Docker 29.1.3，Compose 2.40.3）
 - 部署目录：`/home/ubuntu/openapi`
 - Compose 文件：`deploy/docker-compose.yml`
-- 前端访问：`http://129.204.33.174/`
-- 网关访问：`http://129.204.33.174:8080/`（需云安全组放行 8080）
-- 后端 Swagger：`http://129.204.33.174:8101/swagger-ui.html`（需放行 8101）
+- 前端访问：`http://YOUR_SERVER_IP/`
+- 网关访问：`http://YOUR_SERVER_IP:8080/`（需云安全组放行 8080）
+- 后端 Swagger：`http://YOUR_SERVER_IP:8101/swagger-ui.html`（需放行 8101）
 
 ### 服务清单
 
@@ -209,9 +209,9 @@ Phase 3
 
 ### 云端验证（放行端口后）
 
-- 前端 `http://129.204.33.174/`：200
+- 前端 `http://YOUR_SERVER_IP/`：200
 - 网关根路径：404（无根路由，符合预期）
-- 后端 Swagger `http://129.204.33.174:8101/swagger-ui.html`：200
-- RabbitMQ 管理台 `http://129.204.33.174:15672/`：200
+- 后端 Swagger `http://YOUR_SERVER_IP:8101/swagger-ui.html`：200
+- RabbitMQ 管理台 `http://YOUR_SERVER_IP:15672/`：200
 - 云端签名调用 `GET /api/demo/name`：200，返回 `Cloud-Bob`
 - 网关 Redis host 已改为 `OPENAPI_REDIS_HOST` 环境变量并重建容器
