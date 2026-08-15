@@ -39,3 +39,6 @@ erl_crash.dump
 
 # Codex 插件运行环境（planning-with-files 自动安装）
 .codex/
+
+# Docs are not tracked
+docs/
