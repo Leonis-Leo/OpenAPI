@@ -1,0 +1,139 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: openapi-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${OPENAPI_DB_PASSWORD:-123456}
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: openapi
+      TZ: Asia/Shanghai
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - ../db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "127.0.0.1:3306:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p${OPENAPI_DB_PASSWORD:-123456} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [openapi]
+
+  redis:
+    image: redis:7
+    container_name: openapi-redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [openapi]
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: openapi-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [openapi]
+
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    container_name: openapi-backend
+    environment:
+      OPENAPI_DB_HOST: mysql
+      OPENAPI_DB_USERNAME: root
+      OPENAPI_DB_PASSWORD: ${OPENAPI_DB_PASSWORD:-123456}
+      OPENAPI_REDIS_HOST: redis
+      OPENAPI_RABBITMQ_HOST: rabbitmq
+      OPENAPI_PRODUCTION_MODE: ${OPENAPI_PRODUCTION_MODE:-false}
+      OPENAPI_COOKIE_SECURE: ${OPENAPI_COOKIE_SECURE:-false}
+      OPENAPI_JWT_SECRET: ${OPENAPI_JWT_SECRET:-openapi-platform-jwt-secret-key-0123456789abcdef0123456789abcdef}
+    ports:
+      - "8101:8101"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [openapi]
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    container_name: openapi-api
+    environment:
+      OPENAPI_DB_HOST: mysql
+      OPENAPI_DB_USERNAME: root
+      OPENAPI_DB_PASSWORD: ${OPENAPI_DB_PASSWORD:-123456}
+      OPENAPI_REDIS_HOST: redis
+      OPENAPI_RABBITMQ_HOST: rabbitmq
+    ports:
+      - "8102:8102"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [openapi]
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.gateway
+    container_name: openapi-gateway
+    environment:
+      OPENAPI_API_URI: http://api:8102
+      OPENAPI_REDIS_HOST: redis
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_started
+    networks: [openapi]
+
+  order-demo:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.order
+    container_name: openapi-order-demo
+    ports:
+      - "8103:8103"
+    networks: [openapi]
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    container_name: openapi-web
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_started
+    networks: [openapi]
+
+networks:
+  openapi:
+    driver: bridge
+
+volumes:
+  mysql-data:

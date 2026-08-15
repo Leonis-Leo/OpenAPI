@@ -6,7 +6,7 @@ spring:
     name: openapi-backend
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/openapi?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${OPENAPI_DB_HOST:localhost}:3306/openapi?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: ${OPENAPI_DB_USERNAME:root}
     password: ${OPENAPI_DB_PASSWORD:123456}
     hikari:
@@ -27,6 +27,15 @@ spring:
     port: ${OPENAPI_RABBITMQ_PORT:5672}
     username: ${OPENAPI_RABBITMQ_USERNAME:guest}
     password: ${OPENAPI_RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000
+          multiplier: 2
+          max-interval: 5000
+        default-requeue-rejected: false
 
 mybatis-plus:
   configuration:
@@ -67,3 +76,7 @@ openapi:
     retention-days: ${OPENAPI_LOG_RETENTION_DAYS:30}
     # 清理任务 cron（默认每天凌晨 3 点）
     cleanup-cron: ${OPENAPI_LOG_CLEANUP_CRON:0 0 3 * * ?}
+
+logging:
+  pattern:
+    level: "%5p [%X{traceId:-}]"

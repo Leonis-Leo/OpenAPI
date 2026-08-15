@@ -6,7 +6,7 @@
 
 ## Next Step
 
-Phase 4 可观测性：统一日志与链路追踪（TraceId 贯穿网关→数据面→MQ→控制面），之后补监控告警；并行推进 Phase 3 剩余（前端回归、JMeter 压测、数据库定时备份）。
+Phase 4 可观测性：TraceId 链路追踪已完成；监控告警暂缓至云服务器部署后。当前优先：数据库定时备份 → RabbitMQ 可靠投递 → 敏感字段脱敏 / 审计日志查询导出；并行推进 Phase 3 剩余（前端回归、JMeter 压测）。
 
 ## Current Phase
 
@@ -55,7 +55,8 @@ Phase 3
 
 - [x] 日志保留与归档策略（invoke_log 清理任务，InvokeLogCleanupTask）
 - [x] 网关签名校验与后端校验一致性收敛（抽取 SignatureHeaderValidator 共用）
-- [ ] 统一日志与链路追踪（TraceId 贯穿网关→后端→MQ）【P1】
+- [x] 统一日志与链路追踪（TraceId 贯穿网关→后端→MQ）【P1】
+- [ ] 集中式日志/链路查询平台：Loki + Promtail + Grafana，后续可选 OTel + Tempo【P1 · 后续】
 - [ ] RabbitMQ 可靠投递：重试、死信、幂等与积压监控【P1】
 - [ ] 监控告警（JVM / 接口调用 / 限流命中指标）【P1】
 - [x] 上游服务配置：upstream、超时、重试、熔断降级（健康检查待补）【P1 · 推荐顺序第 1】
@@ -133,3 +134,84 @@ Phase 3
 - 2026-08-02 前端测试进展与发现见 findings.md；每次会话记录见 progress.md
 - 阶段状态变化时同步更新「Next Step」为单一下一步动作
 - 重要决策前重读本计划，避免目标漂移
+
+## 当前执行：TraceId 链路追踪（2026-08-15）
+
+### Goal
+
+网关入口生成/透传 TraceId，统一贯穿 `openapi-gateway` → `openapi-api` / `openapi-backend` → RabbitMQ，四段日志用同一 ID 串起来。
+
+### 方案决策
+
+- 采用轻量 **MDC + TraceId 透传**，不引入 Java Agent / OTel Collector / Sleuth 全量依赖。
+- HTTP 透传头统一使用 `X-Trace-Id`；RabbitMQ 消息头使用同名 key `X-Trace-Id`。
+- TraceId 格式：32 位小写 hex（UUID 去连字符）。
+- 入口优先级：请求头已有合法 TraceId 则透传，否则网关生成。
+
+### Phases
+
+- [x] Phase A：梳理网关、数据面、控制面、MQ 的日志与过滤器接入点
+- [x] Phase B：在 `openapi-common` 实现 TraceId 生成/读取/校验/MDC 工具
+- [x] Phase C：网关入口生成或透传 TraceId，并写入 MDC
+- [x] Phase D：数据面与控制面从 HTTP Header 恢复 MDC
+- [x] Phase E：RabbitMQ 生产者写入 Header，消费者恢复 MDC
+- [x] Phase F：各模块日志 pattern 增加 `%X{traceId:-}`
+- [x] Phase G：`mvn package`、重启服务并验证单次调用四段日志串链
+
+### 验证结果（2026-08-15）
+
+- 真实签名调用 `GET /api/demo/name` 成功返回 200。
+- 同一个 TraceId 已在 `gateway.log`、`api.log`、`backend.log` 三处日志中命中。
+- 网关请求日志、数据面 `SignatureInterceptor` 日志、控制面 `InvokeLogConsumer` 日志均带 `[traceId]`。
+
+## 当前执行：RabbitMQ 可靠投递 + 敏感脱敏 / 审计日志（2026-08-15）
+
+### Goal
+
+补齐消息可靠性与审计能力：RabbitMQ 重试、死信、消费幂等；请求/响应敏感字段脱敏；审计日志查询与导出。
+
+### Phases
+
+- [x] A：RabbitMQ DLX/DLQ 与重试配置
+- [x] B：RabbitMQ 消费幂等（messageId + Redis 去重）
+- [x] C：敏感字段脱敏工具并接入数据面日志与审计拦截器
+- [x] D：审计日志后端查询 / 详情 / CSV 导出接口
+- [x] E：前端审计日志查询与导出页面
+- [x] F：构建、启动与端到端验证
+
+### 验证结果（2026-08-15）
+
+- 签名 POST `/api/demo/echo` 成功，`invoke_log.request_params` 中 `password/token` 已脱敏为 `***`。
+- `openapi.invoke.log` 已带上 `x-dead-letter-exchange`，DLQ `openapi.invoke.log.dlq` 已创建。
+- Redis 中出现 `openapi:mq:consumed:*` 幂等键，消费成功后会写入。
+- `/v1/audit/list` 返回审计列表，登录参数 `userPassword` 已脱敏。
+- `/v1/audit/export` 返回 `text/csv`，批量加载用户后不再 N+1 超时。
+- 前端 `npm run build` 通过，受影响模块测试通过。
+
+## 云服务器 Docker 部署（2026-08-15）
+
+### 状态
+
+已完成：Docker / Compose 安装、部署文件生成、镜像构建、容器启动。
+
+### 部署信息
+
+- 服务器：`129.204.33.174`（Ubuntu 24.04.4 LTS，Docker 29.1.3，Compose 2.40.3）
+- 部署目录：`/home/ubuntu/openapi`
+- Compose 文件：`deploy/docker-compose.yml`
+- 前端访问：`http://129.204.33.174/`
+- 网关访问：`http://129.204.33.174:8080/`（需云安全组放行 8080）
+- 后端 Swagger：`http://129.204.33.174:8101/swagger-ui.html`（需放行 8101）
+
+### 服务清单
+
+`mysql`、`redis`、`rabbitmq`、`backend`、`api`、`gateway`、`order-demo`、`frontend` 均已容器化并启动。
+
+### 云端验证（放行端口后）
+
+- 前端 `http://129.204.33.174/`：200
+- 网关根路径：404（无根路由，符合预期）
+- 后端 Swagger `http://129.204.33.174:8101/swagger-ui.html`：200
+- RabbitMQ 管理台 `http://129.204.33.174:15672/`：200
+- 云端签名调用 `GET /api/demo/name`：200，返回 `Cloud-Bob`
+- 网关 Redis host 已改为 `OPENAPI_REDIS_HOST` 环境变量并重建容器

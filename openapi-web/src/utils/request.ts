@@ -56,6 +56,9 @@ request.interceptors.request.use((config) => {
 
 request.interceptors.response.use(
   (response) => {
+    if (response.config.responseType === 'blob' || response.config.responseType === 'arraybuffer') {
+      return response.data as AxiosResponse
+    }
     const res = response.data as ApiResponse<unknown>
     if (res.code !== 0) {
       ElMessage.error(res.message || '请求失败')

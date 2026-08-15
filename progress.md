@@ -386,3 +386,111 @@
 - `CircuitBreaker` 是进程内实现，多实例需换 Redis / Resilience4j
 - 代理是「路径透传」（upstream + 原路径），未做路径改写/前缀映射
 - `images/img.png` 与 `docs/.obsidian/*` 有意未提交（截图敏感 + Obsidian 自动生成）
+
+## Session: 2026-08-15 TraceId 链路追踪
+
+### 目标
+
+为 `openapi-gateway` → `openapi-api` / `openapi-backend` → RabbitMQ 这条调用链加入统一的 TraceId，保证日志可串联。
+
+### 进展
+
+- 已确认方案：轻量 MDC + `X-Trace-Id` 透传，不引入 Agent / OTel Collector。
+- 已在 `task_plan.md` 增加本任务的分阶段计划。
+
+### 完成内容
+
+- 新增 `openapi-common` 的 `TraceContext` 工具类，统一 TraceId 生成、校验、MDC 读写与 Header/属性常量。
+- 新增 `openapi-gateway` 的 `TraceIdGlobalFilter`：入口生成/透传 `X-Trace-Id`，输出网关请求日志。
+- 新增 `openapi-api` 与 `openapi-backend` 的 `TraceIdFilter`：从 HTTP Header 恢复 MDC，响应返回 `X-Trace-Id`。
+- `openapi-api` 的 `SignatureInterceptor`：每笔签名请求输出带 TraceId 的入口日志，发布 MQ 消息时写入 `X-Trace-Id` header。
+- `openapi-backend` 的 `InvokeLogConsumer`：从 MQ header 读取 TraceId 并恢复 MDC，消费时输出一条带 TraceId 的日志。
+- 三个 Java 服务的 `application.yml` 均加入 `logging.pattern.level`，日志前缀显示 `[traceId]`。
+
+### 验证
+
+- 使用 `demo-access-key / demo-secret-key` 签名调用 `GET /api/demo/name` 成功。
+- 同一 TraceId 在 `gateway.log`、`api.log`、`backend.log` 中均命中。
+- 响应头 `X-Trace-Id` 已调整为仅网关返回给客户端，避免与数据面重复。
+- 受影响模块测试通过：`mvn -q -pl openapi-common,openapi-gateway,openapi-api,openapi-backend -am test`。
+
+### 遇到的问题
+
+| 问题 | 处理 |
+| --- | --- |
+| 实际 Maven 路径不是 `E:\Maven\bin\mvn.cmd` | 使用 `E:\Maven\apache-maven-3.9.6\bin\mvn.cmd` |
+| 数据面在连接池初始化完成后没有业务日志，导致 TraceId 无法在 api.log 串起来 | 在 `SignatureInterceptor.preHandle` 增加请求入口日志 |
+| MQ 消费端原先无 logback 日志，TraceId 只出现在 MyBatis 参数中 | 在 `InvokeLogConsumer.handle` 增加消费日志 |
+
+## Session: 2026-08-15 RabbitMQ 可靠投递 + 敏感脱敏 / 审计日志
+
+### 完成内容
+
+- RabbitMQ 主队列增加 DLX，新增 DLQ 与绑定；后端启用消费重试并关闭失败重排队。
+- 生产者发送时写入 `messageId`；消费者用 `messageId + Redis` 做幂等去重。
+- 新增 `SensitiveDataMasker`，对密码、密钥、Token、Cookie 等字段脱敏。
+- `SignatureInterceptor` 的请求参数、请求头、响应体接入脱敏；`AuditLogInterceptor` 的详情参数接入脱敏。
+- 新增审计日志后端查询、详情与 CSV 导出接口。
+- 新增前端 `AuditLogManage.vue`、路由和菜单，支持审计日志筛选与导出。
+
+### 验证
+
+- 签名 POST 调用后，`invoke_log.request_params` 中 `password/token` 已脱敏为 `***`。
+- RabbitMQ 队列 `openapi.invoke.log` 已带 `x-dead-letter-exchange`，DLQ 已创建。
+- Redis 中已出现 `openapi:mq:consumed:*` 幂等键。
+- `/v1/audit/list` 与 `/v1/audit/export` 均可用，导出不再因 N+1 超时。
+
+### 遇到的问题
+
+| 问题 | 处理 |
+| --- | --- |
+| RabbitMQ 旧队列没有 DLX 参数，新声明触发 `PRECONDITION_FAILED` | 删除本地空队列后让 RabbitAdmin 重建 |
+| 审计 CSV 导出逐条查用户，数据量较大时超时 | `buildCsv` 改为按 userId 批量查询 |
+
+## Session: 2026-08-15 云服务器 Docker 部署
+
+### 完成内容
+
+- 连接腾讯云服务器 `129.204.33.174`，安装 `docker.io` 与 `docker-compose-v2`。
+- 配置 Docker 镜像加速：`https://mirror.ccs.tencentyun.com`。
+- 新增 `deploy/` 部署目录，包含 4 个 Java 服务 Dockerfile、前端 Nginx Dockerfile、`nginx.conf` 与 `docker-compose.yml`。
+- 调整 `openapi-backend` / `openapi-api` 的 JDBC URL，使用 `OPENAPI_DB_HOST` 环境变量。
+- 打包并上传部署包，在服务器 `/home/ubuntu/openapi` 完成镜像构建与容器启动。
+
+### 部署结果
+
+- 8 个容器全部启动成功。
+- 前端 `http://129.204.33.174/` 返回 200。
+- 服务器内部网关 8080、后端 Swagger 8101 均可访问。
+- 外网 8080 / 8101 当前超时，需在腾讯云安全组放行对应端口。
+
+### 遇到的问题
+
+| 问题 | 处理 |
+| --- | --- |
+| Docker Hub 拉取镜像超时 | 配置腾讯云 registry mirror 后重试成功 |
+
+### 放行端口后验证
+
+- 外部访问结果：
+  - `http://129.204.33.174/` → 200
+  - `http://129.204.33.174:8080/` → 404（根路径无路由，符合预期）
+  - `http://129.204.33.174:8101/swagger-ui.html` → 200
+  - `http://129.204.33.174:15672/` → 200
+- 云端签名调用 `GET /api/demo/name` 成功返回 200。
+- 修复网关容器 Redis 连接地址：`openapi-gateway` 的 `spring.data.redis.host` 改为 `${OPENAPI_REDIS_HOST:localhost}`，并重新构建网关容器。
+
+## Session: 2026-08-15 本地开发连服务器中间件
+
+### 完成内容
+
+- 服务器 `deploy/docker-compose.yml` 将 MySQL / Redis / RabbitMQ AMQP 端口绑定到 `127.0.0.1`，不暴露公网。
+- 新增 `scripts/start-remote-dev.ps1`：检查 SSH 隧道端口，设置远程中间件环境变量，并跳过本地中间件启动。
+- `scripts/start-all.ps1` 增加 `-SkipMiddleware` 参数，方便本地远程开发模式复用。
+
+### 使用方式
+
+1. 先开 SSH 隧道：
+   `ssh -N -L 3306:127.0.0.1:3306 -L 6379:127.0.0.1:6379 -L 5672:127.0.0.1:5672 ubuntu@129.204.33.174`
+2. 再启动本地服务：
+   `.\scripts\start-remote-dev.ps1`

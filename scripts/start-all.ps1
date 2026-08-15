@@ -1,5 +1,6 @@
 param(
-    [switch]$Build
+    [switch]$Build,
+    [switch]$SkipMiddleware
 )
 
 $ErrorActionPreference = 'Stop'
@@ -40,6 +41,32 @@ function Wait-Port([int]$Port, [string]$Name, [int]$TimeoutSeconds = 30) {
         Start-Sleep -Seconds 1
     }
     throw "$Name did not start on port $Port. Check $LogRoot."
+}
+
+function Test-MySqlReady {
+    $MySqlClient = Join-Path (Split-Path -Parent $MySqlExe) 'mysql.exe'
+    if (-not (Test-Path -LiteralPath $MySqlClient)) {
+        return (Test-Port 3306)
+    }
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $MySqlClient -h 127.0.0.1 -P 3306 -u root --password=123456 --connect-timeout=5 -e "SELECT 1" 1>$null 2>$null
+        return ($LASTEXITCODE -eq 0)
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+}
+
+function Wait-MySqlReady([int]$TimeoutSeconds = 30) {
+    for ($i = 0; $i -lt $TimeoutSeconds; $i++) {
+        if ((Test-Port 3306) -and (Test-MySqlReady)) {
+            return $true
+        }
+        Start-Sleep -Seconds 1
+    }
+    return $false
 }
 
 function Start-ManagedProcess(
@@ -100,38 +127,59 @@ if ($Build) {
     }
 }
 
-# MySQL: prefer the registered service; fall back to the E: drive installation
-# when the current shell cannot control Windows services without elevation.
-if (-not (Test-Port 3306)) {
-    try {
-        Start-Service -Name MySQL -ErrorAction Stop
+if (-not $SkipMiddleware) {
+    # MySQL: prefer the registered service; fall back to the E: drive installation
+    # when the current shell cannot control Windows services without elevation.
+    $mysqlReady = $false
+    if (Test-Port 3306) {
+        if (Test-MySqlReady) {
+            $mysqlReady = $true
+            Write-Host '[SKIP] MySQL is already running on 3306' -ForegroundColor Yellow
+        }
+        else {
+            Write-Host '[WARN] MySQL port 3306 is up but not accepting queries; will try to restart.' -ForegroundColor Yellow
+        }
     }
-    catch {
-        Write-Host '[INFO] MySQL service could not be started; using E:\MySQL8\my.ini directly.' -ForegroundColor Yellow
+
+    if (-not $mysqlReady) {
+        $mysqlServiceStarted = $false
+        try {
+            Start-Service -Name MySQL -ErrorAction Stop
+            $mysqlServiceStarted = $true
+        }
+        catch {
+            Write-Host '[INFO] MySQL service could not be started; using E:\MySQL8\my.ini directly.' -ForegroundColor Yellow
+        }
+        if ($mysqlServiceStarted -and (Wait-MySqlReady 30)) {
+            $mysqlReady = $true
+        }
     }
-    Start-Sleep -Seconds 3
-}
-if (-not (Test-Port 3306)) {
-    Start-ManagedProcess 'mysql' $MySqlExe @('--defaults-file=E:\MySQL8\my.ini', '--console') 'E:\MySQL8' 3306
+
+    if (-not $mysqlReady) {
+        Start-ManagedProcess 'mysql' $MySqlExe @('--defaults-file=E:\MySQL8\my.ini', '--console') 'E:\MySQL8' 3306
+        if (-not (Wait-MySqlReady 30)) {
+            throw 'MySQL process is listening on 3306 but is not accepting queries. Check runtime-logs.'
+        }
+    }
+
+    Start-ManagedProcess 'redis' $RedisExe @($RedisConfig) 'E:\redis' 6379
+
+    if (-not (Test-Port 5672)) {
+        if (-not (Test-Path -LiteralPath $RabbitServer)) {
+            throw "RabbitMQ launcher not found: $RabbitServer"
+        }
+        $env:ERLANG_HOME = 'E:\Erlang27'
+        Start-Process -WindowStyle Hidden -FilePath $RabbitServer -ArgumentList '-detached' `
+            -WorkingDirectory $RabbitSbin -RedirectStandardOutput (Join-Path $LogRoot 'rabbitmq.log') `
+            -RedirectStandardError (Join-Path $LogRoot 'rabbitmq.err.log') | Out-Null
+        Wait-Port 5672 'rabbitmq'
+    }
+    else {
+        Write-Host '[SKIP] RabbitMQ is already running on 5672' -ForegroundColor Yellow
+    }
 }
 else {
-    Write-Host '[SKIP] MySQL is already running on 3306' -ForegroundColor Yellow
-}
-
-Start-ManagedProcess 'redis' $RedisExe @($RedisConfig) 'E:\redis' 6379
-
-if (-not (Test-Port 5672)) {
-    if (-not (Test-Path -LiteralPath $RabbitServer)) {
-        throw "RabbitMQ launcher not found: $RabbitServer"
-    }
-    $env:ERLANG_HOME = 'E:\Erlang27'
-    Start-Process -WindowStyle Hidden -FilePath $RabbitServer -ArgumentList '-detached' `
-        -WorkingDirectory $RabbitSbin -RedirectStandardOutput (Join-Path $LogRoot 'rabbitmq.log') `
-        -RedirectStandardError (Join-Path $LogRoot 'rabbitmq.err.log') | Out-Null
-    Wait-Port 5672 'rabbitmq'
-}
-else {
-    Write-Host '[SKIP] RabbitMQ is already running on 5672' -ForegroundColor Yellow
+    Write-Host '[INFO] Skip local middleware; expecting SSH tunnel to 127.0.0.1:3306/6379/5672' -ForegroundColor Yellow
 }
 
 Start-ManagedProcess 'backend' $JavaExe @('-jar', $BackendJar) $ProjectRoot 8101

@@ -35,6 +35,7 @@
         <el-menu-item v-if="isAdmin" index="/stats" title="调用统计"><el-icon><TrendCharts /></el-icon><span>调用统计</span></el-menu-item>
         <el-menu-item v-if="isAdmin" index="/stats/detail" title="调用明细"><el-icon><DataLine /></el-icon><span>调用明细</span></el-menu-item>
         <el-menu-item v-if="isAdmin" index="/logs" title="API 日志"><el-icon><Document /></el-icon><span>API 日志</span></el-menu-item>
+        <el-menu-item v-if="isAdmin" index="/audit-logs" title="审计日志"><el-icon><Document /></el-icon><span>审计日志</span></el-menu-item>
         <el-menu-item
           v-if="isAdmin"
           index="/coming-soon"
@@ -381,6 +382,7 @@ const SEARCH_PAGES: SearchPageItem[] = [
   { name: '调用统计', route: '/stats', keywords: ['统计', '趋势', '调用量'], icon: TrendCharts, adminOnly: true },
   { name: '调用明细', route: '/stats/detail', keywords: ['明细', '天维度', '应用维度', '用量'], icon: DataLine, adminOnly: true },
   { name: 'API 日志', route: '/logs', keywords: ['日志', '请求', '调用记录', 'trace'], icon: Document, adminOnly: true },
+  { name: '审计日志', route: '/audit-logs', keywords: ['审计', '操作', 'audit'], icon: Document, adminOnly: true },
   { name: '监控告警', route: plannedRoute('监控告警', 'JVM 指标、调用量波动与限流命中率监控，异常自动告警'), keywords: ['监控', '告警', 'jvm'], icon: Odometer, adminOnly: true, planned: true },
   { name: '策略中心', route: plannedRoute('策略中心', '按应用/用户/IP/接口/方法/路径维度统一配置限流、黑白名单、缓存与改写'), keywords: ['策略', '限流', '黑名单', '白名单', '缓存'], icon: SetUp, adminOnly: true, planned: true },
   { name: '灰度发布', route: plannedRoute('灰度发布', '按应用/用户/Header/IP 或比例路由到不同版本，保留流量与回滚记录'), keywords: ['灰度', '发布', '路由'], icon: Promotion, adminOnly: true, planned: true },

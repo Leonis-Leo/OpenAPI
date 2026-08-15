@@ -82,6 +82,12 @@ const router = createRouter({
           meta: { title: 'API 日志' }
         },
         {
+          path: 'audit-logs',
+          name: 'audit-logs',
+          component: () => import('@/views/AuditLogManage.vue'),
+          meta: { title: '审计日志' }
+        },
+        {
           path: 'notifications',
           name: 'notifications',
           component: () => import('@/views/NotificationCenter.vue'),
@@ -102,7 +108,7 @@ router.beforeEach((to) => {
   if (!to.meta.public && to.path !== '/login' && !userStore.user) {
     return '/login'
   }
-  const adminRoutes = ['/stats', '/stats/detail', '/users', '/ratelimit', '/logs']
+  const adminRoutes = ['/stats', '/stats/detail', '/users', '/ratelimit', '/logs', '/audit-logs']
   if (adminRoutes.includes(to.path) && userStore.user?.userRole !== 'admin') {
     return '/dashboard'
   }

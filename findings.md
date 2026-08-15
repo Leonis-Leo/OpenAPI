@@ -40,3 +40,21 @@
 - ~~重置密钥弹窗截断是否为真 bug、影响面多大（复制按钮行为）？~~ 已复核排除（2026-08-13）：弹窗完整显示 66 位，复制按钮复制完整明文。
 - ~~是否需要对 invoke_log 增加按时间清理的定时任务？~~ 已完成（2026-08-13）：`InvokeLogCleanupTask` 每天凌晨 3 点按 `openapi.log.retention-days`（默认 30 天）清理，聚合统计表永久保留。
 - 压测目标指标（QPS / P95 RT）由谁定？
+
+## 2026-08-15 TraceId 链路追踪发现
+
+- **竞品结论**：高星项目主要分两类——网关插件/Agent 无侵入（Kong / APISIX / ShenYu）和 Spring 生态原生观测（Spring Cloud Gateway + Micrometer Tracing）。本项目第一阶段采用轻量 `MDC + X-Trace-Id` 透传最合适，避免引入 Agent / OTel Collector。
+- **TraceId 格式**：约定 32 位小写 hex（UUID 去连字符），入口优先透传合法 Header，否则生成。
+- **关键接入点**：
+  - 网关 `TraceIdGlobalFilter` 负责入口生成/透传。
+  - 数据面 / 控制面用 `OncePerRequestFilter` 恢复 MDC，过滤器需 `@Order(HIGHEST_PRECEDENCE)`。
+  - RabbitMQ 用 `MessagePostProcessor` 写 header，消费端用 `@Header` 读取并恢复 MDC。
+- **注意**：Spring Cloud Gateway 是 WebFlux，MDC 不会自动沿 Reactor 链传播；网关侧只对入口日志做 MDC 写入/清理，下游由 Servlet 服务自行恢复。
+- **响应头重复 `X-Trace-Id`**：初版网关与数据面都会设置，导致值为 `id,id`；已改为只由网关返回给客户端，数据面仅恢复 MDC 与请求属性。
+
+## 2026-08-15 RabbitMQ 可靠投递与敏感脱敏发现
+
+- RabbitMQ 队列参数变更不能对已存在队列直接重声明，会报 `PRECONDITION_FAILED`；本地开发可删除旧队列后重建，生产需规划迁移策略。
+- 消费幂等采用 `messageId + Redis key`，成功后再标记；若处理失败则重试，避免提前标记导致消息丢失。
+- 审计日志导出若逐条关联用户会产生 N+1 查询，数据量稍大就会超时；应按 `userId` 批量查询再组装。
+- 敏感脱敏统一在 `openapi-common` 做 JSON 递归掩码，数据面请求参数/请求头/响应体与审计详情复用同一策略。

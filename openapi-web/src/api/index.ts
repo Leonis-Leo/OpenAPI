@@ -482,3 +482,43 @@ export const deleteNotification = (id: number) =>
 
 export const clearNotifications = () =>
   request.post<unknown, void>('/notification/clear')
+
+export interface AuditLogInfo {
+  id: number
+  userId?: number
+  userAccount?: string
+  action: string
+  resource: string
+  ip?: string
+  statusCode?: number
+  success: number
+  detail?: string
+  createTime: string
+}
+
+export const pageAuditLogs = (params: {
+  current: number
+  size: number
+  keyword?: string
+  userId?: number
+  action?: string
+  resource?: string
+  success?: number
+  startTime?: string
+  endTime?: string
+}) =>
+  request.get<unknown, PageResult<AuditLogInfo>>('/audit/list', { params })
+
+export const getAuditLog = (id: number) =>
+  request.get<unknown, AuditLogInfo>(`/audit/${id}`)
+
+export const exportAuditLogs = (params: {
+  keyword?: string
+  userId?: number
+  action?: string
+  resource?: string
+  success?: number
+  startTime?: string
+  endTime?: string
+}) =>
+  request.get<unknown, Blob>('/audit/export', { params, responseType: 'blob' })
